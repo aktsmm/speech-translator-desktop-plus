@@ -454,9 +454,11 @@ public class MainViewModelTests
         viewModel.StopButtonText.Should().Be("Stop");
         viewModel.SettingsButtonText.Should().Be("Settings");
         viewModel.SettingsWindowTitle.Should().Be("Settings");
-        viewModel.ShowRecentTranslationsButtonText.Should().Be("Open translations window");
-        viewModel.TranslationsWindowTitle.Should().Be("Translations (latest 3)");
+        viewModel.ShowRecentTranslationsButtonText.Should().Be("Open live notes window");
+        viewModel.TranslationsWindowTitle.Should().Be("Live notes (latest 3)");
         viewModel.TranslationLogHeader.Should().Be("Translation log");
+        viewModel.StatusLabel.Should().Be("Status");
+        viewModel.StatusMessage.Should().Be("Stopped");
         viewModel.AvailableAudioInputSources.Select(option => option.DisplayName)
             .Should()
             .Equal("Microphone", "PC audio (default playback device)", "Microphone + PC audio");

@@ -41,7 +41,7 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 - Wrapped translation table rows, capped to roughly three visible lines.
 - Empty translation row suppression.
 - Clear logs action that resets the on-screen logs and starts a fresh recording file on the next start.
-- Optional translation pop-out window with card-style monitoring for the three newest source/translation pairs.
+- Optional live-notes pop-out window with card-style monitoring for the three newest source/transcript or source/translation pairs.
 - Configurable and persisted recording folder.
 - Dedicated settings window to keep the main translation screen focused.
 - `Open folder` and `Choose folder` controls.
@@ -97,7 +97,7 @@ scripts\run-dev.cmd
 6. Optionally enter a recording file name stem, using letters/numbers/`-`/`_` only.
 7. Click `Start`.
 8. Click `Clear logs` to clear the visible translation/status logs. If a recording file name is set, the next `Start` creates a new timestamped recording file instead of appending to the previous file.
-9. Click `Open translations window` to open a separate window that shows only the three newest source/translation pairs.
+9. Click `Open live notes window` to open a separate window that shows only the three newest source/transcript or source/translation pairs.
 
 If the recording file name is empty, translation/transcription is shown in the UI but not saved to a text file.
 

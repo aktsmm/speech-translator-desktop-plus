@@ -134,6 +134,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,12,12">
@@ -209,6 +210,25 @@
                             ToolTip="{Binding ShowRecentTranslationsButtonText}"
                             Content="{Binding ShowRecentTranslationsButtonText}" />
                 </WrapPanel>
+
+                <Border Grid.Row="2"
+                        Grid.Column="0"
+                        Grid.ColumnSpan="4"
+                        Margin="0,14,0,0"
+                        Padding="10,6"
+                        HorizontalAlignment="Left"
+                        Background="#EFF6FF"
+                        CornerRadius="10"
+                        AutomationProperties.Name="{Binding StatusLabel}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock FontWeight="SemiBold"
+                                   Foreground="#1D4ED8"
+                                   Text="{Binding StatusLabel}" />
+                        <TextBlock Margin="8,0,0,0"
+                                   Foreground="#1E3A8A"
+                                   Text="{Binding StatusMessage}" />
+                    </StackPanel>
+                </Border>
             </Grid>
         </Border>
 

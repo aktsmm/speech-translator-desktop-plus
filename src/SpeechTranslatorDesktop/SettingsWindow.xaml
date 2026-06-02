@@ -77,11 +77,15 @@
                 <Button Width="90"
                         Style="{StaticResource ActionButton}"
                         Command="{Binding ChooseRecordingsFolderCommand}"
+                        AutomationProperties.Name="{Binding ChooseButtonText}"
+                        ToolTip="{Binding ChooseButtonText}"
                         Content="{Binding ChooseButtonText}" />
                 <Button Width="90"
                         Margin="8,0,0,0"
                         Style="{StaticResource ActionButton}"
                         Command="{Binding OpenRecordingsFolderCommand}"
+                        AutomationProperties.Name="{Binding OpenButtonText}"
+                        ToolTip="{Binding OpenButtonText}"
                         Content="{Binding OpenButtonText}" />
             </StackPanel>
 
@@ -111,6 +115,8 @@
                         VerticalAlignment="Bottom"
                         Style="{StaticResource PrimaryButton}"
                         Command="{Binding SaveSettingsCommand}"
+                        AutomationProperties.Name="{Binding SaveButtonText}"
+                        ToolTip="{Binding SaveButtonText}"
                         Content="{Binding SaveButtonText}" />
             </DockPanel>
         </Grid>

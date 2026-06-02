@@ -27,7 +27,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private string _recordingFileName = string.Empty;
     private string _recordingsFolderPath = string.Empty;
     private string _settingsStatusMessage = string.Empty;
-    private string _statusMessage = "停止";
+    private string _statusMessage = string.Empty;
     private bool _isRunning;
     private bool _startNewRecordingFileOnNextStart;
 
@@ -89,6 +89,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _selectedRecognitionMode = AvailableRecognitionModes.First(option => option.Mode == RecognitionMode.Translation);
         _selectedSourceLanguage = AvailableLanguages[0];
         _selectedTargetLanguage = AvailableLanguages[1];
+        _statusMessage = Text("停止", "Stopped");
         _recordingsFolderPath = _recordingFileService.RecordingsDirectory;
 
         StartCommand = new AsyncRelayCommand(StartAsync, () => !IsRunning, _dispatcher, HandleCommandException);
@@ -235,6 +236,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             OnPropertyChanged();
             UpdateAudioInputSourceLabels();
             UpdateRecognitionModeLabels();
+            UpdateLocalizedStatusMessage();
             RaiseUiTextChanged();
         }
     }
@@ -339,13 +341,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string SettingsWindowTitle => Text("設定", "Settings");
 
-    public string ShowRecentTranslationsButtonText => Text("別ウィンドウで翻訳を開く", "Open translations window");
+    public string ShowRecentTranslationsButtonText => Text("別ウィンドウでライブノートを開く", "Open live notes window");
 
     public string SourceLanguageLabel => Text("話者言語", "Speaker language");
 
     public string SourceTextHeader => IsTranslationMode ? Text("原文", "Source text") : Text("書き起こし", "Transcript");
 
     public string StartButtonText => Text("開始", "Start");
+
+    public string StatusLabel => Text("状態", "Status");
 
     public string StatusLogHeader => Text("状態ログ", "Status log");
 
@@ -355,7 +359,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string TranslationLogHeader => IsTranslationMode ? Text("翻訳ログ", "Translation log") : Text("書き起こしログ", "Transcript log");
 
-    public string TranslationsWindowTitle => Text("翻訳ウィンドウ（最新3件）", "Translations (latest 3)");
+    public string TranslationsWindowTitle => Text("ライブノート（最新3件）", "Live notes (latest 3)");
 
     public string TranslatedTextHeader => Text("翻訳文", "Translation");
 
@@ -737,6 +741,27 @@ public sealed class MainViewModel : INotifyPropertyChanged
             SelectedRecognitionMode?.Mode.ToString()));
     }
 
+    private void UpdateLocalizedStatusMessage()
+    {
+        if (_statusMessage is "停止" or "Stopped")
+        {
+            StatusMessage = Text("停止", "Stopped");
+            return;
+        }
+
+        if (_statusMessage is "開始" or "Started")
+        {
+            StatusMessage = Text("開始", "Started");
+            return;
+        }
+
+        if (_statusMessage is "ログをクリアしました。" or "Logs cleared.")
+        {
+            StatusMessage = Text("ログをクリアしました。", "Logs cleared.");
+            return;
+        }
+    }
+
     private void RaiseUiTextChanged()
     {
         OnPropertyChanged(nameof(ApiKeyLabel));
@@ -755,6 +780,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SourceLanguageLabel));
         OnPropertyChanged(nameof(SourceTextHeader));
         OnPropertyChanged(nameof(StartButtonText));
+        OnPropertyChanged(nameof(StatusLabel));
+        OnPropertyChanged(nameof(StatusMessage));
         OnPropertyChanged(nameof(StatusLogHeader));
         OnPropertyChanged(nameof(StopButtonText));
         OnPropertyChanged(nameof(TargetLanguageLabel));
