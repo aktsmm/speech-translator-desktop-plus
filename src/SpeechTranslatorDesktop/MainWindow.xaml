@@ -83,7 +83,7 @@
                          Grid.Column="1"
                          Margin="0,0,12,8"
                          IsReadOnly="True"
-                         Text="{Binding RecordingsFolderPath}" />
+                         Text="{Binding RecordingsFolderPath, Mode=OneWay}" />
                 <StackPanel Grid.Row="0"
                             Grid.Column="2"
                             Orientation="Horizontal">
