@@ -4,5 +4,5 @@ namespace SpeechTranslatorDesktop.Services;
 
 public interface IDesktopTranslationWorkerFactory
 {
-    IDesktopTranslationWorker Create(string targetLanguage, string? recordingFileName, UiLanguage uiLanguage);
+    IDesktopTranslationWorker Create(string targetLanguage, string? recordingFileName, UiLanguage uiLanguage, RecognitionMode recognitionMode);
 }

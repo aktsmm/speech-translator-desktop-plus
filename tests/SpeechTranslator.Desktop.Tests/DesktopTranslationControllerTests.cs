@@ -18,7 +18,7 @@ public class DesktopTranslationControllerTests
         });
         var controller = CreateController(session);
 
-        await controller.StartAsync(new SpeechCredentials("japaneast", "test-key"), "en-US", "ja-JP", AudioInputSource.Microphone, new NoOpTranslationRecognizerWorker());
+        await controller.StartAsync(new SpeechCredentials("japaneast", "test-key"), "en-US", "ja-JP", AudioInputSource.Microphone, RecognitionMode.Translation, new FakeDesktopTranslationWorker());
         await FluentActions.Awaiting(() => controller.StopAsync())
             .Should()
             .ThrowAsync<InvalidOperationException>()
@@ -45,10 +45,10 @@ public class DesktopTranslationControllerTests
         });
         var controller = CreateController(session);
 
-        await controller.StartAsync(new SpeechCredentials("japaneast", "test-key"), "en-US", "ja-JP", AudioInputSource.Microphone, new NoOpTranslationRecognizerWorker());
+        await controller.StartAsync(new SpeechCredentials("japaneast", "test-key"), "en-US", "ja-JP", AudioInputSource.Microphone, RecognitionMode.Translation, new FakeDesktopTranslationWorker());
         await FluentActions.Awaiting(() => controller.StopAsync()).Should().ThrowAsync<InvalidOperationException>();
 
-        await FluentActions.Awaiting(() => controller.StartAsync(new SpeechCredentials("japaneast", "test-key"), "en-US", "ja-JP", AudioInputSource.Microphone, new NoOpTranslationRecognizerWorker()))
+        await FluentActions.Awaiting(() => controller.StartAsync(new SpeechCredentials("japaneast", "test-key"), "en-US", "ja-JP", AudioInputSource.Microphone, RecognitionMode.Translation, new FakeDesktopTranslationWorker()))
             .Should()
             .ThrowAsync<InvalidOperationException>()
             .WithMessage("Translation is already running.");
@@ -71,7 +71,7 @@ public class DesktopTranslationControllerTests
         session.EnqueueDisposeBehavior(() => ValueTask.CompletedTask);
         var controller = CreateController(session);
 
-        await controller.StartAsync(new SpeechCredentials("japaneast", "test-key"), "en-US", "ja-JP", AudioInputSource.Microphone, new NoOpTranslationRecognizerWorker());
+        await controller.StartAsync(new SpeechCredentials("japaneast", "test-key"), "en-US", "ja-JP", AudioInputSource.Microphone, RecognitionMode.Translation, new FakeDesktopTranslationWorker());
         await FluentActions.Awaiting(() => controller.StopAsync())
             .Should()
             .ThrowAsync<InvalidOperationException>()
@@ -88,7 +88,7 @@ public class DesktopTranslationControllerTests
 
     private static DesktopTranslationController CreateController(ITranslationSession session)
     {
-        return new DesktopTranslationController((credentials, sourceLanguage, targetLanguage, audioInputSource, worker, cancellationToken) =>
+        return new DesktopTranslationController((credentials, sourceLanguage, targetLanguage, audioInputSource, recognitionMode, worker, cancellationToken) =>
         {
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult(session);
@@ -144,6 +144,50 @@ public class DesktopTranslationControllerTests
         }
 
         public override void OnRecognizing(TranslationRecognitionEventArgs e)
+        {
+        }
+
+        public override void OnSessionStarted(SessionEventArgs e)
+        {
+        }
+
+        public override void OnSessionStopped(SessionEventArgs e)
+        {
+        }
+
+        public override void OnSpeechEndDetected(RecognitionEventArgs e)
+        {
+        }
+
+        public override void OnSpeechStartDetected(RecognitionEventArgs e)
+        {
+        }
+    }
+
+    private sealed class FakeDesktopTranslationWorker : IDesktopTranslationWorker
+    {
+        public TranslationRecognizerWorkerBase RecognizerWorker { get; } = new NoOpTranslationRecognizerWorker();
+
+        public SpeechRecognizerWorkerBase SpeechRecognizerWorker { get; } = new NoOpSpeechRecognizerWorker();
+
+        public event EventHandler<string>? MessageLogged;
+
+        public event EventHandler<WorkerStatusChangedEventArgs>? StatusChanged;
+
+        public event EventHandler<TranslationLogItem>? TranslationLogged;
+    }
+
+    private sealed class NoOpSpeechRecognizerWorker : SpeechRecognizerWorkerBase
+    {
+        public override void OnCanceled(SpeechRecognitionCanceledEventArgs e)
+        {
+        }
+
+        public override void OnRecognized(SpeechRecognitionEventArgs e)
+        {
+        }
+
+        public override void OnRecognizing(SpeechRecognitionEventArgs e)
         {
         }
 

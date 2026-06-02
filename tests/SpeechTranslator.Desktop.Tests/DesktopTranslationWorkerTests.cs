@@ -96,6 +96,37 @@ public class DesktopTranslationWorkerTests
             e.Message.Contains("disk full"));
     }
 
+    [Fact]
+    public void HandleTranscribedSpeech_TrimsTextBeforeLoggingAndSaving()
+    {
+        var recordingFileService = new RecordingSpyFileService();
+        var worker = new DesktopTranslationWorker("ja-JP", "session-01", recordingFileService, recognitionMode: RecognitionMode.TranscriptionOnly);
+        var translations = new List<TranslationLogItem>();
+
+        worker.TranslationLogged += (_, e) => translations.Add(e);
+
+        worker.HandleTranscribedSpeech("  hello transcript  ");
+
+        translations.Should().ContainSingle().Which.Should().BeEquivalentTo(new TranslationLogItem("hello transcript", string.Empty));
+        recordingFileService.LastTranscriptionText.Should().Be("hello transcript");
+        recordingFileService.AppendTranscriptionCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public void HandleTranscribedSpeech_WhenSourceIsEmpty_DoesNotLogOrSave()
+    {
+        var recordingFileService = new RecordingSpyFileService();
+        var worker = new DesktopTranslationWorker("ja-JP", "session-01", recordingFileService, recognitionMode: RecognitionMode.TranscriptionOnly);
+        var translations = new List<TranslationLogItem>();
+
+        worker.TranslationLogged += (_, e) => translations.Add(e);
+
+        worker.HandleTranscribedSpeech(" ");
+
+        translations.Should().BeEmpty();
+        recordingFileService.AppendTranscriptionCallCount.Should().Be(0);
+    }
+
     private sealed class ThrowingRecordingFileService : IRecordingFileService
     {
         private readonly Exception _exception;
@@ -108,6 +139,11 @@ public class DesktopTranslationWorkerTests
         public string? NormalizeFileName(string? fileName) => fileName;
 
         public void AppendTranslation(string? fileName, string sourceText, string translatedText)
+        {
+            throw _exception;
+        }
+
+        public void AppendTranscription(string? fileName, string sourceText)
         {
             throw _exception;
         }
@@ -125,8 +161,10 @@ public class DesktopTranslationWorkerTests
     {
         public string RecordingsDirectory => @"C:\recordings";
         public int AppendCallCount { get; private set; }
+        public int AppendTranscriptionCallCount { get; private set; }
         public string? LastSourceText { get; private set; }
         public string? LastTranslatedText { get; private set; }
+        public string? LastTranscriptionText { get; private set; }
 
         public string? NormalizeFileName(string? fileName) => fileName;
 
@@ -135,6 +173,12 @@ public class DesktopTranslationWorkerTests
             AppendCallCount++;
             LastSourceText = sourceText;
             LastTranslatedText = translatedText;
+        }
+
+        public void AppendTranscription(string? fileName, string sourceText)
+        {
+            AppendTranscriptionCallCount++;
+            LastTranscriptionText = sourceText;
         }
 
         public string OpenRecordingsFolder() => RecordingsDirectory;

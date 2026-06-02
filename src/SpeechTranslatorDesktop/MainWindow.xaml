@@ -129,7 +129,7 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -137,6 +137,14 @@
                 </Grid.RowDefinitions>
 
                 <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,12,12">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding RecognitionModeLabel}" />
+                    <ComboBox ItemsSource="{Binding AvailableRecognitionModes}"
+                              SelectedItem="{Binding SelectedRecognitionMode}"
+                              AutomationProperties.Name="{Binding RecognitionModeLabel}"
+                              ToolTip="{Binding RecognitionModeLabel}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,12,12">
                     <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding SourceLanguageLabel}" />
                     <ComboBox ItemsSource="{Binding AvailableLanguages}"
                               SelectedItem="{Binding SelectedSourceLanguage}"
@@ -144,31 +152,22 @@
                               ToolTip="{Binding SourceLanguageLabel}" />
                 </StackPanel>
 
-                <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,12,12">
+                <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,12,12">
                     <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding TargetLanguageLabel}" />
                     <ComboBox ItemsSource="{Binding AvailableLanguages}"
                               SelectedItem="{Binding SelectedTargetLanguage}"
+                              IsEnabled="{Binding IsTranslationMode}"
                               AutomationProperties.Name="{Binding TargetLanguageLabel}"
                               ToolTip="{Binding TargetLanguageLabel}" />
                 </StackPanel>
 
-                <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,12,12">
+                <StackPanel Grid.Row="0" Grid.Column="3" Margin="0,0,0,12">
                     <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding AudioInputLabel}" />
                     <ComboBox ItemsSource="{Binding AvailableAudioInputSources}"
                               SelectedItem="{Binding SelectedAudioInputSource}"
                               AutomationProperties.Name="{Binding AudioInputLabel}"
                               ToolTip="{Binding AudioInputLabel}" />
                 </StackPanel>
-
-                <TextBlock Grid.Row="0"
-                           Grid.Column="3"
-                           Margin="16,22,0,0"
-                           MinWidth="130"
-                           VerticalAlignment="Top"
-                           FontSize="14"
-                           FontWeight="Bold"
-                           Foreground="#2563EB"
-                           Text="{Binding StatusMessage}" />
 
                 <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,12,0">
                     <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding RecordingFileNameLabel}" />
@@ -244,6 +243,7 @@
                         </DataGridTextColumn>
                         <DataGridTextColumn Binding="{Binding TranslatedText}"
                                             ElementStyle="{StaticResource WrappedTranslationCellText}"
+                                            Visibility="{Binding Data.TranslationColumnVisibility, Source={StaticResource DataContextProxy}}"
                                             Width="*">
                             <DataGridTextColumn.Header>
                                 <TextBlock Text="{Binding Data.TranslatedTextHeader, Source={StaticResource DataContextProxy}}" />

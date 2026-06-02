@@ -49,6 +49,25 @@ public sealed class RecordingFileService : IRecordingFileService
         streamWriter.WriteLine();
     }
 
+    public void AppendTranscription(string? fileName, string sourceText)
+    {
+        var safeFileName = NormalizeFileName(fileName);
+        if (safeFileName is null)
+        {
+            return;
+        }
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceText);
+
+        var recordingsDirectory = RecordingsDirectory;
+        var filePath = GetRecordingFilePath(recordingsDirectory, safeFileName);
+        Directory.CreateDirectory(recordingsDirectory);
+
+        using var streamWriter = new StreamWriter(filePath, append: true, Encoding.UTF8);
+        streamWriter.WriteLine(sourceText);
+        streamWriter.WriteLine();
+    }
+
     public string OpenRecordingsFolder()
     {
         var recordingsDirectory = RecordingsDirectory;

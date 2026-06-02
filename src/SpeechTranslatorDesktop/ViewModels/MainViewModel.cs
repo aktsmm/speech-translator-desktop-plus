@@ -13,10 +13,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private readonly IRecordingFileService _recordingFileService;
     private readonly IRecordingFolderPicker _recordingFolderPicker;
     private readonly IRecordingFolderSettingsStore _recordingFolderSettingsStore;
+    private readonly IAppPreferencesStore _appPreferencesStore;
     private readonly ITranslationController _translationController;
     private readonly IDesktopTranslationWorkerFactory _workerFactory;
     private IDesktopTranslationWorker? _currentWorker;
     private AudioInputSourceOption? _selectedAudioInputSource;
+    private RecognitionModeOption? _selectedRecognitionMode;
     private LanguageOption? _selectedSourceLanguage;
     private LanguageOption? _selectedTargetLanguage;
     private UiLanguageOption? _selectedUiLanguage;
@@ -36,6 +38,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         IRecordingFileService recordingFileService,
         IRecordingFolderPicker recordingFolderPicker,
         IRecordingFolderSettingsStore recordingFolderSettingsStore,
+        IAppPreferencesStore appPreferencesStore,
         ITranslationController translationController,
         IDesktopTranslationWorkerFactory workerFactory)
     {
@@ -45,6 +48,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _recordingFileService = recordingFileService ?? throw new ArgumentNullException(nameof(recordingFileService));
         _recordingFolderPicker = recordingFolderPicker ?? throw new ArgumentNullException(nameof(recordingFolderPicker));
         _recordingFolderSettingsStore = recordingFolderSettingsStore ?? throw new ArgumentNullException(nameof(recordingFolderSettingsStore));
+        _appPreferencesStore = appPreferencesStore ?? throw new ArgumentNullException(nameof(appPreferencesStore));
         _translationController = translationController ?? throw new ArgumentNullException(nameof(translationController));
         _workerFactory = workerFactory ?? throw new ArgumentNullException(nameof(workerFactory));
 
@@ -77,9 +81,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         AvailableAudioInputSources =
             CreateAudioInputSourceOptions(defaultUiLanguage);
+        AvailableRecognitionModes =
+            CreateRecognitionModeOptions(defaultUiLanguage);
 
         _selectedUiLanguage = AvailableUiLanguages.First(option => option.Language == defaultUiLanguage);
         _selectedAudioInputSource = AvailableAudioInputSources.First(option => option.Source == AudioInputSource.MicrophoneAndSystemAudio);
+        _selectedRecognitionMode = AvailableRecognitionModes.First(option => option.Mode == RecognitionMode.Translation);
         _selectedSourceLanguage = AvailableLanguages[0];
         _selectedTargetLanguage = AvailableLanguages[1];
         _recordingsFolderPath = _recordingFileService.RecordingsDirectory;
@@ -99,6 +106,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public ObservableCollection<AudioInputSourceOption> AvailableAudioInputSources { get; }
 
     public ObservableCollection<LanguageOption> AvailableLanguages { get; }
+
+    public ObservableCollection<RecognitionModeOption> AvailableRecognitionModes { get; }
 
     public ObservableCollection<UiLanguageOption> AvailableUiLanguages { get; }
 
@@ -194,6 +203,24 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    public RecognitionModeOption? SelectedRecognitionMode
+    {
+        get => _selectedRecognitionMode;
+        set
+        {
+            if (_selectedRecognitionMode == value)
+            {
+                return;
+            }
+
+            _selectedRecognitionMode = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsTranslationMode));
+            OnPropertyChanged(nameof(TranslationColumnVisibility));
+            RaiseUiTextChanged();
+        }
+    }
+
     public UiLanguageOption? SelectedUiLanguage
     {
         get => _selectedUiLanguage;
@@ -207,6 +234,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             _selectedUiLanguage = value;
             OnPropertyChanged();
             UpdateAudioInputSourceLabels();
+            UpdateRecognitionModeLabels();
             RaiseUiTextChanged();
         }
     }
@@ -299,6 +327,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string OpenButtonText => Text("開く", "Open");
 
+    public string RecognitionModeLabel => Text("利用モード", "Mode");
+
     public string RecordingFileNameLabel => Text("記録ファイル名（任意）", "Recording file name (optional)");
 
     public string RecordingsFolderLabel => Text("保存先", "Recordings folder");
@@ -313,7 +343,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string SourceLanguageLabel => Text("話者言語", "Speaker language");
 
-    public string SourceTextHeader => Text("原文", "Source text");
+    public string SourceTextHeader => IsTranslationMode ? Text("原文", "Source text") : Text("書き起こし", "Transcript");
 
     public string StartButtonText => Text("開始", "Start");
 
@@ -323,7 +353,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string TargetLanguageLabel => Text("翻訳先言語", "Target language");
 
-    public string TranslationLogHeader => Text("翻訳ログ", "Translation log");
+    public string TranslationLogHeader => IsTranslationMode ? Text("翻訳ログ", "Translation log") : Text("書き起こしログ", "Transcript log");
 
     public string TranslationsWindowTitle => Text("翻訳ウィンドウ（最新3件）", "Translations (latest 3)");
 
@@ -331,9 +361,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string UiLanguageLabel => Text("UI言語", "UI language");
 
+    public bool IsTranslationMode => SelectedRecognitionMode?.Mode != RecognitionMode.TranscriptionOnly;
+
+    public Visibility TranslationColumnVisibility => IsTranslationMode ? Visibility.Visible : Visibility.Collapsed;
+
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         await InitializeRecordingFolderAsync(cancellationToken);
+        await InitializeAppPreferencesAsync(cancellationToken);
 
         try
         {
@@ -375,11 +410,51 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    private async Task InitializeAppPreferencesAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var preferences = await _appPreferencesStore.LoadAsync(cancellationToken);
+            if (preferences is null)
+            {
+                return;
+            }
+
+            if (Enum.TryParse<UiLanguage>(preferences.UiLanguage, out var uiLanguage))
+            {
+                SelectedUiLanguage = AvailableUiLanguages.FirstOrDefault(option => option.Language == uiLanguage) ?? SelectedUiLanguage;
+            }
+
+            SelectedSourceLanguage = AvailableLanguages.FirstOrDefault(option => option.Code == preferences.SourceLanguage) ?? SelectedSourceLanguage;
+            SelectedTargetLanguage = AvailableLanguages.FirstOrDefault(option => option.Code == preferences.TargetLanguage) ?? SelectedTargetLanguage;
+
+            if (Enum.TryParse<AudioInputSource>(preferences.AudioInputSource, out var audioInputSource))
+            {
+                SelectedAudioInputSource = AvailableAudioInputSources.FirstOrDefault(option => option.Source == audioInputSource) ?? SelectedAudioInputSource;
+            }
+
+            if (Enum.TryParse<RecognitionMode>(preferences.RecognitionMode, out var recognitionMode))
+            {
+                SelectedRecognitionMode = AvailableRecognitionModes.FirstOrDefault(option => option.Mode == recognitionMode) ?? SelectedRecognitionMode;
+            }
+        }
+        catch (Exception ex)
+        {
+            AddActivityLog(Text($"前回の選択設定の読み込みに失敗しました: {ex.Message}", $"Failed to load previous selections: {ex.Message}"));
+        }
+    }
+
     private async Task StartAsync()
     {
-        if (SelectedSourceLanguage is null || SelectedTargetLanguage is null || SelectedAudioInputSource is null)
+        if (SelectedSourceLanguage is null || SelectedAudioInputSource is null || SelectedRecognitionMode is null)
         {
-            StatusMessage = Text("言語と音声入力を選択してください。", "Select languages and audio input.");
+            StatusMessage = Text("言語、音声入力、利用モードを選択してください。", "Select language, audio input, and mode.");
+            return;
+        }
+
+        if (IsTranslationMode && SelectedTargetLanguage is null)
+        {
+            StatusMessage = Text("翻訳先言語を選択してください。", "Select a target language.");
             return;
         }
 
@@ -410,23 +485,27 @@ public sealed class MainViewModel : INotifyPropertyChanged
             return;
         }
 
-        var worker = _workerFactory.Create(SelectedTargetLanguage.Code, recordingFileName, SelectedUiLanguage?.Language ?? UiLanguage.Japanese);
+        var targetLanguage = SelectedTargetLanguage?.Code ?? SelectedSourceLanguage.Code;
+        var recognitionMode = SelectedRecognitionMode.Mode;
+        var worker = _workerFactory.Create(targetLanguage, recordingFileName, SelectedUiLanguage?.Language ?? UiLanguage.Japanese, recognitionMode);
         SubscribeWorker(worker);
 
         try
         {
+            await SaveAppPreferencesAsync();
             await _translationController.StartAsync(
                 credentialsResult.Credentials,
                 SelectedSourceLanguage.Code,
-                SelectedTargetLanguage.Code,
+                targetLanguage,
                 SelectedAudioInputSource.Source,
-                worker.RecognizerWorker);
+                recognitionMode,
+                worker);
 
             _currentWorker = worker;
             _startNewRecordingFileOnNextStart = false;
             IsRunning = true;
             StatusMessage = Text("開始", "Started");
-            AddActivityLog(Text("翻訳を開始しました。", "Translation started."));
+            AddActivityLog(IsTranslationMode ? Text("翻訳を開始しました。", "Translation started.") : Text("書き起こしを開始しました。", "Transcription started."));
             if (recordingFileName is not null)
             {
                 AddActivityLog(Text($"記録ファイル: {recordingFileName}.txt", $"Recording file: {recordingFileName}.txt"));
@@ -509,7 +588,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             await _translationController.StopAsync();
             StatusMessage = Text("停止", "Stopped");
-            AddActivityLog(Text("翻訳を停止しました。", "Translation stopped."));
+            AddActivityLog(IsTranslationMode ? Text("翻訳を停止しました。", "Translation stopped.") : Text("書き起こしを停止しました。", "Transcription stopped."));
         }
         catch (Exception ex)
         {
@@ -606,6 +685,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
         ];
     }
 
+    private static ObservableCollection<RecognitionModeOption> CreateRecognitionModeOptions(UiLanguage language)
+    {
+        return
+        [
+            new RecognitionModeOption(RecognitionMode.Translation, language == UiLanguage.Japanese ? "翻訳 + 書き起こし" : "Translate + transcript"),
+            new RecognitionModeOption(RecognitionMode.TranscriptionOnly, language == UiLanguage.Japanese ? "書き起こしのみ" : "Transcript only")
+        ];
+    }
+
     private string Text(string japanese, string english)
     {
         return SelectedUiLanguage?.Language == UiLanguage.English ? english : japanese;
@@ -625,6 +713,30 @@ public sealed class MainViewModel : INotifyPropertyChanged
         SelectedAudioInputSource = AvailableAudioInputSources.FirstOrDefault(option => option.Source == selectedSource) ?? AvailableAudioInputSources[0];
     }
 
+    private void UpdateRecognitionModeLabels()
+    {
+        var selectedMode = SelectedRecognitionMode?.Mode ?? RecognitionMode.Translation;
+        var options = CreateRecognitionModeOptions(SelectedUiLanguage?.Language ?? UiLanguage.Japanese);
+
+        AvailableRecognitionModes.Clear();
+        foreach (var option in options)
+        {
+            AvailableRecognitionModes.Add(option);
+        }
+
+        SelectedRecognitionMode = AvailableRecognitionModes.FirstOrDefault(option => option.Mode == selectedMode) ?? AvailableRecognitionModes[0];
+    }
+
+    private Task SaveAppPreferencesAsync()
+    {
+        return _appPreferencesStore.SaveAsync(new AppPreferences(
+            SelectedUiLanguage?.Language.ToString(),
+            SelectedSourceLanguage?.Code,
+            SelectedTargetLanguage?.Code,
+            SelectedAudioInputSource?.Source.ToString(),
+            SelectedRecognitionMode?.Mode.ToString()));
+    }
+
     private void RaiseUiTextChanged()
     {
         OnPropertyChanged(nameof(ApiKeyLabel));
@@ -633,6 +745,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(ChooseButtonText));
         OnPropertyChanged(nameof(ClearLogsButtonText));
         OnPropertyChanged(nameof(OpenButtonText));
+        OnPropertyChanged(nameof(RecognitionModeLabel));
         OnPropertyChanged(nameof(RecordingFileNameLabel));
         OnPropertyChanged(nameof(RecordingsFolderLabel));
         OnPropertyChanged(nameof(SaveButtonText));
@@ -649,6 +762,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(TranslationsWindowTitle));
         OnPropertyChanged(nameof(TranslatedTextHeader));
         OnPropertyChanged(nameof(UiLanguageLabel));
+        OnPropertyChanged(nameof(IsTranslationMode));
+        OnPropertyChanged(nameof(TranslationColumnVisibility));
     }
 
     private void DetachCurrentWorker()

@@ -14,7 +14,9 @@ This project is based on [tsubakimoto/speech-translator](https://github.com/tsub
 - Microphone input.
 - PC audio input using WASAPI loopback, so YouTube, livestreams, and other system playback can be translated without VB-CABLE.
 - Translation logs are shown newest-first, so the latest text stays visible.
+- Transcript-only mode for cases where translation is not needed.
 - Translation log recording as UTF-8 text.
+- Last-used UI language, source language, target language, input source, and mode are restored on the next launch.
 - Recording folder selection, persistence, and "open folder" UI.
 - Dedicated settings window for Azure Speech credentials and recording folder controls.
 - Japanese and English UI language switching.
@@ -31,6 +33,8 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 - PC audio capture via WASAPI loopback.
 - Combined `Microphone + PC audio` input mode.
 - `Microphone + PC audio` is the default input mode for livestream translation and note-taking.
+- Transcript-only mode using Azure Speech recognition when translation is unnecessary.
+- Last-used language/input/mode preferences are persisted and restored.
 - Newest-first translation and status logs.
 - Wrapped translation table rows, capped to roughly three visible lines.
 - Empty translation row suppression.
@@ -80,19 +84,24 @@ scripts\run-dev.cmd
 
 1. Select UI language: `日本語` or `English`.
 2. Open `Settings` and save the Azure AI Speech `Region` and `API Key`.
-3. Select source language and target language.
-4. Select audio input:
+3. Select mode:
+   - `Translate + transcript`
+   - `Transcript only`
+4. Select source language and, when translation is enabled, target language.
+5. Select audio input:
    - `Microphone`
    - `PC audio (default playback device)`
    - `Microphone + PC audio` (default)
-5. Optionally enter a recording file name stem, using letters/numbers/`-`/`_` only.
-6. Click `Start`.
-7. Click `Clear logs` to clear the visible translation/status logs. If a recording file name is set, the next `Start` creates a new timestamped recording file instead of appending to the previous file.
-8. Click `Open translations window` to open a separate window that shows only the three newest source/translation pairs.
+6. Optionally enter a recording file name stem, using letters/numbers/`-`/`_` only.
+7. Click `Start`.
+8. Click `Clear logs` to clear the visible translation/status logs. If a recording file name is set, the next `Start` creates a new timestamped recording file instead of appending to the previous file.
+9. Click `Open translations window` to open a separate window that shows only the three newest source/translation pairs.
 
-If the recording file name is empty, translation is shown in the UI but not saved to a text file.
+If the recording file name is empty, translation/transcription is shown in the UI but not saved to a text file.
 
-Rows with no source text or no translated text are ignored to avoid blank lines in the UI and recording files.
+Your last-used UI language, mode, source language, target language, and audio input are saved locally and restored when you launch the app again.
+
+Rows with no source text are ignored. In translation mode, rows with no translated text are also ignored to avoid blank lines in the UI and recording files.
 
 ## Recording folder
 

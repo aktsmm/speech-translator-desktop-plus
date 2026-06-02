@@ -22,6 +22,7 @@ public partial class MainWindow : Window
             recordingFileService,
             new WpfRecordingFolderPicker(),
             new SqliteRecordingFolderSettingsStore(settingsDatabasePath),
+            new SqliteAppPreferencesStore(settingsDatabasePath),
             new DesktopTranslationController(),
             new DesktopTranslationWorkerFactory(recordingFileService));
         DataContext = viewModel;

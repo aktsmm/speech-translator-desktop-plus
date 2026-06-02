@@ -29,6 +29,37 @@ public class RecordingFileServiceTests : IDisposable
         Directory.Exists(Path.Combine(_rootDirectory, "recordings")).Should().BeFalse();
     }
 
+    [Fact]
+    public void AppendTranscription_FileNameProvided_WritesUtf8Recording()
+    {
+        var service = new RecordingFileService(_rootDirectory);
+
+        service.AppendTranscription("session-01", "hello transcript");
+
+        var filePath = Path.Combine(_rootDirectory, "recordings", "session-01.txt");
+        File.Exists(filePath).Should().BeTrue();
+        File.ReadAllText(filePath, Encoding.UTF8).Should().Contain("hello transcript");
+    }
+
+    [Theory]
+    [InlineData(@"C:\escape")]
+    [InlineData("..\\escape")]
+    [InlineData("../escape")]
+    [InlineData("nested/file")]
+    [InlineData("nested\\file")]
+    [InlineData("session.txt")]
+    [InlineData("session 01")]
+    [InlineData("..")]
+    public void AppendTranscription_InvalidFileName_ThrowsArgumentException(string fileName)
+    {
+        var service = new RecordingFileService(_rootDirectory);
+
+        var act = () => service.AppendTranscription(fileName, "hello");
+
+        act.Should().Throw<ArgumentException>();
+        Directory.Exists(Path.Combine(_rootDirectory, "recordings")).Should().BeFalse();
+    }
+
     [Theory]
     [InlineData(@"C:\escape")]
     [InlineData("..\\escape")]

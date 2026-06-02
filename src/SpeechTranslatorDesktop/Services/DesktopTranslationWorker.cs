@@ -9,8 +9,10 @@ public sealed class DesktopTranslationWorker : TranslationRecognizerWorkerBase, 
     private readonly string? _recordingFileName;
     private readonly IRecordingFileService _recordingFileService;
     private readonly UiLanguage _uiLanguage;
+    private readonly RecognitionMode _recognitionMode;
+    private readonly SpeechRecognizerWorkerBase _speechRecognizerWorker;
 
-    public DesktopTranslationWorker(string targetLanguage, string? recordingFileName, IRecordingFileService recordingFileService, UiLanguage uiLanguage = UiLanguage.Japanese)
+    public DesktopTranslationWorker(string targetLanguage, string? recordingFileName, IRecordingFileService recordingFileService, UiLanguage uiLanguage = UiLanguage.Japanese, RecognitionMode recognitionMode = RecognitionMode.Translation)
     {
         if (string.IsNullOrWhiteSpace(targetLanguage))
         {
@@ -21,9 +23,13 @@ public sealed class DesktopTranslationWorker : TranslationRecognizerWorkerBase, 
         _recordingFileName = recordingFileName;
         _recordingFileService = recordingFileService ?? throw new ArgumentNullException(nameof(recordingFileService));
         _uiLanguage = uiLanguage;
+        _recognitionMode = recognitionMode;
+        _speechRecognizerWorker = new SpeechWorker(this);
     }
 
     public TranslationRecognizerWorkerBase RecognizerWorker => this;
+
+    public SpeechRecognizerWorkerBase SpeechRecognizerWorker => _speechRecognizerWorker;
 
     public event EventHandler<string>? MessageLogged;
 
@@ -116,6 +122,28 @@ public sealed class DesktopTranslationWorker : TranslationRecognizerWorkerBase, 
         }
     }
 
+    internal void HandleTranscribedSpeech(string sourceText)
+    {
+        if (string.IsNullOrWhiteSpace(sourceText))
+        {
+            return;
+        }
+
+        var transcript = new TranslationLogItem(sourceText.Trim(), string.Empty);
+        TranslationLogged?.Invoke(this, transcript);
+        MessageLogged?.Invoke(this, Text($"書き起こし: {transcript.SourceText}", $"Transcript: {transcript.SourceText}"));
+
+        try
+        {
+            _recordingFileService.AppendTranscription(_recordingFileName, transcript.SourceText);
+            RaiseStatusChanged(DesktopTranslationStatus.TranslatedSpeech, Text("書き起こし成功", "Transcription succeeded"));
+        }
+        catch (Exception ex)
+        {
+            RaiseStatusChanged(DesktopTranslationStatus.Error, Text($"記録ファイルの保存に失敗しました: {ex.Message}", $"Failed to save recording file: {ex.Message}"));
+        }
+    }
+
     private void RaiseStatusChanged(DesktopTranslationStatus status, string message)
     {
         StatusChanged?.Invoke(this, new WorkerStatusChangedEventArgs(status, message));
@@ -124,5 +152,65 @@ public sealed class DesktopTranslationWorker : TranslationRecognizerWorkerBase, 
     private string Text(string japanese, string english)
     {
         return _uiLanguage == UiLanguage.English ? english : japanese;
+    }
+
+    private sealed class SpeechWorker : SpeechRecognizerWorkerBase
+    {
+        private readonly DesktopTranslationWorker _owner;
+
+        public SpeechWorker(DesktopTranslationWorker owner)
+        {
+            _owner = owner;
+        }
+
+        public override void OnRecognizing(SpeechRecognitionEventArgs e)
+        {
+            _owner.RaiseStatusChanged(DesktopTranslationStatus.Recognizing, _owner.Text("認識中", "Recognizing"));
+        }
+
+        public override void OnRecognized(SpeechRecognitionEventArgs e)
+        {
+            if (e.Result.Reason == ResultReason.RecognizedSpeech)
+            {
+                _owner.HandleTranscribedSpeech(e.Result.Text);
+                return;
+            }
+
+            if (e.Result.Reason == ResultReason.NoMatch)
+            {
+                _owner.RaiseStatusChanged(DesktopTranslationStatus.NoMatch, "NoMatch");
+                _owner.MessageLogged?.Invoke(_owner, "NOMATCH: Speech could not be recognized.");
+            }
+        }
+
+        public override void OnCanceled(SpeechRecognitionCanceledEventArgs e)
+        {
+            var message = e.Reason == CancellationReason.Error
+                ? $"Cancel/Error: {e.ErrorDetails}"
+                : $"Canceled: {e.Reason}";
+
+            _owner.RaiseStatusChanged(DesktopTranslationStatus.Canceled, "Cancel/Error");
+            _owner.MessageLogged?.Invoke(_owner, message);
+        }
+
+        public override void OnSpeechStartDetected(RecognitionEventArgs e)
+        {
+            _owner.RaiseStatusChanged(DesktopTranslationStatus.SpeechStartDetected, _owner.Text("音声開始を検出", "Speech start detected"));
+        }
+
+        public override void OnSpeechEndDetected(RecognitionEventArgs e)
+        {
+            _owner.RaiseStatusChanged(DesktopTranslationStatus.SpeechEndDetected, _owner.Text("音声終了を検出", "Speech end detected"));
+        }
+
+        public override void OnSessionStarted(SessionEventArgs e)
+        {
+            _owner.RaiseStatusChanged(DesktopTranslationStatus.SessionStarted, _owner.Text("セッション開始", "Session started"));
+        }
+
+        public override void OnSessionStopped(SessionEventArgs e)
+        {
+            _owner.RaiseStatusChanged(DesktopTranslationStatus.SessionStopped, _owner.Text("セッション停止", "Session stopped"));
+        }
     }
 }

@@ -8,6 +8,8 @@ public interface IRecordingFileService
 
     void AppendTranslation(string? fileName, string sourceText, string translatedText);
 
+    void AppendTranscription(string? fileName, string sourceText);
+
     string OpenRecordingsFolder();
 
     void SetRecordingsDirectory(string directoryPath);

@@ -8,4 +8,5 @@ global using System.Windows.Controls;
 global using System.Windows.Controls.Primitives;
 global using System.ComponentModel.Design;
 global using Microsoft.CognitiveServices.Speech;
+global using Microsoft.CognitiveServices.Speech.Audio;
 global using Microsoft.CognitiveServices.Speech.Translation;

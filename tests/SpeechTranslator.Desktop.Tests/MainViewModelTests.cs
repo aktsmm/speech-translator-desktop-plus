@@ -1,4 +1,5 @@
 using System.Windows.Input;
+using System.Windows;
 using SpeechTranslatorDesktop.Commands;
 using SpeechTranslatorDesktop.Models;
 using SpeechTranslatorDesktop.Services;
@@ -279,6 +280,68 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public async Task Start_WhenTranscriptionOnlySelected_PassesTranscriptionModeToController()
+    {
+        var translationController = new FakeTranslationController();
+        var workerFactory = new FakeDesktopTranslationWorkerFactory(new FakeDesktopTranslationWorker());
+        var viewModel = CreateViewModel(
+            translationController: translationController,
+            workerFactory: workerFactory);
+        viewModel.SelectedRecognitionMode = viewModel.AvailableRecognitionModes.Single(mode => mode.Mode == RecognitionMode.TranscriptionOnly);
+
+        await ExecuteAsync(viewModel.StartCommand);
+
+        translationController.LastRecognitionMode.Should().Be(RecognitionMode.TranscriptionOnly);
+        workerFactory.LastRecognitionMode.Should().Be(RecognitionMode.TranscriptionOnly);
+        viewModel.IsTranslationMode.Should().BeFalse();
+        viewModel.TranslationColumnVisibility.Should().Be(Visibility.Collapsed);
+    }
+
+    [Fact]
+    public async Task Start_SavesCurrentSelectionsAsPreferences()
+    {
+        var preferencesStore = new FakeAppPreferencesStore();
+        var viewModel = CreateViewModel(appPreferencesStore: preferencesStore);
+        viewModel.SelectedUiLanguage = viewModel.AvailableUiLanguages.Single(option => option.Language == UiLanguage.English);
+        viewModel.SelectedRecognitionMode = viewModel.AvailableRecognitionModes.Single(mode => mode.Mode == RecognitionMode.TranscriptionOnly);
+        viewModel.SelectedSourceLanguage = viewModel.AvailableLanguages.Single(language => language.Code == "ja-JP");
+        viewModel.SelectedTargetLanguage = viewModel.AvailableLanguages.Single(language => language.Code == "en-US");
+        viewModel.SelectedAudioInputSource = viewModel.AvailableAudioInputSources.Single(source => source.Source == AudioInputSource.SystemAudio);
+
+        await ExecuteAsync(viewModel.StartCommand);
+
+        preferencesStore.SavedPreferences.Should().BeEquivalentTo(new AppPreferences(
+            nameof(UiLanguage.English),
+            "ja-JP",
+            "en-US",
+            nameof(AudioInputSource.SystemAudio),
+            nameof(RecognitionMode.TranscriptionOnly)));
+    }
+
+    [Fact]
+    public async Task InitializeAsync_WhenPreferencesExist_RestoresLastSelections()
+    {
+        var viewModel = CreateViewModel(appPreferencesStore: new FakeAppPreferencesStore
+        {
+            LoadedPreferences = new AppPreferences(
+                nameof(UiLanguage.English),
+                "ja-JP",
+                "en-US",
+                nameof(AudioInputSource.SystemAudio),
+                nameof(RecognitionMode.TranscriptionOnly))
+        });
+
+        await viewModel.InitializeAsync();
+
+        viewModel.SelectedUiLanguage!.Language.Should().Be(UiLanguage.English);
+        viewModel.SelectedSourceLanguage!.Code.Should().Be("ja-JP");
+        viewModel.SelectedTargetLanguage!.Code.Should().Be("en-US");
+        viewModel.SelectedAudioInputSource!.Source.Should().Be(AudioInputSource.SystemAudio);
+        viewModel.SelectedRecognitionMode!.Mode.Should().Be(RecognitionMode.TranscriptionOnly);
+        viewModel.SourceTextHeader.Should().Be("Transcript");
+    }
+
+    [Fact]
     public async Task Start_WhenRecordingFileNameIsInvalid_ShowsErrorAndDoesNotStart()
     {
         var translationController = new FakeTranslationController();
@@ -491,6 +554,7 @@ public class MainViewModelTests
         IRecordingFileService? recordingFileService = null,
         IRecordingFolderPicker? recordingFolderPicker = null,
         IRecordingFolderSettingsStore? recordingFolderSettingsStore = null,
+        IAppPreferencesStore? appPreferencesStore = null,
         ITranslationController? translationController = null,
         IDesktopTranslationWorkerFactory? workerFactory = null)
     {
@@ -501,6 +565,7 @@ public class MainViewModelTests
             recordingFileService ?? new FakeRecordingFileService(),
             recordingFolderPicker ?? new FakeRecordingFolderPicker(null),
             recordingFolderSettingsStore ?? new FakeRecordingFolderSettingsStore(),
+            appPreferencesStore ?? new FakeAppPreferencesStore(),
             translationController ?? new FakeTranslationController(),
             workerFactory ?? new FakeDesktopTranslationWorkerFactory(new FakeDesktopTranslationWorker()));
 
@@ -566,8 +631,9 @@ public class MainViewModelTests
         public bool KeepRunningOnStopFailure { get; init; }
         public SpeechCredentials? LastStartCredentials { get; private set; }
         public AudioInputSource? LastAudioInputSource { get; private set; }
+        public RecognitionMode? LastRecognitionMode { get; private set; }
 
-        public Task StartAsync(SpeechCredentials credentials, string sourceLanguage, string targetLanguage, AudioInputSource audioInputSource, TranslationRecognizerWorkerBase worker, CancellationToken cancellationToken = default)
+        public Task StartAsync(SpeechCredentials credentials, string sourceLanguage, string targetLanguage, AudioInputSource audioInputSource, RecognitionMode recognitionMode, IDesktopTranslationWorker worker, CancellationToken cancellationToken = default)
         {
             return StartAsyncCore();
 
@@ -581,6 +647,7 @@ public class MainViewModelTests
                 StartCallCount++;
                 LastStartCredentials = credentials;
                 LastAudioInputSource = audioInputSource;
+                LastRecognitionMode = recognitionMode;
                 IsRunning = true;
             }
         }
@@ -614,16 +681,18 @@ public class MainViewModelTests
         private readonly IDesktopTranslationWorker _worker;
         public int CreateCallCount { get; private set; }
         public string? LastRecordingFileName { get; private set; }
+        public RecognitionMode? LastRecognitionMode { get; private set; }
 
         public FakeDesktopTranslationWorkerFactory(IDesktopTranslationWorker worker)
         {
             _worker = worker;
         }
 
-        public IDesktopTranslationWorker Create(string targetLanguage, string? recordingFileName, UiLanguage uiLanguage)
+        public IDesktopTranslationWorker Create(string targetLanguage, string? recordingFileName, UiLanguage uiLanguage, RecognitionMode recognitionMode)
         {
             CreateCallCount++;
             LastRecordingFileName = recordingFileName;
+            LastRecognitionMode = recognitionMode;
             return _worker;
         }
     }
@@ -648,6 +717,10 @@ public class MainViewModelTests
         }
 
         public void AppendTranslation(string? fileName, string sourceText, string translatedText)
+        {
+        }
+
+        public void AppendTranscription(string? fileName, string sourceText)
         {
         }
 
@@ -698,9 +771,28 @@ public class MainViewModelTests
         }
     }
 
+    private sealed class FakeAppPreferencesStore : IAppPreferencesStore
+    {
+        public AppPreferences? LoadedPreferences { get; init; }
+        public AppPreferences? SavedPreferences { get; private set; }
+
+        public Task<AppPreferences?> LoadAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(LoadedPreferences);
+        }
+
+        public Task SaveAsync(AppPreferences preferences, CancellationToken cancellationToken = default)
+        {
+            SavedPreferences = preferences;
+            return Task.CompletedTask;
+        }
+    }
+
     private sealed class FakeDesktopTranslationWorker : IDesktopTranslationWorker
     {
         public TranslationRecognizerWorkerBase RecognizerWorker { get; } = new NoOpTranslationRecognizerWorker();
+
+        public SpeechRecognizerWorkerBase SpeechRecognizerWorker { get; } = new NoOpSpeechRecognizerWorker();
 
         public event EventHandler<string>? MessageLogged;
 
@@ -727,6 +819,37 @@ public class MainViewModelTests
         }
 
         public override void OnRecognizing(TranslationRecognitionEventArgs e)
+        {
+        }
+
+        public override void OnSessionStarted(SessionEventArgs e)
+        {
+        }
+
+        public override void OnSessionStopped(SessionEventArgs e)
+        {
+        }
+
+        public override void OnSpeechEndDetected(RecognitionEventArgs e)
+        {
+        }
+
+        public override void OnSpeechStartDetected(RecognitionEventArgs e)
+        {
+        }
+    }
+
+    private sealed class NoOpSpeechRecognizerWorker : SpeechRecognizerWorkerBase
+    {
+        public override void OnCanceled(SpeechRecognitionCanceledEventArgs e)
+        {
+        }
+
+        public override void OnRecognized(SpeechRecognitionEventArgs e)
+        {
+        }
+
+        public override void OnRecognizing(SpeechRecognitionEventArgs e)
         {
         }
 
