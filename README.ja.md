@@ -23,6 +23,25 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
   - APIキーは Windows DPAPI で保護されます
 - 自己完結型 Windows publish と zip パッケージ作成スクリプトに対応
 
+## fork元からの主な変更点
+
+[tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator) と比べて、この Plus fork では次を追加・改善しています。
+
+- デスクトップアプリ名を **Speech Translator Desktop Plus** に変更
+- カスタムアプリアイコンを追加
+- WASAPI loopback による PC 音声キャプチャ
+- `マイク + PC音声` 入力モード
+- 翻訳ログ・状態ログを新しい順に表示
+- 翻訳テーブルのセルを最大3行程度で折り返し表示
+- 空の翻訳行を抑止
+- 保存先フォルダーの選択・永続化
+- `開く` / `選択` UI
+- 日本語 / 英語 UI 切り替え
+- 主要言語の選択肢追加
+- 英語READMEをメインにし、日本語READMEを別ファイル化
+- ワンコマンドセットアップ、自己完結型publish、Release zip作成スクリプト
+- exeベースで導入しやすいGitHub Release配布
+
 ## おすすめセットアップ
 
 ### 方法1: Release zip をダウンロード

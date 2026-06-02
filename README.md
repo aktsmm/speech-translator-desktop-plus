@@ -21,6 +21,25 @@ This project is based on [tsubakimoto/speech-translator](https://github.com/tsub
 - Azure AI Speech region/API key persistence in SQLite with the API key protected by Windows DPAPI.
 - Self-contained Windows publish and zip packaging scripts for easy setup.
 
+## Changes from the upstream fork
+
+Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator), this Plus fork adds:
+
+- Desktop app branding as **Speech Translator Desktop Plus**.
+- A custom application icon.
+- PC audio capture via WASAPI loopback.
+- Combined `Microphone + PC audio` input mode.
+- Newest-first translation and status logs.
+- Wrapped translation table rows, capped to roughly three visible lines.
+- Empty translation row suppression.
+- Configurable and persisted recording folder.
+- `Open folder` and `Choose folder` controls.
+- Japanese/English UI switching.
+- Additional source/target language choices.
+- English-first README plus separate Japanese README.
+- One-command setup, self-contained publish, and release zip packaging scripts.
+- GitHub Release asset support for easy exe-based installation.
+
 ## Recommended setup
 
 ### Option 1: Download the release zip
