@@ -295,6 +295,46 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public async Task WorkerTranslationEvent_AddsNewestTranslationLogFirst()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var viewModel = CreateViewModel(workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+
+        await ExecuteAsync(viewModel.StartCommand);
+        worker.RaiseTranslationLogged(new TranslationLogItem("first", "最初"));
+        worker.RaiseTranslationLogged(new TranslationLogItem("second", "次"));
+
+        viewModel.TranslationLogs.Select(item => item.SourceText).Should().Equal("second", "first");
+    }
+
+    [Fact]
+    public void SelectedUiLanguage_WhenEnglish_UpdatesUiLabelsAndAudioInputLabels()
+    {
+        var viewModel = CreateViewModel();
+
+        viewModel.SelectedUiLanguage = viewModel.AvailableUiLanguages.Single(option => option.Language == UiLanguage.English);
+
+        viewModel.SourceLanguageLabel.Should().Be("Speaker language");
+        viewModel.TargetLanguageLabel.Should().Be("Target language");
+        viewModel.StartButtonText.Should().Be("Start");
+        viewModel.StopButtonText.Should().Be("Stop");
+        viewModel.TranslationLogHeader.Should().Be("Translation log");
+        viewModel.AvailableAudioInputSources.Select(option => option.DisplayName)
+            .Should()
+            .Equal("Microphone", "PC audio (default playback device)");
+    }
+
+    [Fact]
+    public void AvailableLanguages_ContainsMajorSpeechTranslationLanguages()
+    {
+        var viewModel = CreateViewModel();
+
+        viewModel.AvailableLanguages.Select(language => language.Code)
+            .Should()
+            .Contain(["en-US", "ja-JP", "zh-CN", "zh-TW", "ko-KR", "fr-FR", "de-DE", "es-ES", "it-IT", "pt-BR", "id-ID", "th-TH", "vi-VN"]);
+    }
+
+    [Fact]
     public async Task WorkerStatusEvents_UpdateStatusAndLogs()
     {
         var worker = new FakeDesktopTranslationWorker();
@@ -308,6 +348,19 @@ public class MainViewModelTests
         viewModel.StatusMessage.Should().Be("セッション停止");
         viewModel.ActivityLogs.Should().Contain("Session stopped.");
         viewModel.IsRunning.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task WorkerStatusEvents_AddsNewestStatusLogFirst()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var viewModel = CreateViewModel(workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+
+        await ExecuteAsync(viewModel.StartCommand);
+        worker.RaiseMessageLogged("first");
+        worker.RaiseMessageLogged("second");
+
+        viewModel.ActivityLogs.Take(2).Should().Equal("second", "first");
     }
 
     [Fact]

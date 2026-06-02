@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:SpeechTranslatorDesktop.Behaviors"
+        x:Name="RootWindow"
         Title="Speech Translator Desktop Plus"
         Height="700"
         Width="960"
@@ -24,7 +25,7 @@
         <StackPanel Grid.Row="0"
                     Grid.Column="0"
                     Margin="0,0,12,12">
-            <TextBlock FontWeight="Bold" Text="話者言語" />
+            <TextBlock FontWeight="Bold" Text="{Binding SourceLanguageLabel}" />
             <ComboBox ItemsSource="{Binding AvailableLanguages}"
                       SelectedItem="{Binding SelectedSourceLanguage}"
                       Margin="0,6,0,0" />
@@ -33,7 +34,7 @@
         <StackPanel Grid.Row="0"
                     Grid.Column="1"
                     Margin="12,0,0,12">
-            <TextBlock FontWeight="Bold" Text="翻訳先言語" />
+            <TextBlock FontWeight="Bold" Text="{Binding TargetLanguageLabel}" />
             <ComboBox ItemsSource="{Binding AvailableLanguages}"
                       SelectedItem="{Binding SelectedTargetLanguage}"
                       Margin="0,6,0,0" />
@@ -42,7 +43,7 @@
         <StackPanel Grid.Row="1"
                     Grid.Column="0"
                     Margin="0,0,12,12">
-            <TextBlock FontWeight="Bold" Text="記録ファイル名（任意）" />
+            <TextBlock FontWeight="Bold" Text="{Binding RecordingFileNameLabel}" />
             <TextBox Margin="0,6,0,0"
                      Text="{Binding RecordingFileName, UpdateSourceTrigger=PropertyChanged}" />
         </StackPanel>
@@ -50,7 +51,7 @@
         <StackPanel Grid.Row="1"
                     Grid.Column="1"
                     Margin="12,0,0,12">
-            <TextBlock FontWeight="Bold" Text="音声入力" />
+            <TextBlock FontWeight="Bold" Text="{Binding AudioInputLabel}" />
             <ComboBox ItemsSource="{Binding AvailableAudioInputSources}"
                       SelectedItem="{Binding SelectedAudioInputSource}"
                       Margin="0,6,0,0" />
@@ -58,7 +59,7 @@
 
         <GroupBox Grid.Row="2"
                   Grid.ColumnSpan="2"
-                  Header="保存先 / Azure AI Service 設定"
+                  Header="{Binding AzureSettingsHeader}"
                   Margin="0,0,0,12">
             <Grid Margin="12">
                 <Grid.RowDefinitions>
@@ -78,7 +79,7 @@
                            Margin="0,0,12,8"
                            VerticalAlignment="Center"
                            FontWeight="Bold"
-                           Text="保存先" />
+                           Text="{Binding RecordingsFolderLabel}" />
                 <TextBox Grid.Row="0"
                          Grid.Column="1"
                          Margin="0,0,12,8"
@@ -89,11 +90,11 @@
                             Orientation="Horizontal">
                     <Button Width="80"
                             Command="{Binding ChooseRecordingsFolderCommand}"
-                            Content="選択" />
+                            Content="{Binding ChooseButtonText}" />
                     <Button Width="80"
                             Margin="8,0,0,0"
                             Command="{Binding OpenRecordingsFolderCommand}"
-                            Content="開く" />
+                            Content="{Binding OpenButtonText}" />
                 </StackPanel>
 
                 <TextBlock Grid.Row="1"
@@ -112,7 +113,7 @@
                            Margin="0,0,12,8"
                            VerticalAlignment="Center"
                            FontWeight="Bold"
-                           Text="API Key" />
+                           Text="{Binding ApiKeyLabel}" />
                  <PasswordBox Grid.Row="2"
                                Grid.Column="1"
                                Margin="0,0,12,8"
@@ -124,7 +125,7 @@
                         Grid.Column="2"
                         Width="120"
                         Command="{Binding SaveSettingsCommand}"
-                        Content="保存" />
+                        Content="{Binding SaveButtonText}" />
 
                 <TextBlock Grid.Row="3"
                            Grid.ColumnSpan="3"
@@ -137,13 +138,20 @@
                      Grid.ColumnSpan="2"
                      Orientation="Horizontal"
                      Margin="0,0,0,12">
+            <StackPanel Margin="0,0,12,0">
+                <TextBlock FontWeight="Bold" Text="{Binding UiLanguageLabel}" />
+                <ComboBox ItemsSource="{Binding AvailableUiLanguages}"
+                          SelectedItem="{Binding SelectedUiLanguage}"
+                          Width="120"
+                          Margin="0,6,0,0" />
+            </StackPanel>
             <Button Width="120"
                     Command="{Binding StartCommand}"
-                    Content="開始" />
+                    Content="{Binding StartButtonText}" />
             <Button Width="120"
                     Margin="12,0,0,0"
                     Command="{Binding StopCommand}"
-                    Content="停止" />
+                    Content="{Binding StopButtonText}" />
             <TextBlock Margin="24,4,0,0"
                        VerticalAlignment="Center"
                        FontWeight="Bold"
@@ -152,29 +160,33 @@
 
         <GroupBox Grid.Row="4"
                   Grid.ColumnSpan="2"
-                  Header="翻訳ログ"
+                  Header="{Binding TranslationLogHeader}"
                   Margin="0,0,0,12">
             <DataGrid ItemsSource="{Binding TranslationLogs}"
                       AutoGenerateColumns="False"
                       IsReadOnly="True"
-                      HeadersVisibility="Column"
-                      local:AutoScrollDataGridBehavior.AutoScroll="True">
+                      HeadersVisibility="Column">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="原文"
-                                        Binding="{Binding SourceText}"
-                                        Width="*" />
-                    <DataGridTextColumn Header="翻訳文"
-                                        Binding="{Binding TranslatedText}"
-                                        Width="*" />
+                    <DataGridTextColumn Binding="{Binding SourceText}"
+                                        Width="*">
+                        <DataGridTextColumn.Header>
+                            <TextBlock Text="{Binding DataContext.SourceTextHeader, Source={x:Reference RootWindow}}" />
+                        </DataGridTextColumn.Header>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Binding="{Binding TranslatedText}"
+                                        Width="*">
+                        <DataGridTextColumn.Header>
+                            <TextBlock Text="{Binding DataContext.TranslatedTextHeader, Source={x:Reference RootWindow}}" />
+                        </DataGridTextColumn.Header>
+                    </DataGridTextColumn>
                 </DataGrid.Columns>
             </DataGrid>
         </GroupBox>
 
         <GroupBox Grid.Row="5"
                   Grid.ColumnSpan="2"
-                  Header="状態ログ">
-            <ListBox ItemsSource="{Binding ActivityLogs}"
-                     local:AutoScrollListBoxBehavior.AutoScroll="True" />
+                  Header="{Binding StatusLogHeader}">
+            <ListBox ItemsSource="{Binding ActivityLogs}" />
         </GroupBox>
     </Grid>
 </Window>

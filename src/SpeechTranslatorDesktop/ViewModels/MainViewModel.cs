@@ -18,6 +18,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private AudioInputSourceOption? _selectedAudioInputSource;
     private LanguageOption? _selectedSourceLanguage;
     private LanguageOption? _selectedTargetLanguage;
+    private UiLanguageOption? _selectedUiLanguage;
     private string _azureApiKey = string.Empty;
     private string _azureRegion = string.Empty;
     private string _recordingFileName = string.Empty;
@@ -48,15 +49,30 @@ public sealed class MainViewModel : INotifyPropertyChanged
         AvailableLanguages =
         [
             new LanguageOption("en-US", "English (en-US)"),
-            new LanguageOption("ja-JP", "Japanese (ja-JP)")
+            new LanguageOption("ja-JP", "Japanese (ja-JP)"),
+            new LanguageOption("zh-CN", "Chinese Simplified (zh-CN)"),
+            new LanguageOption("zh-TW", "Chinese Traditional (zh-TW)"),
+            new LanguageOption("ko-KR", "Korean (ko-KR)"),
+            new LanguageOption("fr-FR", "French (fr-FR)"),
+            new LanguageOption("de-DE", "German (de-DE)"),
+            new LanguageOption("es-ES", "Spanish (es-ES)"),
+            new LanguageOption("it-IT", "Italian (it-IT)"),
+            new LanguageOption("pt-BR", "Portuguese Brazil (pt-BR)"),
+            new LanguageOption("id-ID", "Indonesian (id-ID)"),
+            new LanguageOption("th-TH", "Thai (th-TH)"),
+            new LanguageOption("vi-VN", "Vietnamese (vi-VN)")
+        ];
+
+        AvailableUiLanguages =
+        [
+            new UiLanguageOption(UiLanguage.Japanese, "日本語"),
+            new UiLanguageOption(UiLanguage.English, "English")
         ];
 
         AvailableAudioInputSources =
-        [
-            new AudioInputSourceOption(AudioInputSource.Microphone, "マイク"),
-            new AudioInputSourceOption(AudioInputSource.SystemAudio, "PC音声（既定の再生デバイス）")
-        ];
+            CreateAudioInputSourceOptions(UiLanguage.Japanese);
 
+        _selectedUiLanguage = AvailableUiLanguages[0];
         _selectedAudioInputSource = AvailableAudioInputSources[0];
         _selectedSourceLanguage = AvailableLanguages[0];
         _selectedTargetLanguage = AvailableLanguages[1];
@@ -76,6 +92,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public ObservableCollection<AudioInputSourceOption> AvailableAudioInputSources { get; }
 
     public ObservableCollection<LanguageOption> AvailableLanguages { get; }
+
+    public ObservableCollection<UiLanguageOption> AvailableUiLanguages { get; }
 
     public string AzureApiKey
     {
@@ -169,6 +187,23 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    public UiLanguageOption? SelectedUiLanguage
+    {
+        get => _selectedUiLanguage;
+        set
+        {
+            if (_selectedUiLanguage == value)
+            {
+                return;
+            }
+
+            _selectedUiLanguage = value;
+            OnPropertyChanged();
+            UpdateAudioInputSourceLabels();
+            RaiseUiTextChanged();
+        }
+    }
+
     public LanguageOption? SelectedSourceLanguage
     {
         get => _selectedSourceLanguage;
@@ -241,6 +276,40 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public ObservableCollection<TranslationLogItem> TranslationLogs { get; } = [];
 
+    public string ApiKeyLabel => Text("API Key", "API Key");
+
+    public string AudioInputLabel => Text("音声入力", "Audio input");
+
+    public string AzureSettingsHeader => Text("保存先 / Azure AI Service 設定", "Recordings / Azure AI Service settings");
+
+    public string ChooseButtonText => Text("選択", "Choose");
+
+    public string OpenButtonText => Text("開く", "Open");
+
+    public string RecordingFileNameLabel => Text("記録ファイル名（任意）", "Recording file name (optional)");
+
+    public string RecordingsFolderLabel => Text("保存先", "Recordings folder");
+
+    public string SaveButtonText => Text("保存", "Save");
+
+    public string SourceLanguageLabel => Text("話者言語", "Speaker language");
+
+    public string SourceTextHeader => Text("原文", "Source text");
+
+    public string StartButtonText => Text("開始", "Start");
+
+    public string StatusLogHeader => Text("状態ログ", "Status log");
+
+    public string StopButtonText => Text("停止", "Stop");
+
+    public string TargetLanguageLabel => Text("翻訳先言語", "Target language");
+
+    public string TranslationLogHeader => Text("翻訳ログ", "Translation log");
+
+    public string TranslatedTextHeader => Text("翻訳文", "Translation");
+
+    public string UiLanguageLabel => Text("UI言語", "UI language");
+
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         await InitializeRecordingFolderAsync(cancellationToken);
@@ -287,7 +356,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         if (SelectedSourceLanguage is null || SelectedTargetLanguage is null || SelectedAudioInputSource is null)
         {
-            StatusMessage = "言語と音声入力を選択してください。";
+            StatusMessage = Text("言語と音声入力を選択してください。", "Select languages and audio input.");
             return;
         }
 
@@ -299,7 +368,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
         catch (ArgumentException ex)
         {
-            StatusMessage = $"記録ファイル名が不正です: {ex.Message}";
+            StatusMessage = Text($"記録ファイル名が不正です: {ex.Message}", $"Invalid recording file name: {ex.Message}");
             AddActivityLog(StatusMessage);
             return;
         }
@@ -326,8 +395,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
             _currentWorker = worker;
             IsRunning = true;
-            StatusMessage = "開始";
-            AddActivityLog("翻訳を開始しました。");
+            StatusMessage = Text("開始", "Started");
+            AddActivityLog(Text("翻訳を開始しました。", "Translation started."));
         }
         catch (Exception ex)
         {
@@ -352,8 +421,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         AzureRegion = normalizedRegion;
         AzureApiKey = normalizedApiKey;
-        SettingsStatusMessage = "Azure AI Service 設定を保存しました。";
-        AddActivityLog("Azure AI Service 設定を保存しました。");
+        SettingsStatusMessage = Text("Azure AI Service 設定を保存しました。", "Saved Azure AI Service settings.");
+        AddActivityLog(SettingsStatusMessage);
     }
 
     private Task OpenRecordingsFolderAsync()
@@ -362,8 +431,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             var recordingsDirectory = _recordingFileService.OpenRecordingsFolder();
             RecordingsFolderPath = recordingsDirectory;
-            StatusMessage = "保存先を開きました。";
-            AddActivityLog($"保存先を開きました: {recordingsDirectory}");
+            StatusMessage = Text("保存先を開きました。", "Opened recordings folder.");
+            AddActivityLog(Text($"保存先を開きました: {recordingsDirectory}", $"Opened recordings folder: {recordingsDirectory}"));
         }
         catch (Exception ex)
         {
@@ -385,8 +454,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _recordingFileService.SetRecordingsDirectory(selectedFolder);
         await _recordingFolderSettingsStore.SaveAsync(_recordingFileService.RecordingsDirectory);
         RecordingsFolderPath = _recordingFileService.RecordingsDirectory;
-        StatusMessage = "保存先を変更しました。";
-        AddActivityLog($"保存先を変更しました: {RecordingsFolderPath}");
+        StatusMessage = Text("保存先を変更しました。", "Changed recordings folder.");
+        AddActivityLog(Text($"保存先を変更しました: {RecordingsFolderPath}", $"Changed recordings folder: {RecordingsFolderPath}"));
     }
 
     private async Task StopAsync()
@@ -394,12 +463,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
         try
         {
             await _translationController.StopAsync();
-            StatusMessage = "停止";
-            AddActivityLog("翻訳を停止しました。");
+            StatusMessage = Text("停止", "Stopped");
+            AddActivityLog(Text("翻訳を停止しました。", "Translation stopped."));
         }
         catch (Exception ex)
         {
-            StatusMessage = $"停止に失敗しました: {ex.Message}";
+            StatusMessage = Text($"停止に失敗しました: {ex.Message}", $"Failed to stop: {ex.Message}");
             AddActivityLog(StatusMessage);
         }
         finally
@@ -461,7 +530,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private void OnWorkerTranslationLogged(object? sender, TranslationLogItem e)
     {
-        _dispatcher.Invoke(() => TranslationLogs.Add(e));
+        _dispatcher.Invoke(() => TranslationLogs.Insert(0, e));
     }
 
     private void AddActivityLog(string message)
@@ -471,7 +540,56 @@ public sealed class MainViewModel : INotifyPropertyChanged
             return;
         }
 
-        ActivityLogs.Add(message);
+        ActivityLogs.Insert(0, message);
+    }
+
+    private static ObservableCollection<AudioInputSourceOption> CreateAudioInputSourceOptions(UiLanguage language)
+    {
+        return
+        [
+            new AudioInputSourceOption(AudioInputSource.Microphone, language == UiLanguage.Japanese ? "マイク" : "Microphone"),
+            new AudioInputSourceOption(AudioInputSource.SystemAudio, language == UiLanguage.Japanese ? "PC音声（既定の再生デバイス）" : "PC audio (default playback device)")
+        ];
+    }
+
+    private string Text(string japanese, string english)
+    {
+        return SelectedUiLanguage?.Language == UiLanguage.English ? english : japanese;
+    }
+
+    private void UpdateAudioInputSourceLabels()
+    {
+        var selectedSource = SelectedAudioInputSource?.Source ?? AudioInputSource.Microphone;
+        var options = CreateAudioInputSourceOptions(SelectedUiLanguage?.Language ?? UiLanguage.Japanese);
+
+        AvailableAudioInputSources.Clear();
+        foreach (var option in options)
+        {
+            AvailableAudioInputSources.Add(option);
+        }
+
+        SelectedAudioInputSource = AvailableAudioInputSources.FirstOrDefault(option => option.Source == selectedSource) ?? AvailableAudioInputSources[0];
+    }
+
+    private void RaiseUiTextChanged()
+    {
+        OnPropertyChanged(nameof(ApiKeyLabel));
+        OnPropertyChanged(nameof(AudioInputLabel));
+        OnPropertyChanged(nameof(AzureSettingsHeader));
+        OnPropertyChanged(nameof(ChooseButtonText));
+        OnPropertyChanged(nameof(OpenButtonText));
+        OnPropertyChanged(nameof(RecordingFileNameLabel));
+        OnPropertyChanged(nameof(RecordingsFolderLabel));
+        OnPropertyChanged(nameof(SaveButtonText));
+        OnPropertyChanged(nameof(SourceLanguageLabel));
+        OnPropertyChanged(nameof(SourceTextHeader));
+        OnPropertyChanged(nameof(StartButtonText));
+        OnPropertyChanged(nameof(StatusLogHeader));
+        OnPropertyChanged(nameof(StopButtonText));
+        OnPropertyChanged(nameof(TargetLanguageLabel));
+        OnPropertyChanged(nameof(TranslationLogHeader));
+        OnPropertyChanged(nameof(TranslatedTextHeader));
+        OnPropertyChanged(nameof(UiLanguageLabel));
     }
 
     private void DetachCurrentWorker()
