@@ -208,21 +208,47 @@ public class MainViewModelTests
     }
 
     [Fact]
-    public async Task Start_AfterClearLogs_UsesNewTimestampedRecordingFile()
+    public async Task Start_WhenPrefixIsEmpty_UsesDefaultTimestampedRecordingFile()
     {
         var translationController = new FakeTranslationController();
         var workerFactory = new FakeDesktopTranslationWorkerFactory(new FakeDesktopTranslationWorker());
         var viewModel = CreateViewModel(
             translationController: translationController,
             workerFactory: workerFactory);
-        viewModel.RecordingFileName = "session";
 
-        await ExecuteAsync(viewModel.ClearLogsCommand);
         await ExecuteAsync(viewModel.StartCommand);
 
         workerFactory.LastRecordingFileName.Should().StartWith("session_");
         workerFactory.LastRecordingFileName.Should().NotBe("session");
-        viewModel.RecordingFileName.Should().Be("session");
+        viewModel.RecordingFileName.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Start_WhenPrefixIsProvided_UsesPrefixTimestampedRecordingFile()
+    {
+        var workerFactory = new FakeDesktopTranslationWorkerFactory(new FakeDesktopTranslationWorker());
+        var viewModel = CreateViewModel(workerFactory: workerFactory);
+        viewModel.RecordingFileName = "build2026";
+
+        await ExecuteAsync(viewModel.StartCommand);
+
+        workerFactory.LastRecordingFileName.Should().StartWith("build2026_");
+        workerFactory.LastRecordingFileName.Should().NotBe("build2026");
+        viewModel.RecordingFileNamePreview.Should().Contain("build2026_yyyyMMdd_HHmmss.txt");
+    }
+
+    [Fact]
+    public async Task Start_WhenSaveRecordingIsOff_PassesNoRecordingFile()
+    {
+        var workerFactory = new FakeDesktopTranslationWorkerFactory(new FakeDesktopTranslationWorker());
+        var viewModel = CreateViewModel(workerFactory: workerFactory);
+        viewModel.IsRecordingSaveEnabled = false;
+        viewModel.RecordingFileName = "build2026";
+
+        await ExecuteAsync(viewModel.StartCommand);
+
+        workerFactory.LastRecordingFileName.Should().BeNull();
+        viewModel.RecordingFileNamePreview.Should().Contain("保存OFF");
     }
 
     [Fact]
@@ -307,6 +333,8 @@ public class MainViewModelTests
         viewModel.SelectedSourceLanguage = viewModel.AvailableLanguages.Single(language => language.Code == "ja-JP");
         viewModel.SelectedTargetLanguage = viewModel.AvailableLanguages.Single(language => language.Code == "en-US");
         viewModel.SelectedAudioInputSource = viewModel.AvailableAudioInputSources.Single(source => source.Source == AudioInputSource.SystemAudio);
+        viewModel.IsRecordingSaveEnabled = false;
+        viewModel.RecordingFileName = "build2026";
 
         await ExecuteAsync(viewModel.StartCommand);
 
@@ -315,7 +343,9 @@ public class MainViewModelTests
             "ja-JP",
             "en-US",
             nameof(AudioInputSource.SystemAudio),
-            nameof(RecognitionMode.TranscriptionOnly)));
+            nameof(RecognitionMode.TranscriptionOnly),
+            false,
+            "build2026"));
     }
 
     [Fact]
@@ -328,7 +358,9 @@ public class MainViewModelTests
                 "ja-JP",
                 "en-US",
                 nameof(AudioInputSource.SystemAudio),
-                nameof(RecognitionMode.TranscriptionOnly))
+                nameof(RecognitionMode.TranscriptionOnly),
+                false,
+                "build2026")
         });
 
         await viewModel.InitializeAsync();
@@ -338,11 +370,13 @@ public class MainViewModelTests
         viewModel.SelectedTargetLanguage!.Code.Should().Be("en-US");
         viewModel.SelectedAudioInputSource!.Source.Should().Be(AudioInputSource.SystemAudio);
         viewModel.SelectedRecognitionMode!.Mode.Should().Be(RecognitionMode.TranscriptionOnly);
+        viewModel.IsRecordingSaveEnabled.Should().BeFalse();
+        viewModel.RecordingFileName.Should().Be("build2026");
         viewModel.SourceTextHeader.Should().Be("Transcript");
     }
 
     [Fact]
-    public async Task Start_WhenRecordingFileNameIsInvalid_ShowsErrorAndDoesNotStart()
+    public async Task Start_WhenRecordingFileNamePrefixIsInvalid_ShowsErrorAndDoesNotStart()
     {
         var translationController = new FakeTranslationController();
         var workerFactory = new FakeDesktopTranslationWorkerFactory(new FakeDesktopTranslationWorker());
@@ -360,7 +394,7 @@ public class MainViewModelTests
         translationController.StartCallCount.Should().Be(0);
         workerFactory.CreateCallCount.Should().Be(0);
         viewModel.IsRunning.Should().BeFalse();
-        viewModel.StatusMessage.Should().StartWith("記録ファイル名が不正です:");
+        viewModel.StatusMessage.Should().StartWith("ファイル名 prefix が不正です:");
         viewModel.ActivityLogs.Should().Contain(viewModel.StatusMessage);
     }
 

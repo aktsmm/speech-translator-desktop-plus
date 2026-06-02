@@ -7,6 +7,7 @@ namespace SpeechTranslatorDesktop.ViewModels;
 
 public sealed class MainViewModel : INotifyPropertyChanged
 {
+    private const string DefaultRecordingFileNamePrefix = "session";
     private readonly IUiDispatcher _dispatcher;
     private readonly ISpeechCredentialsProvider _credentialsProvider;
     private readonly IAzureAiServiceSettingsStore _settingsStore;
@@ -24,12 +25,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private UiLanguageOption? _selectedUiLanguage;
     private string _azureApiKey = string.Empty;
     private string _azureRegion = string.Empty;
-    private string _recordingFileName = string.Empty;
+    private string _recordingFileNamePrefix = string.Empty;
     private string _recordingsFolderPath = string.Empty;
     private string _settingsStatusMessage = string.Empty;
     private string _statusMessage = string.Empty;
+    private bool _isRecordingSaveEnabled = true;
     private bool _isRunning;
-    private bool _startNewRecordingFileOnNextStart;
 
     public MainViewModel(
         IUiDispatcher dispatcher,
@@ -159,18 +160,35 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    public string RecordingFileName
+    public bool IsRecordingSaveEnabled
     {
-        get => _recordingFileName;
+        get => _isRecordingSaveEnabled;
         set
         {
-            if (_recordingFileName == value)
+            if (_isRecordingSaveEnabled == value)
             {
                 return;
             }
 
-            _recordingFileName = value;
+            _isRecordingSaveEnabled = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(RecordingFileNamePreview));
+        }
+    }
+
+    public string RecordingFileName
+    {
+        get => _recordingFileNamePrefix;
+        set
+        {
+            if (_recordingFileNamePrefix == value)
+            {
+                return;
+            }
+
+            _recordingFileNamePrefix = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(RecordingFileNamePreview));
         }
     }
 
@@ -331,11 +349,28 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string RecognitionModeLabel => Text("利用モード", "Mode");
 
-    public string RecordingFileNameLabel => Text("記録ファイル名（任意）", "Recording file name (optional)");
+    public string RecordingFileNameLabel => Text("ファイル名 prefix（任意）", "File name prefix (optional)");
+
+    public string RecordingFileNamePreview
+    {
+        get
+        {
+            if (!IsRecordingSaveEnabled)
+            {
+                return Text("保存OFF: ファイルには保存しません。", "Save off: no recording file will be written.");
+            }
+
+            return Text(
+                $"保存例: {GetEffectiveRecordingFileNamePrefix()}_yyyyMMdd_HHmmss.txt",
+                $"Example: {GetEffectiveRecordingFileNamePrefix()}_yyyyMMdd_HHmmss.txt");
+        }
+    }
 
     public string RecordingsFolderLabel => Text("保存先", "Recordings folder");
 
     public string SaveButtonText => Text("保存", "Save");
+
+    public string SaveRecordingLabel => Text("記録を保存する", "Save recording");
 
     public string SettingsButtonText => Text("設定", "Settings");
 
@@ -441,6 +476,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
             {
                 SelectedRecognitionMode = AvailableRecognitionModes.FirstOrDefault(option => option.Mode == recognitionMode) ?? SelectedRecognitionMode;
             }
+
+            IsRecordingSaveEnabled = preferences.IsRecordingSaveEnabled ?? true;
+            RecordingFileName = preferences.RecordingFileNamePrefix ?? string.Empty;
         }
         catch (Exception ex)
         {
@@ -465,16 +503,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
         string? recordingFileName;
         try
         {
-            recordingFileName = _recordingFileService.NormalizeFileName(RecordingFileName);
-            RecordingFileName = recordingFileName ?? string.Empty;
-            if (_startNewRecordingFileOnNextStart && recordingFileName is not null)
-            {
-                recordingFileName = CreateNewRecordingFileName(recordingFileName);
-            }
+            recordingFileName = CreateRecordingFileNameForStart();
         }
         catch (ArgumentException ex)
         {
-            StatusMessage = Text($"記録ファイル名が不正です: {ex.Message}", $"Invalid recording file name: {ex.Message}");
+            StatusMessage = Text($"ファイル名 prefix が不正です: {ex.Message}", $"Invalid file name prefix: {ex.Message}");
             AddActivityLog(StatusMessage);
             return;
         }
@@ -506,7 +539,6 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 worker);
 
             _currentWorker = worker;
-            _startNewRecordingFileOnNextStart = false;
             IsRunning = true;
             StatusMessage = Text("開始", "Started");
             AddActivityLog(IsTranslationMode ? Text("翻訳を開始しました。", "Translation started.") : Text("書き起こしを開始しました。", "Transcription started."));
@@ -565,9 +597,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         TranslationLogs.Clear();
         RecentTranslationLogs.Clear();
         ActivityLogs.Clear();
-        _startNewRecordingFileOnNextStart = true;
         StatusMessage = Text("ログをクリアしました。", "Logs cleared.");
-        AddActivityLog(Text("ログをクリアしました。次回開始時は新しい記録ファイルを作成します。", "Logs cleared. The next start creates a new recording file."));
+        AddActivityLog(Text("ログをクリアしました。記録ファイルは開始ごとに新規作成されます。", "Logs cleared. Recording files are created fresh on each start."));
         return Task.CompletedTask;
     }
 
@@ -738,7 +769,32 @@ public sealed class MainViewModel : INotifyPropertyChanged
             SelectedSourceLanguage?.Code,
             SelectedTargetLanguage?.Code,
             SelectedAudioInputSource?.Source.ToString(),
-            SelectedRecognitionMode?.Mode.ToString()));
+            SelectedRecognitionMode?.Mode.ToString(),
+            IsRecordingSaveEnabled,
+            RecordingFileName));
+    }
+
+    private string? CreateRecordingFileNameForStart()
+    {
+        if (!IsRecordingSaveEnabled)
+        {
+            return null;
+        }
+
+        var normalizedPrefix = _recordingFileService.NormalizeFileName(GetEffectiveRecordingFileNamePrefix());
+        if (normalizedPrefix is null)
+        {
+            throw new ArgumentException(Text("ファイル名 prefix を指定してください。", "Specify a file name prefix."));
+        }
+
+        return CreateTimestampedRecordingFileName(normalizedPrefix);
+    }
+
+    private string GetEffectiveRecordingFileNamePrefix()
+    {
+        return string.IsNullOrWhiteSpace(RecordingFileName)
+            ? DefaultRecordingFileNamePrefix
+            : RecordingFileName.Trim();
     }
 
     private void UpdateLocalizedStatusMessage()
@@ -772,8 +828,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(OpenButtonText));
         OnPropertyChanged(nameof(RecognitionModeLabel));
         OnPropertyChanged(nameof(RecordingFileNameLabel));
+        OnPropertyChanged(nameof(RecordingFileNamePreview));
         OnPropertyChanged(nameof(RecordingsFolderLabel));
         OnPropertyChanged(nameof(SaveButtonText));
+        OnPropertyChanged(nameof(SaveRecordingLabel));
         OnPropertyChanged(nameof(SettingsButtonText));
         OnPropertyChanged(nameof(SettingsWindowTitle));
         OnPropertyChanged(nameof(ShowRecentTranslationsButtonText));
@@ -804,7 +862,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _currentWorker = null;
     }
 
-    private static string CreateNewRecordingFileName(string baseFileName)
+    private static string CreateTimestampedRecordingFileName(string baseFileName)
     {
         return $"{baseFileName}_{DateTime.Now:yyyyMMdd_HHmmss}";
     }

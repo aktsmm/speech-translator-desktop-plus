@@ -171,10 +171,19 @@
                 </StackPanel>
 
                 <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,12,0">
+                    <CheckBox Margin="0,0,0,8"
+                              IsChecked="{Binding IsRecordingSaveEnabled}"
+                              AutomationProperties.Name="{Binding SaveRecordingLabel}"
+                              ToolTip="{Binding SaveRecordingLabel}"
+                              Content="{Binding SaveRecordingLabel}" />
                     <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding RecordingFileNameLabel}" />
                     <TextBox AutomationProperties.Name="{Binding RecordingFileNameLabel}"
-                             ToolTip="{Binding RecordingFileNameLabel}"
-                             Text="{Binding RecordingFileName, UpdateSourceTrigger=PropertyChanged}" />
+                              ToolTip="{Binding RecordingFileNameLabel}"
+                              Text="{Binding RecordingFileName, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Margin="0,6,0,0"
+                               FontSize="12"
+                               Foreground="#6B7280"
+                               Text="{Binding RecordingFileNamePreview}" />
                 </StackPanel>
 
                 <WrapPanel Grid.Row="1"

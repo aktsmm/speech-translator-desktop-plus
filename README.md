@@ -15,8 +15,8 @@ This project is based on [tsubakimoto/speech-translator](https://github.com/tsub
 - PC audio input using WASAPI loopback, so YouTube, livestreams, and other system playback can be translated without VB-CABLE.
 - Translation logs are shown newest-first, so the latest text stays visible.
 - Transcript-only mode for cases where translation is not needed.
-- Translation log recording as UTF-8 text.
-- Last-used UI language, source language, target language, input source, and mode are restored on the next launch.
+- Translation/transcription log recording as UTF-8 text, with automatic timestamped file names.
+- Last-used UI language, source language, target language, input source, mode, save setting, and file name prefix are restored on the next launch.
 - Recording folder selection, persistence, and "open folder" UI.
 - Dedicated settings window for Azure Speech credentials and recording folder controls.
 - Japanese and English UI language switching.
@@ -36,11 +36,12 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 - Combined `Microphone + PC audio` input mode.
 - `Microphone + PC audio` is the default input mode for livestream translation and note-taking.
 - Transcript-only mode using Azure Speech recognition when translation is unnecessary.
-- Last-used language/input/mode preferences are persisted and restored.
+- Last-used language/input/mode/save/prefix preferences are persisted and restored.
+- Save recording toggle and automatic `{prefix}_yyyyMMdd_HHmmss.txt` file naming.
 - Newest-first translation and status logs.
 - Wrapped translation table rows, capped to roughly three visible lines.
 - Empty translation row suppression.
-- Clear logs action that resets the on-screen logs and starts a fresh recording file on the next start.
+- Clear logs action that resets only the on-screen logs; recording files are already created fresh on each start.
 - Optional live-notes pop-out window with card-style monitoring for the three newest source/transcript or source/translation pairs.
 - Configurable and persisted recording folder.
 - Dedicated settings window to keep the main translation screen focused.
@@ -94,14 +95,17 @@ scripts\run-dev.cmd
    - `Microphone`
    - `PC audio (default playback device)`
    - `Microphone + PC audio` (default)
-6. Optionally enter a recording file name stem, using letters/numbers/`-`/`_` only.
-7. Click `Start`.
-8. Click `Clear logs` to clear the visible translation/status logs. If a recording file name is set, the next `Start` creates a new timestamped recording file instead of appending to the previous file.
-9. Click `Open live notes window` to open a separate window that shows only the three newest source/transcript or source/translation pairs.
+6. Choose whether to save recordings. Saving is on by default.
+7. Optionally enter a file name prefix, using letters/numbers/`-`/`_` only.
+   - Empty prefix uses `session`.
+   - Each start creates a new `{prefix}_yyyyMMdd_HHmmss.txt` file, for example `build2026_20260603_080250.txt`.
+8. Click `Start`.
+9. Click `Clear logs` to clear the visible translation/status logs. Recording files are already created fresh on each start.
+10. Click `Open live notes window` to open a separate window that shows only the three newest source/transcript or source/translation pairs.
 
-If the recording file name is empty, translation/transcription is shown in the UI but not saved to a text file.
+If `Save recording` is off, translation/transcription is shown in the UI but not saved to a text file.
 
-Your last-used UI language, mode, source language, target language, and audio input are saved locally and restored when you launch the app again.
+Your last-used UI language, mode, source language, target language, audio input, save setting, and prefix are saved locally and restored when you launch the app again.
 
 Rows with no source text are ignored. In translation mode, rows with no translated text are also ignored to avoid blank lines in the UI and recording files.
 

@@ -5,4 +5,6 @@ public sealed record AppPreferences(
     string? SourceLanguage,
     string? TargetLanguage,
     string? AudioInputSource,
-    string? RecognitionMode);
+    string? RecognitionMode,
+    bool? IsRecordingSaveEnabled = null,
+    string? RecordingFileNamePrefix = null);
