@@ -2,13 +2,15 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:SpeechTranslatorDesktop.Behaviors"
-        x:Name="RootWindow"
         Title="Speech Translator Desktop Plus"
         Height="700"
         Width="960"
         MinHeight="480"
         MinWidth="720">
     <Grid Margin="16">
+        <Grid.Resources>
+            <local:BindingProxy x:Key="DataContextProxy" Data="{Binding}" />
+        </Grid.Resources>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -196,13 +198,13 @@
                     <DataGridTextColumn Binding="{Binding SourceText}"
                                         Width="*">
                         <DataGridTextColumn.Header>
-                            <TextBlock Text="{Binding DataContext.SourceTextHeader, Source={x:Reference RootWindow}}" />
+                            <TextBlock Text="{Binding Data.SourceTextHeader, Source={StaticResource DataContextProxy}}" />
                         </DataGridTextColumn.Header>
                     </DataGridTextColumn>
                     <DataGridTextColumn Binding="{Binding TranslatedText}"
                                         Width="*">
                         <DataGridTextColumn.Header>
-                            <TextBlock Text="{Binding DataContext.TranslatedTextHeader, Source={x:Reference RootWindow}}" />
+                            <TextBlock Text="{Binding Data.TranslatedTextHeader, Source={StaticResource DataContextProxy}}" />
                         </DataGridTextColumn.Header>
                     </DataGridTextColumn>
                 </DataGrid.Columns>
