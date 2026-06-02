@@ -145,7 +145,9 @@ public sealed class DesktopTranslationController : ITranslationController
             return await translator.StartTranslationAsync(worker).ConfigureAwait(false);
         }
 
-        var systemAudioInput = SystemAudioInput.Start();
+        var systemAudioInput = audioInputSource == AudioInputSource.MicrophoneAndSystemAudio
+            ? SystemAudioInput.StartMicrophoneAndSystemAudio()
+            : SystemAudioInput.StartSystemAudio();
         try
         {
             return await translator.StartTranslationAsync(worker, systemAudioInput.AudioConfig, systemAudioInput).ConfigureAwait(false);

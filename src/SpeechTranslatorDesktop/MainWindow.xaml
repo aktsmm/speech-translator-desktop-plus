@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:SpeechTranslatorDesktop.Behaviors"
         Title="Speech Translator Desktop Plus"
+        Icon="Assets/AppIcon.ico"
         Height="700"
         Width="960"
         MinHeight="480"
@@ -192,16 +193,31 @@
                   Margin="0,0,0,12">
             <DataGrid ItemsSource="{Binding TranslationLogs}"
                       AutoGenerateColumns="False"
+                      GridLinesVisibility="Horizontal"
                       IsReadOnly="True"
-                      HeadersVisibility="Column">
+                      HeadersVisibility="Column"
+                      RowHeight="Auto">
+                <DataGrid.Resources>
+                    <Style x:Key="WrappedTranslationCellText" TargetType="{x:Type TextBlock}">
+                        <Setter Property="TextWrapping" Value="Wrap" />
+                        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                        <Setter Property="MaxHeight" Value="60" />
+                        <Setter Property="Padding" Value="4,2" />
+                    </Style>
+                    <Style TargetType="{x:Type DataGridRow}">
+                        <Setter Property="MaxHeight" Value="72" />
+                    </Style>
+                </DataGrid.Resources>
                 <DataGrid.Columns>
                     <DataGridTextColumn Binding="{Binding SourceText}"
+                                        ElementStyle="{StaticResource WrappedTranslationCellText}"
                                         Width="*">
                         <DataGridTextColumn.Header>
                             <TextBlock Text="{Binding Data.SourceTextHeader, Source={StaticResource DataContextProxy}}" />
                         </DataGridTextColumn.Header>
                     </DataGridTextColumn>
                     <DataGridTextColumn Binding="{Binding TranslatedText}"
+                                        ElementStyle="{StaticResource WrappedTranslationCellText}"
                                         Width="*">
                         <DataGridTextColumn.Header>
                             <TextBlock Text="{Binding Data.TranslatedTextHeader, Source={StaticResource DataContextProxy}}" />

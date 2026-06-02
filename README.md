@@ -1,6 +1,6 @@
 # Speech Translator Desktop Plus
 
-English | [日本語](#日本語)
+[日本語 README](README.ja.md)
 
 Speech Translator Desktop Plus is a Windows desktop speech translator and recorder using [Azure AI Speech](https://azure.microsoft.com/en-us/products/ai-services/ai-speech).
 
@@ -19,15 +19,18 @@ This project is based on [tsubakimoto/speech-translator](https://github.com/tsub
 - Japanese and English UI language switching.
 - Major speech translation languages are available from the source/target language selectors.
 - Azure AI Speech region/API key persistence in SQLite with the API key protected by Windows DPAPI.
+- Self-contained Windows publish and zip packaging scripts for easy setup.
 
-## Prerequisites
+## Recommended setup
 
-- Windows 10/11
-- [.NET 10.0 SDK](https://dot.net/download) for development or source builds
-- Azure AI Speech resource
-  - The Azure Speech F0 tier includes limited free monthly usage.
+### Option 1: Download the release zip
 
-## Quick setup
+1. Open the latest GitHub release.
+2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`.
+3. Extract it to any writable folder.
+4. Run `SpeechTranslatorDesktopPlus.exe`.
+
+### Option 2: One-command setup from source
 
 From the repository root:
 
@@ -37,7 +40,7 @@ From the repository root:
 
 The setup script installs a local .NET 10 SDK if needed, publishes a self-contained Windows build to `%LOCALAPPDATA%\Programs\SpeechTranslatorDesktopPlus`, and creates a desktop shortcut.
 
-## Run the desktop app from source
+## Run from source
 
 ```powershell
 .\scripts\run-dev.ps1
@@ -49,7 +52,7 @@ or:
 scripts\run-dev.cmd
 ```
 
-In the app:
+## Basic usage
 
 1. Select UI language: `日本語` or `English`.
 2. Enter the Azure AI Speech `Region` and `API Key`, then click `Save`.
@@ -68,17 +71,21 @@ Use the recordings folder controls in the app to choose and open the folder wher
 
 The selected folder is persisted in the local settings database. If no custom folder is selected, logs are saved under `recordings/` relative to the app executable directory.
 
-## Publish to an install folder
+## Publish and package
 
-Use the publish helper to place the app in a folder of your choice:
+Publish to a folder:
 
 ```powershell
 .\scripts\publish.ps1 -InstallPath "$env:LOCALAPPDATA\Programs\SpeechTranslatorDesktopPlus" -CreateDesktopShortcut
 ```
 
-You can replace `-InstallPath` with any writable folder. By default, this creates a self-contained Windows build. This is a lightweight folder-based install, not an MSI/MSIX installer.
+Create a release zip:
 
-Repository helper scripts live in [`scripts/`](scripts/) to keep the root directory focused.
+```powershell
+.\scripts\package.ps1
+```
+
+Helper scripts live in [`scripts/`](scripts/) to keep the repository root focused.
 
 ## Console app
 
@@ -120,127 +127,3 @@ Based on:
 - Original repository: https://github.com/tsubakimoto/speech-translator
 - Original author/license notice: `Copyright (c) 2023 Yuta Matsumura`
 - Original license: MIT License
-
-## 日本語
-
-Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.com/ja-jp/products/ai-services/ai-speech) を使った Windows デスクトップ向けのリアルタイム音声翻訳・記録アプリです。
-
-![Microsoft Build のライブ配信を翻訳している Speech Translator Desktop Plus](docs/images/build-live-translation-demo.png)
-
-このプロジェクトは [tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator) をベースにしています。元プロジェクトは MIT License です。元の著作権表示とライセンス文は [LICENSE](./LICENSE) に残しています。
-
-## 機能
-
-- Azure AI Speech によるリアルタイム音声翻訳
-- マイク入力
-- WASAPI loopback による PC 音声入力
-  - YouTube、ライブ配信、PC で再生中の音声を VB-CABLE なしで翻訳できます
-- 翻訳ログは新しいものが上に表示されるため、最新テキストをスクロールせず確認できます
-- UTF-8 テキストとして翻訳ログを保存
-- 保存先フォルダーの選択、永続化、フォルダーを開く UI
-- 日本語 / 英語 UI の切り替え
-- 主要な音声翻訳言語を話者言語・翻訳先言語として選択可能
-- Azure AI Speech のリージョン/APIキーを SQLite に保存
-  - APIキーは Windows DPAPI で保護されます
-
-## 前提条件
-
-- Windows 10/11
-- 開発時またはソースからのビルド時は [.NET 10.0 SDK](https://dot.net/download)
-- Azure AI Speech リソース
-  - Azure Speech の F0 レベルには月あたりの無料利用枠があります
-
-## クイックセットアップ
-
-リポジトリルートで実行します。
-
-```powershell
-.\scripts\setup.ps1
-```
-
-セットアップスクリプトは、必要に応じてユーザー領域に .NET 10 SDK を導入し、自己完結型の Windows ビルドを `%LOCALAPPDATA%\Programs\SpeechTranslatorDesktopPlus` に配置し、デスクトップショートカットを作成します。
-
-## ソースからデスクトップアプリを起動
-
-```powershell
-.\scripts\run-dev.ps1
-```
-
-または:
-
-```cmd
-scripts\run-dev.cmd
-```
-
-アプリ内での手順:
-
-1. UI言語として `日本語` または `English` を選択します。
-2. Azure AI Speech の `Region` と `API Key` を入力し、`保存` を押します。
-3. 話者言語と翻訳先言語を選択します。
-4. 音声入力を選択します。
-   - `マイク`
-   - `PC音声（既定の再生デバイス）`
-5. 必要に応じて記録ファイル名を入力します。
-   - 英数字、`-`、`_` のみ使用できます
-6. `開始` を押します。
-
-記録ファイル名が空の場合、翻訳は画面に表示されますがテキストファイルには保存されません。
-
-## 保存先フォルダー
-
-アプリ内の保存先コントロールから、翻訳ログを保存するフォルダーを選択・開くことができます。
-
-選択した保存先はローカル設定DBに保存されます。保存先を選択していない場合は、アプリ実行ファイルから見た `recordings/` 配下に保存されます。
-
-## 任意フォルダーへの配置
-
-次の publish helper で、好きなフォルダーにアプリを配置できます。
-
-```powershell
-.\scripts\publish.ps1 -InstallPath "$env:LOCALAPPDATA\Programs\SpeechTranslatorDesktopPlus" -CreateDesktopShortcut
-```
-
-`-InstallPath` は任意の書き込み可能なフォルダーに置き換えられます。既定では自己完結型の Windows ビルドを作成します。これは MSI/MSIX ではなく、フォルダー配置型の軽量インストール方式です。
-
-補助スクリプトは [`scripts/`](scripts/) にまとめ、リポジトリルートを見やすくしています。
-
-## コンソールアプリ
-
-元のコンソールアプリも残しています。
-
-1. Azure AI Speech リソースを作成します。([Bicep](./infra/main.bicep))
-2. Azure Portal から `Subscription Key` と `Region` をコピーします。
-3. `src/SpeechTranslatorConsole/appsettings.Development.json` を作成します。
-4. `appsettings.Development.json` を設定します。
-
-    ```json
-    {
-        "Settings": {
-            "Region": "<Region>",
-            "SubscriptionKey": "<Subscription Key>"
-        }
-    }
-    ```
-
-5. 翻訳対象のマイクデバイスを既定の入力デバイスに設定します。
-6. 実行します。
-
-    ```powershell
-    dotnet run --project src/SpeechTranslatorConsole
-    ```
-
-## 参考
-
-- https://learn.microsoft.com/azure/ai-services/speech-service/language-identification
-- https://learn.microsoft.com/azure/ai-services/speech-service/how-to-translate-speech
-- https://learn.microsoft.com/azure/ai-services/speech-service/speech-translation
-
-## ライセンスと帰属
-
-このリポジトリは MIT License で配布します。詳細は [LICENSE](./LICENSE) を参照してください。
-
-ベース:
-
-- 元リポジトリ: https://github.com/tsubakimoto/speech-translator
-- 元の著作権表示: `Copyright (c) 2023 Yuta Matsumura`
-- 元ライセンス: MIT License

@@ -3,7 +3,8 @@ namespace SpeechTranslatorDesktop.Models;
 public enum AudioInputSource
 {
     Microphone,
-    SystemAudio
+    SystemAudio,
+    MicrophoneAndSystemAudio
 }
 
 public sealed record AudioInputSourceOption(AudioInputSource Source, string DisplayName)

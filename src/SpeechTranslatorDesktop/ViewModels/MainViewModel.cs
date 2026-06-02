@@ -557,7 +557,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         return
         [
             new AudioInputSourceOption(AudioInputSource.Microphone, language == UiLanguage.Japanese ? "マイク" : "Microphone"),
-            new AudioInputSourceOption(AudioInputSource.SystemAudio, language == UiLanguage.Japanese ? "PC音声（既定の再生デバイス）" : "PC audio (default playback device)")
+            new AudioInputSourceOption(AudioInputSource.SystemAudio, language == UiLanguage.Japanese ? "PC音声（既定の再生デバイス）" : "PC audio (default playback device)"),
+            new AudioInputSourceOption(AudioInputSource.MicrophoneAndSystemAudio, language == UiLanguage.Japanese ? "マイク + PC音声" : "Microphone + PC audio")
         ];
     }
 

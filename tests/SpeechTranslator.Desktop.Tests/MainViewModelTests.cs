@@ -224,6 +224,18 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public async Task Start_WhenMicrophoneAndSystemAudioSelected_PassesCombinedInputToController()
+    {
+        var translationController = new FakeTranslationController();
+        var viewModel = CreateViewModel(translationController: translationController);
+        viewModel.SelectedAudioInputSource = viewModel.AvailableAudioInputSources.Single(source => source.Source == AudioInputSource.MicrophoneAndSystemAudio);
+
+        await ExecuteAsync(viewModel.StartCommand);
+
+        translationController.LastAudioInputSource.Should().Be(AudioInputSource.MicrophoneAndSystemAudio);
+    }
+
+    [Fact]
     public async Task Start_WhenRecordingFileNameIsInvalid_ShowsErrorAndDoesNotStart()
     {
         var translationController = new FakeTranslationController();
@@ -321,7 +333,7 @@ public class MainViewModelTests
         viewModel.TranslationLogHeader.Should().Be("Translation log");
         viewModel.AvailableAudioInputSources.Select(option => option.DisplayName)
             .Should()
-            .Equal("Microphone", "PC audio (default playback device)");
+            .Equal("Microphone", "PC audio (default playback device)", "Microphone + PC audio");
     }
 
     [Fact]

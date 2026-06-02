@@ -28,6 +28,43 @@ public class DesktopTranslationWorkerTests
     }
 
     [Fact]
+    public void HandleTranslatedSpeech_WhenSourceAndTranslationAreEmpty_DoesNotLogOrSave()
+    {
+        var recordingFileService = new RecordingSpyFileService();
+        var worker = new DesktopTranslationWorker("ja-JP", "session-01", recordingFileService);
+        var statuses = new List<WorkerStatusChangedEventArgs>();
+        var translations = new List<TranslationLogItem>();
+        var messages = new List<string>();
+
+        worker.StatusChanged += (_, e) => statuses.Add(e);
+        worker.TranslationLogged += (_, e) => translations.Add(e);
+        worker.MessageLogged += (_, e) => messages.Add(e);
+
+        worker.HandleTranslatedSpeech("   ", "");
+
+        statuses.Should().BeEmpty();
+        translations.Should().BeEmpty();
+        messages.Should().BeEmpty();
+        recordingFileService.AppendCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public void HandleTranslatedSpeech_TrimsTextBeforeLoggingAndSaving()
+    {
+        var recordingFileService = new RecordingSpyFileService();
+        var worker = new DesktopTranslationWorker("ja-JP", "session-01", recordingFileService);
+        var translations = new List<TranslationLogItem>();
+
+        worker.TranslationLogged += (_, e) => translations.Add(e);
+
+        worker.HandleTranslatedSpeech("  hello  ", "  こんにちは  ");
+
+        translations.Should().ContainSingle().Which.Should().BeEquivalentTo(new TranslationLogItem("hello", "こんにちは"));
+        recordingFileService.LastSourceText.Should().Be("hello");
+        recordingFileService.LastTranslatedText.Should().Be("こんにちは");
+    }
+
+    [Fact]
     public void HandleTranslatedSpeech_WhenEnglishUiAndRecordingWriteFails_RaisesEnglishError()
     {
         var recordingFileService = new ThrowingRecordingFileService(new IOException("disk full"));
@@ -63,6 +100,29 @@ public class DesktopTranslationWorkerTests
         public string RecordingsDirectory => @"C:\recordings";
 
         public string OpenRecordingsFolder() => throw _exception;
+
+        public void SetRecordingsDirectory(string directoryPath)
+        {
+        }
+    }
+
+    private sealed class RecordingSpyFileService : IRecordingFileService
+    {
+        public string RecordingsDirectory => @"C:\recordings";
+        public int AppendCallCount { get; private set; }
+        public string? LastSourceText { get; private set; }
+        public string? LastTranslatedText { get; private set; }
+
+        public string? NormalizeFileName(string? fileName) => fileName;
+
+        public void AppendTranslation(string? fileName, string sourceText, string translatedText)
+        {
+            AppendCallCount++;
+            LastSourceText = sourceText;
+            LastTranslatedText = translatedText;
+        }
+
+        public string OpenRecordingsFolder() => RecordingsDirectory;
 
         public void SetRecordingsDirectory(string directoryPath)
         {

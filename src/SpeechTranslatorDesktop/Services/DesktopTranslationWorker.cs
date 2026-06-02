@@ -95,7 +95,12 @@ public sealed class DesktopTranslationWorker : TranslationRecognizerWorkerBase, 
 
     internal void HandleTranslatedSpeech(string sourceText, string translatedText)
     {
-        var translation = new TranslationLogItem(sourceText, translatedText);
+        if (string.IsNullOrWhiteSpace(sourceText) && string.IsNullOrWhiteSpace(translatedText))
+        {
+            return;
+        }
+
+        var translation = new TranslationLogItem(sourceText.Trim(), translatedText.Trim());
         TranslationLogged?.Invoke(this, translation);
         MessageLogged?.Invoke(this, Text($"原文: {translation.SourceText}", $"Source: {translation.SourceText}"));
         MessageLogged?.Invoke(this, Text($"翻訳: {translation.TranslatedText}", $"Translation: {translation.TranslatedText}"));
