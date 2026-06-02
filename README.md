@@ -29,9 +29,12 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 - A custom application icon.
 - PC audio capture via WASAPI loopback.
 - Combined `Microphone + PC audio` input mode.
+- `Microphone + PC audio` is the default input mode for livestream translation and note-taking.
 - Newest-first translation and status logs.
 - Wrapped translation table rows, capped to roughly three visible lines.
 - Empty translation row suppression.
+- Clear logs action that resets the on-screen logs and starts a fresh recording file on the next start.
+- Optional `Latest 3` pop-out window for monitoring only the newest source/translation pairs.
 - Configurable and persisted recording folder.
 - `Open folder` and `Choose folder` controls.
 - Japanese/English UI switching.
@@ -79,10 +82,15 @@ scripts\run-dev.cmd
 4. Select audio input:
    - `Microphone`
    - `PC audio (default playback device)`
+   - `Microphone + PC audio` (default)
 5. Optionally enter a recording file name stem, using letters/numbers/`-`/`_` only.
 6. Click `Start`.
+7. Click `Clear logs` to clear the visible translation/status logs. If a recording file name is set, the next `Start` creates a new timestamped recording file instead of appending to the previous file.
+8. Click `Latest 3` to open a separate window that shows only the three newest source/translation pairs.
 
 If the recording file name is empty, translation is shown in the UI but not saved to a text file.
+
+Rows with no source text or no translated text are ignored to avoid blank lines in the UI and recording files.
 
 ## Recording folder
 

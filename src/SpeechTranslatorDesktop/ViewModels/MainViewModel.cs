@@ -27,6 +27,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private string _settingsStatusMessage = string.Empty;
     private string _statusMessage = "停止";
     private bool _isRunning;
+    private bool _startNewRecordingFileOnNextStart;
 
     public MainViewModel(
         IUiDispatcher dispatcher,
@@ -78,7 +79,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             CreateAudioInputSourceOptions(defaultUiLanguage);
 
         _selectedUiLanguage = AvailableUiLanguages.First(option => option.Language == defaultUiLanguage);
-        _selectedAudioInputSource = AvailableAudioInputSources[0];
+        _selectedAudioInputSource = AvailableAudioInputSources.First(option => option.Source == AudioInputSource.MicrophoneAndSystemAudio);
         _selectedSourceLanguage = AvailableLanguages[0];
         _selectedTargetLanguage = AvailableLanguages[1];
         _recordingsFolderPath = _recordingFileService.RecordingsDirectory;
@@ -86,6 +87,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         StartCommand = new AsyncRelayCommand(StartAsync, () => !IsRunning, _dispatcher, HandleCommandException);
         StopCommand = new AsyncRelayCommand(StopAsync, () => IsRunning, _dispatcher, HandleCommandException);
         ChooseRecordingsFolderCommand = new AsyncRelayCommand(ChooseRecordingsFolderAsync, dispatcher: _dispatcher, onException: HandleCommandException);
+        ClearLogsCommand = new AsyncRelayCommand(ClearLogsAsync, dispatcher: _dispatcher, onException: HandleCommandException);
         OpenRecordingsFolderCommand = new AsyncRelayCommand(OpenRecordingsFolderAsync, dispatcher: _dispatcher, onException: HandleCommandException);
         SaveSettingsCommand = new AsyncRelayCommand(SaveSettingsAsync, dispatcher: _dispatcher, onException: HandleSettingsCommandException);
     }
@@ -243,6 +245,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public AsyncRelayCommand ChooseRecordingsFolderCommand { get; }
 
+    public AsyncRelayCommand ClearLogsCommand { get; }
+
     public AsyncRelayCommand OpenRecordingsFolderCommand { get; }
 
     public AsyncRelayCommand SaveSettingsCommand { get; }
@@ -281,6 +285,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public ObservableCollection<TranslationLogItem> TranslationLogs { get; } = [];
 
+    public ObservableCollection<TranslationLogItem> RecentTranslationLogs { get; } = [];
+
     public string ApiKeyLabel => Text("API Key", "API Key");
 
     public string AudioInputLabel => Text("音声入力", "Audio input");
@@ -289,6 +295,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string ChooseButtonText => Text("選択", "Choose");
 
+    public string ClearLogsButtonText => Text("ログクリア", "Clear logs");
+
     public string OpenButtonText => Text("開く", "Open");
 
     public string RecordingFileNameLabel => Text("記録ファイル名（任意）", "Recording file name (optional)");
@@ -296,6 +304,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public string RecordingsFolderLabel => Text("保存先", "Recordings folder");
 
     public string SaveButtonText => Text("保存", "Save");
+
+    public string ShowRecentTranslationsButtonText => Text("直近3件", "Latest 3");
 
     public string SourceLanguageLabel => Text("話者言語", "Speaker language");
 
@@ -372,6 +382,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             recordingFileName = _recordingFileService.NormalizeFileName(RecordingFileName);
             RecordingFileName = recordingFileName ?? string.Empty;
+            if (_startNewRecordingFileOnNextStart && recordingFileName is not null)
+            {
+                recordingFileName = CreateNewRecordingFileName(recordingFileName);
+            }
         }
         catch (ArgumentException ex)
         {
@@ -403,9 +417,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 worker.RecognizerWorker);
 
             _currentWorker = worker;
+            _startNewRecordingFileOnNextStart = false;
             IsRunning = true;
             StatusMessage = Text("開始", "Started");
             AddActivityLog(Text("翻訳を開始しました。", "Translation started."));
+            if (recordingFileName is not null)
+            {
+                AddActivityLog(Text($"記録ファイル: {recordingFileName}.txt", $"Recording file: {recordingFileName}.txt"));
+            }
         }
         catch (Exception ex)
         {
@@ -449,6 +468,17 @@ public sealed class MainViewModel : INotifyPropertyChanged
             AddActivityLog(ex.Message);
         }
 
+        return Task.CompletedTask;
+    }
+
+    private Task ClearLogsAsync()
+    {
+        TranslationLogs.Clear();
+        RecentTranslationLogs.Clear();
+        ActivityLogs.Clear();
+        _startNewRecordingFileOnNextStart = true;
+        StatusMessage = Text("ログをクリアしました。", "Logs cleared.");
+        AddActivityLog(Text("ログをクリアしました。次回開始時は新しい記録ファイルを作成します。", "Logs cleared. The next start creates a new recording file."));
         return Task.CompletedTask;
     }
 
@@ -539,7 +569,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private void OnWorkerTranslationLogged(object? sender, TranslationLogItem e)
     {
-        _dispatcher.Invoke(() => TranslationLogs.Insert(0, e));
+        _dispatcher.Invoke(() =>
+        {
+            TranslationLogs.Insert(0, e);
+            RecentTranslationLogs.Insert(0, e);
+            while (RecentTranslationLogs.Count > 3)
+            {
+                RecentTranslationLogs.RemoveAt(RecentTranslationLogs.Count - 1);
+            }
+        });
     }
 
     private void AddActivityLog(string message)
@@ -587,10 +625,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(AudioInputLabel));
         OnPropertyChanged(nameof(AzureSettingsHeader));
         OnPropertyChanged(nameof(ChooseButtonText));
+        OnPropertyChanged(nameof(ClearLogsButtonText));
         OnPropertyChanged(nameof(OpenButtonText));
         OnPropertyChanged(nameof(RecordingFileNameLabel));
         OnPropertyChanged(nameof(RecordingsFolderLabel));
         OnPropertyChanged(nameof(SaveButtonText));
+        OnPropertyChanged(nameof(ShowRecentTranslationsButtonText));
         OnPropertyChanged(nameof(SourceLanguageLabel));
         OnPropertyChanged(nameof(SourceTextHeader));
         OnPropertyChanged(nameof(StartButtonText));
@@ -611,6 +651,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         UnsubscribeWorker(_currentWorker);
         _currentWorker = null;
+    }
+
+    private static string CreateNewRecordingFileName(string baseFileName)
+    {
+        return $"{baseFileName}_{DateTime.Now:yyyyMMdd_HHmmss}";
     }
 
     private void HandleCommandException(Exception ex)

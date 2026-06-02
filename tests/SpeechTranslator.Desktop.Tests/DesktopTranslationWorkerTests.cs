@@ -49,6 +49,21 @@ public class DesktopTranslationWorkerTests
     }
 
     [Fact]
+    public void HandleTranslatedSpeech_WhenTranslationIsEmpty_DoesNotLogOrSave()
+    {
+        var recordingFileService = new RecordingSpyFileService();
+        var worker = new DesktopTranslationWorker("ja-JP", "session-01", recordingFileService);
+        var translations = new List<TranslationLogItem>();
+
+        worker.TranslationLogged += (_, e) => translations.Add(e);
+
+        worker.HandleTranslatedSpeech("hello", " ");
+
+        translations.Should().BeEmpty();
+        recordingFileService.AppendCallCount.Should().Be(0);
+    }
+
+    [Fact]
     public void HandleTranslatedSpeech_TrimsTextBeforeLoggingAndSaving()
     {
         var recordingFileService = new RecordingSpyFileService();

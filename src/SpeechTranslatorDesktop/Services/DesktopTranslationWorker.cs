@@ -95,7 +95,7 @@ public sealed class DesktopTranslationWorker : TranslationRecognizerWorkerBase, 
 
     internal void HandleTranslatedSpeech(string sourceText, string translatedText)
     {
-        if (string.IsNullOrWhiteSpace(sourceText) && string.IsNullOrWhiteSpace(translatedText))
+        if (string.IsNullOrWhiteSpace(sourceText) || string.IsNullOrWhiteSpace(translatedText))
         {
             return;
         }

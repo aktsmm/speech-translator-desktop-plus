@@ -19,6 +19,14 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public void InitialState_DefaultAudioInputIsMicrophoneAndSystemAudio()
+    {
+        var viewModel = CreateViewModel();
+
+        viewModel.SelectedAudioInputSource!.Source.Should().Be(AudioInputSource.MicrophoneAndSystemAudio);
+    }
+
+    [Fact]
     public async Task Start_WhenCredentialsMissing_ShowsErrorAndDoesNotStart()
     {
         var translationController = new FakeTranslationController();
@@ -182,6 +190,41 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public async Task ClearLogs_ClearsTranslationAndActivityLogs()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var viewModel = CreateViewModel(workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+        await ExecuteAsync(viewModel.StartCommand);
+        worker.RaiseTranslationLogged(new TranslationLogItem("hello", "こんにちは"));
+        worker.RaiseMessageLogged("message");
+
+        await ExecuteAsync(viewModel.ClearLogsCommand);
+
+        viewModel.TranslationLogs.Should().BeEmpty();
+        viewModel.RecentTranslationLogs.Should().BeEmpty();
+        viewModel.ActivityLogs.Should().ContainSingle(log => log.Contains("ログをクリア", StringComparison.Ordinal));
+        viewModel.StatusMessage.Should().Be("ログをクリアしました。");
+    }
+
+    [Fact]
+    public async Task Start_AfterClearLogs_UsesNewTimestampedRecordingFile()
+    {
+        var translationController = new FakeTranslationController();
+        var workerFactory = new FakeDesktopTranslationWorkerFactory(new FakeDesktopTranslationWorker());
+        var viewModel = CreateViewModel(
+            translationController: translationController,
+            workerFactory: workerFactory);
+        viewModel.RecordingFileName = "session";
+
+        await ExecuteAsync(viewModel.ClearLogsCommand);
+        await ExecuteAsync(viewModel.StartCommand);
+
+        workerFactory.LastRecordingFileName.Should().StartWith("session_");
+        workerFactory.LastRecordingFileName.Should().NotBe("session");
+        viewModel.RecordingFileName.Should().Be("session");
+    }
+
+    [Fact]
     public async Task Start_WhenCredentialsPresent_StartsTranslation()
     {
         var translationController = new FakeTranslationController();
@@ -317,6 +360,22 @@ public class MainViewModelTests
         worker.RaiseTranslationLogged(new TranslationLogItem("second", "次"));
 
         viewModel.TranslationLogs.Select(item => item.SourceText).Should().Equal("second", "first");
+    }
+
+    [Fact]
+    public async Task WorkerTranslationEvent_KeepsRecentTranslationLogsToLatestThree()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var viewModel = CreateViewModel(workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+
+        await ExecuteAsync(viewModel.StartCommand);
+        worker.RaiseTranslationLogged(new TranslationLogItem("one", "1"));
+        worker.RaiseTranslationLogged(new TranslationLogItem("two", "2"));
+        worker.RaiseTranslationLogged(new TranslationLogItem("three", "3"));
+        worker.RaiseTranslationLogged(new TranslationLogItem("four", "4"));
+
+        viewModel.RecentTranslationLogs.Select(item => item.SourceText).Should().Equal("four", "three", "two");
+        viewModel.TranslationLogs.Select(item => item.SourceText).Should().StartWith("four", "three", "two", "one");
     }
 
     [Fact]
@@ -550,6 +609,7 @@ public class MainViewModelTests
     {
         private readonly IDesktopTranslationWorker _worker;
         public int CreateCallCount { get; private set; }
+        public string? LastRecordingFileName { get; private set; }
 
         public FakeDesktopTranslationWorkerFactory(IDesktopTranslationWorker worker)
         {
@@ -559,6 +619,7 @@ public class MainViewModelTests
         public IDesktopTranslationWorker Create(string targetLanguage, string? recordingFileName, UiLanguage uiLanguage)
         {
             CreateCallCount++;
+            LastRecordingFileName = recordingFileName;
             return _worker;
         }
     }
