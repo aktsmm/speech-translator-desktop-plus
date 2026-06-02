@@ -9,13 +9,16 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         var recordingFileService = new RecordingFileService(AppContext.BaseDirectory);
+        var settingsDatabasePath = SpeechSettingsPathProvider.GetDatabasePath();
         var viewModel = new MainViewModel(
             new WpfUiDispatcher(),
             new EnvironmentSpeechCredentialsProvider(),
             new SqliteAzureAiServiceSettingsStore(
-                SpeechSettingsPathProvider.GetDatabasePath(),
+                settingsDatabasePath,
                 new DpapiSecretProtector()),
             recordingFileService,
+            new WpfRecordingFolderPicker(),
+            new SqliteRecordingFolderSettingsStore(settingsDatabasePath),
             new DesktopTranslationController(),
             new DesktopTranslationWorkerFactory(recordingFileService));
         DataContext = viewModel;

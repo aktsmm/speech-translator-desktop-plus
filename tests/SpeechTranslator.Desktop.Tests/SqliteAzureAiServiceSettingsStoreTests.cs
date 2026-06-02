@@ -9,7 +9,7 @@ public class SqliteAzureAiServiceSettingsStoreTests : IDisposable
 
     public SqliteAzureAiServiceSettingsStoreTests()
     {
-        _testDirectory = Path.Combine(AppContext.BaseDirectory, "test-artifacts", nameof(SqliteAzureAiServiceSettingsStoreTests), Guid.NewGuid().ToString("N"));
+        _testDirectory = Path.Combine(Path.GetTempPath(), nameof(SqliteAzureAiServiceSettingsStoreTests), Guid.NewGuid().ToString("N"));
     }
 
     [Fact]

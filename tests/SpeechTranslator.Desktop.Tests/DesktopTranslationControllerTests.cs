@@ -1,3 +1,4 @@
+using SpeechTranslatorDesktop.Models;
 using SpeechTranslatorDesktop.Services;
 using SpeechTranslatorShared;
 
@@ -17,7 +18,7 @@ public class DesktopTranslationControllerTests
         });
         var controller = CreateController(session);
 
-        await controller.StartAsync(new SpeechCredentials("japaneast", "test-key"), "en-US", "ja-JP", new NoOpTranslationRecognizerWorker());
+        await controller.StartAsync(new SpeechCredentials("japaneast", "test-key"), "en-US", "ja-JP", AudioInputSource.Microphone, new NoOpTranslationRecognizerWorker());
         await FluentActions.Awaiting(() => controller.StopAsync())
             .Should()
             .ThrowAsync<InvalidOperationException>()
@@ -44,10 +45,10 @@ public class DesktopTranslationControllerTests
         });
         var controller = CreateController(session);
 
-        await controller.StartAsync(new SpeechCredentials("japaneast", "test-key"), "en-US", "ja-JP", new NoOpTranslationRecognizerWorker());
+        await controller.StartAsync(new SpeechCredentials("japaneast", "test-key"), "en-US", "ja-JP", AudioInputSource.Microphone, new NoOpTranslationRecognizerWorker());
         await FluentActions.Awaiting(() => controller.StopAsync()).Should().ThrowAsync<InvalidOperationException>();
 
-        await FluentActions.Awaiting(() => controller.StartAsync(new SpeechCredentials("japaneast", "test-key"), "en-US", "ja-JP", new NoOpTranslationRecognizerWorker()))
+        await FluentActions.Awaiting(() => controller.StartAsync(new SpeechCredentials("japaneast", "test-key"), "en-US", "ja-JP", AudioInputSource.Microphone, new NoOpTranslationRecognizerWorker()))
             .Should()
             .ThrowAsync<InvalidOperationException>()
             .WithMessage("Translation is already running.");
@@ -70,7 +71,7 @@ public class DesktopTranslationControllerTests
         session.EnqueueDisposeBehavior(() => ValueTask.CompletedTask);
         var controller = CreateController(session);
 
-        await controller.StartAsync(new SpeechCredentials("japaneast", "test-key"), "en-US", "ja-JP", new NoOpTranslationRecognizerWorker());
+        await controller.StartAsync(new SpeechCredentials("japaneast", "test-key"), "en-US", "ja-JP", AudioInputSource.Microphone, new NoOpTranslationRecognizerWorker());
         await FluentActions.Awaiting(() => controller.StopAsync())
             .Should()
             .ThrowAsync<InvalidOperationException>()
@@ -87,7 +88,7 @@ public class DesktopTranslationControllerTests
 
     private static DesktopTranslationController CreateController(ITranslationSession session)
     {
-        return new DesktopTranslationController((credentials, sourceLanguage, targetLanguage, worker, cancellationToken) =>
+        return new DesktopTranslationController((credentials, sourceLanguage, targetLanguage, audioInputSource, worker, cancellationToken) =>
         {
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult(session);

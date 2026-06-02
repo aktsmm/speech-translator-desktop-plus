@@ -3,6 +3,7 @@ namespace SpeechTranslatorShared;
 public sealed class TranslationSession : ITranslationSession
 {
     private readonly AudioConfig _audioConfig;
+    private readonly IDisposable? _audioInputLifetime;
     private readonly TranslationRecognizer _recognizer;
     private readonly TranslationRecognizerWorkerBase _worker;
     private readonly TaskCompletionSource _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -11,9 +12,10 @@ public sealed class TranslationSession : ITranslationSession
     private bool _started;
     private bool _disposed;
 
-    public TranslationSession(AudioConfig audioConfig, TranslationRecognizer recognizer, TranslationRecognizerWorkerBase worker)
+    public TranslationSession(AudioConfig audioConfig, TranslationRecognizer recognizer, TranslationRecognizerWorkerBase worker, IDisposable? audioInputLifetime = null)
     {
         _audioConfig = audioConfig ?? throw new ArgumentNullException(nameof(audioConfig));
+        _audioInputLifetime = audioInputLifetime;
         _recognizer = recognizer ?? throw new ArgumentNullException(nameof(recognizer));
         _worker = worker ?? throw new ArgumentNullException(nameof(worker));
 
@@ -84,6 +86,7 @@ public sealed class TranslationSession : ITranslationSession
         _recognizer.SessionStopped -= OnSessionStopped;
         _recognizer.Dispose();
         _audioConfig.Dispose();
+        _audioInputLifetime?.Dispose();
         _disposed = true;
     }
 

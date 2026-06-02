@@ -34,15 +34,26 @@ public class Translator
 
     public async Task<ITranslationSession> StartTranslationAsync(TranslationRecognizerWorkerBase worker)
     {
+        var audioInput = AudioConfig.FromDefaultMicrophoneInput();
+        return await StartTranslationAsync(worker, audioInput).ConfigureAwait(false);
+    }
+
+    public async Task<ITranslationSession> StartTranslationAsync(TranslationRecognizerWorkerBase worker, AudioConfig audioInput, IDisposable? audioInputLifetime = null)
+    {
         if (worker is null)
         {
             throw new ArgumentNullException(nameof(worker));
         }
 
+        if (audioInput is null)
+        {
+            audioInputLifetime?.Dispose();
+            throw new ArgumentNullException(nameof(audioInput));
+        }
+
         var autoDetectSourceLanguageConfig = AutoDetectSourceLanguageConfig.FromLanguages([_speechTranslationConfig.SpeechRecognitionLanguage]);
-        var audioInput = AudioConfig.FromDefaultMicrophoneInput();
         var recognizer = new TranslationRecognizer(_speechTranslationConfig, autoDetectSourceLanguageConfig, audioInput);
-        var session = new TranslationSession(audioInput, recognizer, worker);
+        var session = new TranslationSession(audioInput, recognizer, worker, audioInputLifetime);
 
         await session.StartAsync().ConfigureAwait(false);
         return session;

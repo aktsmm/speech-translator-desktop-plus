@@ -1,4 +1,5 @@
 using System.Text;
+using System.Diagnostics;
 
 namespace SpeechTranslatorDesktop.Services;
 
@@ -12,6 +13,7 @@ public sealed class RecordingFileService : IRecordingFileService
     };
 
     private readonly string _rootDirectory;
+    private string _recordingsDirectory;
 
     public RecordingFileService(string rootDirectory)
     {
@@ -21,7 +23,10 @@ public sealed class RecordingFileService : IRecordingFileService
         }
 
         _rootDirectory = rootDirectory;
+        _recordingsDirectory = Path.Combine(_rootDirectory, "recordings");
     }
+
+    public string RecordingsDirectory => _recordingsDirectory;
 
     public void AppendTranslation(string? fileName, string sourceText, string translatedText)
     {
@@ -34,7 +39,7 @@ public sealed class RecordingFileService : IRecordingFileService
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceText);
         ArgumentException.ThrowIfNullOrWhiteSpace(translatedText);
 
-        var recordingsDirectory = Path.Combine(_rootDirectory, "recordings");
+        var recordingsDirectory = RecordingsDirectory;
         var filePath = GetRecordingFilePath(recordingsDirectory, safeFileName);
         Directory.CreateDirectory(recordingsDirectory);
 
@@ -42,6 +47,31 @@ public sealed class RecordingFileService : IRecordingFileService
         streamWriter.WriteLine(sourceText);
         streamWriter.WriteLine(translatedText);
         streamWriter.WriteLine();
+    }
+
+    public string OpenRecordingsFolder()
+    {
+        var recordingsDirectory = RecordingsDirectory;
+        Directory.CreateDirectory(recordingsDirectory);
+
+        using var process = Process.Start(new ProcessStartInfo
+        {
+            FileName = recordingsDirectory,
+            UseShellExecute = true
+        });
+
+        return recordingsDirectory;
+    }
+
+    public void SetRecordingsDirectory(string directoryPath)
+    {
+        if (string.IsNullOrWhiteSpace(directoryPath))
+        {
+            throw new ArgumentException("保存フォルダーを指定してください。", nameof(directoryPath));
+        }
+
+        _recordingsDirectory = Path.GetFullPath(directoryPath.Trim());
+        Directory.CreateDirectory(_recordingsDirectory);
     }
 
     public string? NormalizeFileName(string? fileName)

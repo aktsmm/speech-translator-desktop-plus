@@ -1,19 +1,75 @@
-﻿# Speech Translator
-This app is speech translator and recorder using [Azure AI Speech](https://azure.microsoft.com/en-us/products/ai-services/ai-speech).
+# Speech Translator Desktop Plus
+
+Speech Translator Desktop Plus is a Windows desktop speech translator and recorder using [Azure AI Speech](https://azure.microsoft.com/en-us/products/ai-services/ai-speech).
+
+This project is based on [tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator).
+The original project is licensed under the MIT License. The original copyright and license text are preserved in [LICENSE](./LICENSE).
+
+## Plus features
+
+- Real-time speech translation with Azure AI Speech.
+- Microphone input.
+- PC audio input using WASAPI loopback, so YouTube, livestreams, and other system playback can be translated without VB-CABLE.
+- Translation log recording as UTF-8 text.
+- Recording folder selection, persistence, and "open folder" UI.
+- Azure AI Speech region/API key persistence in SQLite with the API key protected by Windows DPAPI.
 
 ## Prerequisites
 
-- [.NET 10.0 SDK](https://dot.net/download)
+- Windows 10/11
+- [.NET 10.0 SDK](https://dot.net/download) for development
+- Azure AI Speech resource
+  - The Azure Speech F0 tier includes limited free monthly usage.
 
-## How to use
+## Run the desktop app from source
 
-### Console app
+```powershell
+.\Start-SpeechTranslatorDesktopPlus.ps1
+```
+
+or:
+
+```cmd
+Start-SpeechTranslatorDesktopPlus.cmd
+```
+
+In the app:
+
+1. Enter the Azure AI Speech `Region` and `API Key`, then click `保存`.
+2. Select source language and target language.
+3. Select audio input:
+   - `マイク`
+   - `PC音声（既定の再生デバイス）`
+4. Optionally enter a recording file name stem, using letters/numbers/`-`/`_` only.
+5. Click `開始`.
+
+If the recording file name is empty, translation is shown in the UI but not saved to a text file.
+
+## Recording folder
+
+Use the `保存先` controls in the app to choose and open the folder where translation logs are saved.
+
+The selected folder is persisted in the local settings database. If no custom folder is selected, logs are saved under `recordings/` relative to the app executable directory.
+
+## Publish to an install folder
+
+Use the publish helper to place the app in a folder of your choice:
+
+```powershell
+.\Publish-SpeechTranslatorDesktopPlus.ps1 -InstallPath "$env:LOCALAPPDATA\Programs\SpeechTranslatorDesktopPlus" -CreateDesktopShortcut
+```
+
+You can replace `-InstallPath` with any writable folder. This is a lightweight folder-based install, not an MSI/MSIX installer.
+
+## Console app
+
+The original console app remains available:
 
 1. Create Azure AI Speech resource. ([Bicep](./infra/main.bicep))
 2. Copy `Subscription Key` and `Region` from Azure Portal.
-3. Clone this repository.
-4. Create `src/SpeechTranslatorConsole/appsettings.Development.json`.
-5. Setup `appsettings.Development.json` like below.
+3. Create `src/SpeechTranslatorConsole/appsettings.Development.json`.
+4. Setup `appsettings.Development.json`:
+
     ```json
     {
         "Settings": {
@@ -22,38 +78,26 @@ This app is speech translator and recorder using [Azure AI Speech](https://azure
         }
     }
     ```
-6. Set the microphone device for translation as the default input device.
-7. Run `SpeechTranslatorConsole` project. (`dotnet run --project src/SpeechTranslatorConsole`)
-8. Type file name in console.
 
-### Desktop app (WPF)
+5. Set the microphone device for translation as the default input device.
+6. Run:
 
-1. Create Azure AI Speech resource. ([Bicep](./infra/main.bicep))
-2. Set the microphone device for translation as the default input device.
-3. Run the desktop project.
-   ```powershell
-   dotnet run --project src/SpeechTranslatorDesktop
-   ```
-4. In the `Azure AI Service 設定` section, enter the Azure AI Speech `Region` and `API Key`, then click `保存`.
-   - Settings are stored in SQLite at `%LocalAppData%\SpeechTranslatorDesktop\speech-translator-desktop.db`.
-   - The API key is protected with Windows DPAPI before it is written to SQLite.
-   - Saved settings are automatically loaded the next time the app starts.
-5. If you do not save settings in the app, the desktop app falls back to the `SPEECH_REGION` and `SPEECH_KEY` environment variables.
-   ```powershell
-   $env:SPEECH_REGION="japaneast"
-   $env:SPEECH_KEY="your-speech-key"
-   ```
-6. Select the speaker language and target language.
-7. Optionally enter a simple recording file name stem (letters/numbers/`-`/`_`, no path or extension). If empty, no file is saved.
-8. Click `開始` to start and `停止` to stop.
-
-Recording files are saved as UTF-8 text files under `recordings/` relative to the desktop app executable directory.
+    ```powershell
+    dotnet run --project src/SpeechTranslatorConsole
+    ```
 
 ## References
 
 - https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-identification
 - https://learn.microsoft.com/en-us/azure/ai-services/speech-service/how-to-translate-speech
+- https://learn.microsoft.com/en-us/azure/ai-services/speech-service/speech-translation
 
-## License
+## License and attribution
 
-[see LICENSE](./LICENSE)
+This repository is distributed under the MIT License. See [LICENSE](./LICENSE).
+
+Based on:
+
+- Original repository: https://github.com/tsubakimoto/speech-translator
+- Original author/license notice: `Copyright (c) 2023 Yuta Matsumura`
+- Original license: MIT License

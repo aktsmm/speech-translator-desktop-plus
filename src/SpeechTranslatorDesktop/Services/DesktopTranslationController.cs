@@ -1,11 +1,12 @@
 using SpeechTranslatorShared;
+using SpeechTranslatorDesktop.Models;
 
 namespace SpeechTranslatorDesktop.Services;
 
 public sealed class DesktopTranslationController : ITranslationController
 {
     private readonly object _syncRoot = new();
-    private readonly Func<SpeechCredentials, string, string, TranslationRecognizerWorkerBase, CancellationToken, Task<ITranslationSession>> _startSessionAsync;
+    private readonly Func<SpeechCredentials, string, string, AudioInputSource, TranslationRecognizerWorkerBase, CancellationToken, Task<ITranslationSession>> _startSessionAsync;
     private ITranslationSession? _session;
     private ITranslationSession? _sessionBeingStopped;
 
@@ -14,7 +15,7 @@ public sealed class DesktopTranslationController : ITranslationController
     {
     }
 
-    internal DesktopTranslationController(Func<SpeechCredentials, string, string, TranslationRecognizerWorkerBase, CancellationToken, Task<ITranslationSession>> startSessionAsync)
+    internal DesktopTranslationController(Func<SpeechCredentials, string, string, AudioInputSource, TranslationRecognizerWorkerBase, CancellationToken, Task<ITranslationSession>> startSessionAsync)
     {
         _startSessionAsync = startSessionAsync ?? throw new ArgumentNullException(nameof(startSessionAsync));
     }
@@ -30,7 +31,7 @@ public sealed class DesktopTranslationController : ITranslationController
         }
     }
 
-    public async Task StartAsync(SpeechCredentials credentials, string sourceLanguage, string targetLanguage, TranslationRecognizerWorkerBase worker, CancellationToken cancellationToken = default)
+    public async Task StartAsync(SpeechCredentials credentials, string sourceLanguage, string targetLanguage, AudioInputSource audioInputSource, TranslationRecognizerWorkerBase worker, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(credentials);
         ArgumentNullException.ThrowIfNull(worker);
@@ -46,7 +47,7 @@ public sealed class DesktopTranslationController : ITranslationController
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        var session = await _startSessionAsync(credentials, sourceLanguage, targetLanguage, worker, cancellationToken).ConfigureAwait(false);
+        var session = await _startSessionAsync(credentials, sourceLanguage, targetLanguage, audioInputSource, worker, cancellationToken).ConfigureAwait(false);
 
         lock (_syncRoot)
         {
@@ -133,12 +134,26 @@ public sealed class DesktopTranslationController : ITranslationController
         }
     }
 
-    private static Task<ITranslationSession> StartSessionAsync(SpeechCredentials credentials, string sourceLanguage, string targetLanguage, TranslationRecognizerWorkerBase worker, CancellationToken cancellationToken)
+    private static async Task<ITranslationSession> StartSessionAsync(SpeechCredentials credentials, string sourceLanguage, string targetLanguage, AudioInputSource audioInputSource, TranslationRecognizerWorkerBase worker, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         var endpointUrl = new Uri($"wss://{credentials.Region}.stt.speech.microsoft.com/speech/universal/v2");
         var translator = new Translator(endpointUrl, credentials.Key, sourceLanguage, targetLanguage);
-        return translator.StartTranslationAsync(worker);
+        if (audioInputSource == AudioInputSource.Microphone)
+        {
+            return await translator.StartTranslationAsync(worker).ConfigureAwait(false);
+        }
+
+        var systemAudioInput = SystemAudioInput.Start();
+        try
+        {
+            return await translator.StartTranslationAsync(worker, systemAudioInput.AudioConfig, systemAudioInput).ConfigureAwait(false);
+        }
+        catch
+        {
+            systemAudioInput.Dispose();
+            throw;
+        }
     }
 }

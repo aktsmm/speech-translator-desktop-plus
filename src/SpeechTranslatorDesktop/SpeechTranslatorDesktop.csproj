@@ -1,7 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <AssemblyName>SpeechTranslatorDesktopPlus</AssemblyName>
     <OutputType>WinExe</OutputType>
+    <Product>Speech Translator Desktop Plus</Product>
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -10,6 +12,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.7" />
+    <PackageReference Include="NAudio" Version="2.2.1" />
     <ProjectReference Include="..\Shared\SpeechTranslatorShared.csproj" />
   </ItemGroup>
 

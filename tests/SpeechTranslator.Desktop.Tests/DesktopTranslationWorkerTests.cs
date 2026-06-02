@@ -42,5 +42,13 @@ public class DesktopTranslationWorkerTests
         {
             throw _exception;
         }
+
+        public string RecordingsDirectory => @"C:\recordings";
+
+        public string OpenRecordingsFolder() => throw _exception;
+
+        public void SetRecordingsDirectory(string directoryPath)
+        {
+        }
     }
 }

@@ -122,6 +122,66 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public async Task OpenRecordingsFolder_OpensFolderAndLogsPath()
+    {
+        var recordingFileService = new FakeRecordingFileService();
+        var viewModel = CreateViewModel(recordingFileService: recordingFileService);
+
+        await ExecuteAsync(viewModel.OpenRecordingsFolderCommand);
+
+        recordingFileService.OpenRecordingsFolderCallCount.Should().Be(1);
+        viewModel.StatusMessage.Should().Be("保存先を開きました。");
+        viewModel.ActivityLogs.Should().Contain(log => log.Contains(recordingFileService.RecordingsFolderPath, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task ChooseRecordingsFolder_WhenFolderSelected_SavesAndUpdatesPath()
+    {
+        var recordingFileService = new FakeRecordingFileService();
+        var recordingFolderSettingsStore = new FakeRecordingFolderSettingsStore();
+        var viewModel = CreateViewModel(
+            recordingFileService: recordingFileService,
+            recordingFolderPicker: new FakeRecordingFolderPicker(@"C:\selected-recordings"),
+            recordingFolderSettingsStore: recordingFolderSettingsStore);
+
+        await ExecuteAsync(viewModel.ChooseRecordingsFolderCommand);
+
+        recordingFileService.RecordingsDirectory.Should().Be(@"C:\selected-recordings");
+        recordingFolderSettingsStore.SavedDirectoryPath.Should().Be(@"C:\selected-recordings");
+        viewModel.RecordingsFolderPath.Should().Be(@"C:\selected-recordings");
+        viewModel.StatusMessage.Should().Be("保存先を変更しました。");
+    }
+
+    [Fact]
+    public async Task InitializeAsync_WhenSavedRecordingsFolderExists_LoadsIt()
+    {
+        var recordingFileService = new FakeRecordingFileService();
+        var viewModel = CreateViewModel(
+            recordingFileService: recordingFileService,
+            recordingFolderSettingsStore: new FakeRecordingFolderSettingsStore { LoadedDirectoryPath = @"C:\saved-recordings" });
+
+        await viewModel.InitializeAsync();
+
+        recordingFileService.RecordingsDirectory.Should().Be(@"C:\saved-recordings");
+        viewModel.RecordingsFolderPath.Should().Be(@"C:\saved-recordings");
+    }
+
+    [Fact]
+    public async Task OpenRecordingsFolder_WhenOpenFails_LogsError()
+    {
+        var recordingFileService = new FakeRecordingFileService
+        {
+            OpenRecordingsFolderException = new InvalidOperationException("open failed")
+        };
+        var viewModel = CreateViewModel(recordingFileService: recordingFileService);
+
+        await ExecuteAsync(viewModel.OpenRecordingsFolderCommand);
+
+        viewModel.StatusMessage.Should().Be("open failed");
+        viewModel.ActivityLogs.Should().Contain("open failed");
+    }
+
+    [Fact]
     public async Task Start_WhenCredentialsPresent_StartsTranslation()
     {
         var translationController = new FakeTranslationController();
@@ -149,6 +209,18 @@ public class MainViewModelTests
         await ExecuteAsync(viewModel.StartCommand);
 
         translationController.LastStartCredentials.Should().BeEquivalentTo(new SpeechCredentials("ui-region", "ui-key"));
+    }
+
+    [Fact]
+    public async Task Start_WhenSystemAudioSelected_PassesSystemAudioInputToController()
+    {
+        var translationController = new FakeTranslationController();
+        var viewModel = CreateViewModel(translationController: translationController);
+        viewModel.SelectedAudioInputSource = viewModel.AvailableAudioInputSources.Single(source => source.Source == AudioInputSource.SystemAudio);
+
+        await ExecuteAsync(viewModel.StartCommand);
+
+        translationController.LastAudioInputSource.Should().Be(AudioInputSource.SystemAudio);
     }
 
     [Fact]
@@ -289,6 +361,8 @@ public class MainViewModelTests
         ISpeechCredentialsProvider? credentialsProvider = null,
         IAzureAiServiceSettingsStore? settingsStore = null,
         IRecordingFileService? recordingFileService = null,
+        IRecordingFolderPicker? recordingFolderPicker = null,
+        IRecordingFolderSettingsStore? recordingFolderSettingsStore = null,
         ITranslationController? translationController = null,
         IDesktopTranslationWorkerFactory? workerFactory = null)
     {
@@ -297,6 +371,8 @@ public class MainViewModelTests
             credentialsProvider ?? new FakeSpeechCredentialsProvider(SpeechCredentialsResult.Success(new SpeechCredentials("japaneast", "test-key"))),
             settingsStore ?? new FakeAzureAiServiceSettingsStore(),
             recordingFileService ?? new FakeRecordingFileService(),
+            recordingFolderPicker ?? new FakeRecordingFolderPicker(null),
+            recordingFolderSettingsStore ?? new FakeRecordingFolderSettingsStore(),
             translationController ?? new FakeTranslationController(),
             workerFactory ?? new FakeDesktopTranslationWorkerFactory(new FakeDesktopTranslationWorker()));
     }
@@ -358,8 +434,9 @@ public class MainViewModelTests
         public Exception? StopException { get; init; }
         public bool KeepRunningOnStopFailure { get; init; }
         public SpeechCredentials? LastStartCredentials { get; private set; }
+        public AudioInputSource? LastAudioInputSource { get; private set; }
 
-        public Task StartAsync(SpeechCredentials credentials, string sourceLanguage, string targetLanguage, TranslationRecognizerWorkerBase worker, CancellationToken cancellationToken = default)
+        public Task StartAsync(SpeechCredentials credentials, string sourceLanguage, string targetLanguage, AudioInputSource audioInputSource, TranslationRecognizerWorkerBase worker, CancellationToken cancellationToken = default)
         {
             return StartAsyncCore();
 
@@ -372,6 +449,7 @@ public class MainViewModelTests
 
                 StartCallCount++;
                 LastStartCredentials = credentials;
+                LastAudioInputSource = audioInputSource;
                 IsRunning = true;
             }
         }
@@ -419,7 +497,12 @@ public class MainViewModelTests
 
     private sealed class FakeRecordingFileService : IRecordingFileService
     {
+        private string _recordingsFolderPath = @"C:\recordings";
         public Exception? NormalizeFileNameException { get; init; }
+        public Exception? OpenRecordingsFolderException { get; init; }
+        public int OpenRecordingsFolderCallCount { get; private set; }
+        public string RecordingsFolderPath => _recordingsFolderPath;
+        public string RecordingsDirectory => _recordingsFolderPath;
 
         public string? NormalizeFileName(string? fileName)
         {
@@ -433,6 +516,52 @@ public class MainViewModelTests
 
         public void AppendTranslation(string? fileName, string sourceText, string translatedText)
         {
+        }
+
+        public string OpenRecordingsFolder()
+        {
+            OpenRecordingsFolderCallCount++;
+
+            if (OpenRecordingsFolderException is not null)
+            {
+                throw OpenRecordingsFolderException;
+            }
+
+            return RecordingsFolderPath;
+        }
+
+        public void SetRecordingsDirectory(string directoryPath)
+        {
+            _recordingsFolderPath = directoryPath;
+        }
+    }
+
+    private sealed class FakeRecordingFolderPicker : IRecordingFolderPicker
+    {
+        private readonly string? _selectedFolder;
+
+        public FakeRecordingFolderPicker(string? selectedFolder)
+        {
+            _selectedFolder = selectedFolder;
+        }
+
+        public string? PickFolder(string initialDirectory) => _selectedFolder;
+    }
+
+    private sealed class FakeRecordingFolderSettingsStore : IRecordingFolderSettingsStore
+    {
+        public string? LoadedDirectoryPath { get; init; }
+        public string? SavedDirectoryPath { get; private set; }
+
+        public Task<string?> LoadAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(LoadedDirectoryPath);
+        }
+
+        public Task SaveAsync(string directoryPath, CancellationToken cancellationToken = default)
+        {
+            SavedDirectoryPath = directoryPath;
+            return Task.CompletedTask;
         }
     }
 

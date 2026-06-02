@@ -10,14 +10,18 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private readonly ISpeechCredentialsProvider _credentialsProvider;
     private readonly IAzureAiServiceSettingsStore _settingsStore;
     private readonly IRecordingFileService _recordingFileService;
+    private readonly IRecordingFolderPicker _recordingFolderPicker;
+    private readonly IRecordingFolderSettingsStore _recordingFolderSettingsStore;
     private readonly ITranslationController _translationController;
     private readonly IDesktopTranslationWorkerFactory _workerFactory;
     private IDesktopTranslationWorker? _currentWorker;
+    private AudioInputSourceOption? _selectedAudioInputSource;
     private LanguageOption? _selectedSourceLanguage;
     private LanguageOption? _selectedTargetLanguage;
     private string _azureApiKey = string.Empty;
     private string _azureRegion = string.Empty;
     private string _recordingFileName = string.Empty;
+    private string _recordingsFolderPath = string.Empty;
     private string _settingsStatusMessage = string.Empty;
     private string _statusMessage = "停止";
     private bool _isRunning;
@@ -27,6 +31,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         ISpeechCredentialsProvider credentialsProvider,
         IAzureAiServiceSettingsStore settingsStore,
         IRecordingFileService recordingFileService,
+        IRecordingFolderPicker recordingFolderPicker,
+        IRecordingFolderSettingsStore recordingFolderSettingsStore,
         ITranslationController translationController,
         IDesktopTranslationWorkerFactory workerFactory)
     {
@@ -34,6 +40,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _credentialsProvider = credentialsProvider ?? throw new ArgumentNullException(nameof(credentialsProvider));
         _settingsStore = settingsStore ?? throw new ArgumentNullException(nameof(settingsStore));
         _recordingFileService = recordingFileService ?? throw new ArgumentNullException(nameof(recordingFileService));
+        _recordingFolderPicker = recordingFolderPicker ?? throw new ArgumentNullException(nameof(recordingFolderPicker));
+        _recordingFolderSettingsStore = recordingFolderSettingsStore ?? throw new ArgumentNullException(nameof(recordingFolderSettingsStore));
         _translationController = translationController ?? throw new ArgumentNullException(nameof(translationController));
         _workerFactory = workerFactory ?? throw new ArgumentNullException(nameof(workerFactory));
 
@@ -43,17 +51,29 @@ public sealed class MainViewModel : INotifyPropertyChanged
             new LanguageOption("ja-JP", "Japanese (ja-JP)")
         ];
 
+        AvailableAudioInputSources =
+        [
+            new AudioInputSourceOption(AudioInputSource.Microphone, "マイク"),
+            new AudioInputSourceOption(AudioInputSource.SystemAudio, "PC音声（既定の再生デバイス）")
+        ];
+
+        _selectedAudioInputSource = AvailableAudioInputSources[0];
         _selectedSourceLanguage = AvailableLanguages[0];
         _selectedTargetLanguage = AvailableLanguages[1];
+        _recordingsFolderPath = _recordingFileService.RecordingsDirectory;
 
         StartCommand = new AsyncRelayCommand(StartAsync, () => !IsRunning, _dispatcher, HandleCommandException);
         StopCommand = new AsyncRelayCommand(StopAsync, () => IsRunning, _dispatcher, HandleCommandException);
+        ChooseRecordingsFolderCommand = new AsyncRelayCommand(ChooseRecordingsFolderAsync, dispatcher: _dispatcher, onException: HandleCommandException);
+        OpenRecordingsFolderCommand = new AsyncRelayCommand(OpenRecordingsFolderAsync, dispatcher: _dispatcher, onException: HandleCommandException);
         SaveSettingsCommand = new AsyncRelayCommand(SaveSettingsAsync, dispatcher: _dispatcher, onException: HandleSettingsCommandException);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public ObservableCollection<string> ActivityLogs { get; } = [];
+
+    public ObservableCollection<AudioInputSourceOption> AvailableAudioInputSources { get; }
 
     public ObservableCollection<LanguageOption> AvailableLanguages { get; }
 
@@ -119,6 +139,36 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    public string RecordingsFolderPath
+    {
+        get => _recordingsFolderPath;
+        private set
+        {
+            if (_recordingsFolderPath == value)
+            {
+                return;
+            }
+
+            _recordingsFolderPath = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public AudioInputSourceOption? SelectedAudioInputSource
+    {
+        get => _selectedAudioInputSource;
+        set
+        {
+            if (_selectedAudioInputSource == value)
+            {
+                return;
+            }
+
+            _selectedAudioInputSource = value;
+            OnPropertyChanged();
+        }
+    }
+
     public LanguageOption? SelectedSourceLanguage
     {
         get => _selectedSourceLanguage;
@@ -150,6 +200,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
     }
 
     public AsyncRelayCommand StartCommand { get; }
+
+    public AsyncRelayCommand ChooseRecordingsFolderCommand { get; }
+
+    public AsyncRelayCommand OpenRecordingsFolderCommand { get; }
 
     public AsyncRelayCommand SaveSettingsCommand { get; }
 
@@ -189,6 +243,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
+        await InitializeRecordingFolderAsync(cancellationToken);
+
         try
         {
             var savedSettings = await _settingsStore.LoadAsync(cancellationToken);
@@ -209,11 +265,29 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    private async Task InitializeRecordingFolderAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var savedRecordingsFolder = await _recordingFolderSettingsStore.LoadAsync(cancellationToken);
+            if (!string.IsNullOrWhiteSpace(savedRecordingsFolder))
+            {
+                _recordingFileService.SetRecordingsDirectory(savedRecordingsFolder);
+            }
+
+            RecordingsFolderPath = _recordingFileService.RecordingsDirectory;
+        }
+        catch (Exception ex)
+        {
+            AddActivityLog($"保存先設定の読み込みに失敗しました: {ex.Message}");
+        }
+    }
+
     private async Task StartAsync()
     {
-        if (SelectedSourceLanguage is null || SelectedTargetLanguage is null)
+        if (SelectedSourceLanguage is null || SelectedTargetLanguage is null || SelectedAudioInputSource is null)
         {
-            StatusMessage = "言語を選択してください。";
+            StatusMessage = "言語と音声入力を選択してください。";
             return;
         }
 
@@ -247,6 +321,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 credentialsResult.Credentials,
                 SelectedSourceLanguage.Code,
                 SelectedTargetLanguage.Code,
+                SelectedAudioInputSource.Source,
                 worker.RecognizerWorker);
 
             _currentWorker = worker;
@@ -279,6 +354,39 @@ public sealed class MainViewModel : INotifyPropertyChanged
         AzureApiKey = normalizedApiKey;
         SettingsStatusMessage = "Azure AI Service 設定を保存しました。";
         AddActivityLog("Azure AI Service 設定を保存しました。");
+    }
+
+    private Task OpenRecordingsFolderAsync()
+    {
+        try
+        {
+            var recordingsDirectory = _recordingFileService.OpenRecordingsFolder();
+            RecordingsFolderPath = recordingsDirectory;
+            StatusMessage = "保存先を開きました。";
+            AddActivityLog($"保存先を開きました: {recordingsDirectory}");
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = ex.Message;
+            AddActivityLog(ex.Message);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private async Task ChooseRecordingsFolderAsync()
+    {
+        var selectedFolder = _recordingFolderPicker.PickFolder(RecordingsFolderPath);
+        if (string.IsNullOrWhiteSpace(selectedFolder))
+        {
+            return;
+        }
+
+        _recordingFileService.SetRecordingsDirectory(selectedFolder);
+        await _recordingFolderSettingsStore.SaveAsync(_recordingFileService.RecordingsDirectory);
+        RecordingsFolderPath = _recordingFileService.RecordingsDirectory;
+        StatusMessage = "保存先を変更しました。";
+        AddActivityLog($"保存先を変更しました: {RecordingsFolderPath}");
     }
 
     private async Task StopAsync()

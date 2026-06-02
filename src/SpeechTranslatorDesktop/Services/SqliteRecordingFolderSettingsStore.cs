@@ -2,13 +2,12 @@ using Microsoft.Data.Sqlite;
 
 namespace SpeechTranslatorDesktop.Services;
 
-public sealed class SqliteAzureAiServiceSettingsStore : IAzureAiServiceSettingsStore
+public sealed class SqliteRecordingFolderSettingsStore : IRecordingFolderSettingsStore
 {
-    private const string TableName = "azure_ai_service_settings";
+    private const string TableName = "recording_folder_settings";
     private readonly string _databasePath;
-    private readonly ISecretProtector _secretProtector;
 
-    public SqliteAzureAiServiceSettingsStore(string databasePath, ISecretProtector secretProtector)
+    public SqliteRecordingFolderSettingsStore(string databasePath)
     {
         if (string.IsNullOrWhiteSpace(databasePath))
         {
@@ -16,10 +15,9 @@ public sealed class SqliteAzureAiServiceSettingsStore : IAzureAiServiceSettingsS
         }
 
         _databasePath = databasePath;
-        _secretProtector = secretProtector ?? throw new ArgumentNullException(nameof(secretProtector));
     }
 
-    public async Task<AzureAiServiceSettings?> LoadAsync(CancellationToken cancellationToken = default)
+    public async Task<string?> LoadAsync(CancellationToken cancellationToken = default)
     {
         if (!File.Exists(_databasePath))
         {
@@ -31,41 +29,33 @@ public sealed class SqliteAzureAiServiceSettingsStore : IAzureAiServiceSettingsS
 
         await using var command = connection.CreateCommand();
         command.CommandText = $"""
-            SELECT region, protected_api_key
+            SELECT directory_path
             FROM {TableName}
             WHERE id = 1;
             """;
 
-        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        if (!await reader.ReadAsync(cancellationToken))
-        {
-            return null;
-        }
-
-        var region = reader.GetString(0);
-        var protectedApiKey = (byte[])reader["protected_api_key"];
-        var apiKey = _secretProtector.Unprotect(protectedApiKey);
-
-        return new AzureAiServiceSettings(region, apiKey);
+        var value = await command.ExecuteScalarAsync(cancellationToken);
+        return value as string;
     }
 
-    public async Task SaveAsync(AzureAiServiceSettings settings, CancellationToken cancellationToken = default)
+    public async Task SaveAsync(string directoryPath, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(settings);
+        if (string.IsNullOrWhiteSpace(directoryPath))
+        {
+            throw new ArgumentException("保存フォルダーを指定してください。", nameof(directoryPath));
+        }
 
         await using var connection = await OpenConnectionAsync(createDirectory: true, cancellationToken);
         await EnsureSchemaAsync(connection, cancellationToken);
 
         await using var command = connection.CreateCommand();
         command.CommandText = $"""
-            INSERT INTO {TableName} (id, region, protected_api_key)
-            VALUES (1, $region, $protectedApiKey)
+            INSERT INTO {TableName} (id, directory_path)
+            VALUES (1, $directoryPath)
             ON CONFLICT(id) DO UPDATE SET
-                region = excluded.region,
-                protected_api_key = excluded.protected_api_key;
+                directory_path = excluded.directory_path;
             """;
-        command.Parameters.AddWithValue("$region", settings.Region);
-        command.Parameters.Add("$protectedApiKey", SqliteType.Blob).Value = _secretProtector.Protect(settings.ApiKey);
+        command.Parameters.AddWithValue("$directoryPath", Path.GetFullPath(directoryPath.Trim()));
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
@@ -96,8 +86,7 @@ public sealed class SqliteAzureAiServiceSettingsStore : IAzureAiServiceSettingsS
         command.CommandText = $"""
             CREATE TABLE IF NOT EXISTS {TableName} (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
-                region TEXT NOT NULL,
-                protected_api_key BLOB NOT NULL
+                directory_path TEXT NOT NULL
             );
             """;
 
