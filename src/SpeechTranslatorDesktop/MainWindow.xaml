@@ -195,8 +195,7 @@
                       AutoGenerateColumns="False"
                       GridLinesVisibility="Horizontal"
                       IsReadOnly="True"
-                      HeadersVisibility="Column"
-                      RowHeight="Auto">
+                      HeadersVisibility="Column">
                 <DataGrid.Resources>
                     <Style x:Key="WrappedTranslationCellText" TargetType="{x:Type TextBlock}">
                         <Setter Property="TextWrapping" Value="Wrap" />
