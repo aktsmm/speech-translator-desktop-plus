@@ -4,10 +4,10 @@ $dotnetDir = Join-Path $env:LOCALAPPDATA 'Microsoft\dotnet'
 $dotnet = Join-Path $dotnetDir 'dotnet.exe'
 
 if (-not (Test-Path -LiteralPath $dotnet)) {
-    throw ".NET SDK/runtime was not found at $dotnet. Install .NET 10 SDK first."
+    $dotnet = 'dotnet'
 }
 
-$repoRoot = $PSScriptRoot
+$repoRoot = Split-Path $PSScriptRoot
 $projectPath = Join-Path $repoRoot 'src\SpeechTranslatorDesktop\SpeechTranslatorDesktop.csproj'
 
 $env:PATH = "$dotnetDir;$env:PATH"

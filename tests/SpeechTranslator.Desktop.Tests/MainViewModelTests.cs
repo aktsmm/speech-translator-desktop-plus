@@ -190,7 +190,7 @@ public class MainViewModelTests
         await ExecuteAsync(viewModel.StartCommand);
 
         translationController.StartCallCount.Should().Be(1);
-        viewModel.StatusMessage.Should().Be("開始");
+        viewModel.StatusMessage.Should().Be(viewModel.SelectedUiLanguage?.Language == UiLanguage.English ? "Started" : "開始");
         viewModel.IsRunning.Should().BeTrue();
         viewModel.StartCommand.CanExecute(null).Should().BeFalse();
         viewModel.StopCommand.CanExecute(null).Should().BeTrue();
@@ -256,7 +256,7 @@ public class MainViewModelTests
         await ExecuteAsync(viewModel.StopCommand);
 
         translationController.StopCallCount.Should().Be(1);
-        viewModel.StatusMessage.Should().Be("停止");
+        viewModel.StatusMessage.Should().Be(viewModel.SelectedUiLanguage?.Language == UiLanguage.English ? "Stopped" : "停止");
         viewModel.IsRunning.Should().BeFalse();
     }
 
@@ -273,8 +273,8 @@ public class MainViewModelTests
         await ExecuteAsync(viewModel.StartCommand);
         await ExecuteAsync(viewModel.StopCommand);
 
-        viewModel.StatusMessage.Should().Be("停止に失敗しました: stop failed");
-        viewModel.ActivityLogs.Should().Contain("停止に失敗しました: stop failed");
+        viewModel.StatusMessage.Should().Be(viewModel.SelectedUiLanguage?.Language == UiLanguage.English ? "Failed to stop: stop failed" : "停止に失敗しました: stop failed");
+        viewModel.ActivityLogs.Should().Contain(viewModel.StatusMessage);
         viewModel.IsRunning.Should().BeTrue();
         viewModel.StartCommand.CanExecute(null).Should().BeFalse();
         viewModel.StopCommand.CanExecute(null).Should().BeTrue();
@@ -419,7 +419,7 @@ public class MainViewModelTests
         ITranslationController? translationController = null,
         IDesktopTranslationWorkerFactory? workerFactory = null)
     {
-        return new MainViewModel(
+        var viewModel = new MainViewModel(
             dispatcher ?? new ImmediateDispatcher(),
             credentialsProvider ?? new FakeSpeechCredentialsProvider(SpeechCredentialsResult.Success(new SpeechCredentials("japaneast", "test-key"))),
             settingsStore ?? new FakeAzureAiServiceSettingsStore(),
@@ -428,6 +428,9 @@ public class MainViewModelTests
             recordingFolderSettingsStore ?? new FakeRecordingFolderSettingsStore(),
             translationController ?? new FakeTranslationController(),
             workerFactory ?? new FakeDesktopTranslationWorkerFactory(new FakeDesktopTranslationWorker()));
+
+        viewModel.SelectedUiLanguage = viewModel.AvailableUiLanguages.Single(option => option.Language == UiLanguage.Japanese);
+        return viewModel;
     }
 
     private static Task ExecuteAsync(ICommand command)
@@ -541,7 +544,7 @@ public class MainViewModelTests
             _worker = worker;
         }
 
-        public IDesktopTranslationWorker Create(string targetLanguage, string? recordingFileName)
+        public IDesktopTranslationWorker Create(string targetLanguage, string? recordingFileName, UiLanguage uiLanguage)
         {
             CreateCallCount++;
             return _worker;

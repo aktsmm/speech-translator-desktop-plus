@@ -11,5 +11,9 @@ if not exist "%DOTNET_EXE%" (
 )
 
 set "PATH=%DOTNET_DIR%;%PATH%"
-cd /d "%~dp0"
-"%DOTNET_EXE%" run --project "%~dp0src\SpeechTranslatorDesktop\SpeechTranslatorDesktop.csproj"
+cd /d "%~dp0.."
+if exist "%DOTNET_EXE%" (
+  "%DOTNET_EXE%" run --project "%CD%\src\SpeechTranslatorDesktop\SpeechTranslatorDesktop.csproj"
+) else (
+  dotnet run --project "%CD%\src\SpeechTranslatorDesktop\SpeechTranslatorDesktop.csproj"
+)

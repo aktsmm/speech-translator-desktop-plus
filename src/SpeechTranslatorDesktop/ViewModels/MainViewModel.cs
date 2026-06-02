@@ -1,3 +1,4 @@
+using System.Globalization;
 using SpeechTranslatorDesktop.Commands;
 using SpeechTranslatorDesktop.Models;
 using SpeechTranslatorDesktop.Services;
@@ -69,10 +70,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
             new UiLanguageOption(UiLanguage.English, "English")
         ];
 
-        AvailableAudioInputSources =
-            CreateAudioInputSourceOptions(UiLanguage.Japanese);
+        var defaultUiLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.Equals("ja", StringComparison.OrdinalIgnoreCase)
+            ? UiLanguage.Japanese
+            : UiLanguage.English;
 
-        _selectedUiLanguage = AvailableUiLanguages[0];
+        AvailableAudioInputSources =
+            CreateAudioInputSourceOptions(defaultUiLanguage);
+
+        _selectedUiLanguage = AvailableUiLanguages.First(option => option.Language == defaultUiLanguage);
         _selectedAudioInputSource = AvailableAudioInputSources[0];
         _selectedSourceLanguage = AvailableLanguages[0];
         _selectedTargetLanguage = AvailableLanguages[1];
@@ -319,17 +324,19 @@ public sealed class MainViewModel : INotifyPropertyChanged
             var savedSettings = await _settingsStore.LoadAsync(cancellationToken);
             if (savedSettings is null)
             {
-                SettingsStatusMessage = "Azure AI Service のリージョンと API キーを入力して保存してください。未保存の場合は SPEECH_REGION / SPEECH_KEY をフォールバックとして使用します。";
+                SettingsStatusMessage = Text(
+                    "Azure AI Service のリージョンと API キーを入力して保存してください。未保存の場合は SPEECH_REGION / SPEECH_KEY をフォールバックとして使用します。",
+                    "Enter and save the Azure AI Service region and API key. If not saved, SPEECH_REGION / SPEECH_KEY environment variables are used as fallback.");
                 return;
             }
 
             AzureRegion = savedSettings.Region;
             AzureApiKey = savedSettings.ApiKey;
-            SettingsStatusMessage = "保存済みの Azure AI Service 設定を読み込みました。";
+            SettingsStatusMessage = Text("保存済みの Azure AI Service 設定を読み込みました。", "Loaded saved Azure AI Service settings.");
         }
         catch (Exception ex)
         {
-            SettingsStatusMessage = $"設定の読み込みに失敗しました: {ex.Message}";
+            SettingsStatusMessage = Text($"設定の読み込みに失敗しました: {ex.Message}", $"Failed to load settings: {ex.Message}");
             AddActivityLog(SettingsStatusMessage);
         }
     }
@@ -348,7 +355,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            AddActivityLog($"保存先設定の読み込みに失敗しました: {ex.Message}");
+            AddActivityLog(Text($"保存先設定の読み込みに失敗しました: {ex.Message}", $"Failed to load recordings folder settings: {ex.Message}"));
         }
     }
 
@@ -376,12 +383,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
         var credentialsResult = _credentialsProvider.GetCredentials(AzureRegion, AzureApiKey);
         if (!credentialsResult.IsValid || credentialsResult.Credentials is null)
         {
-            StatusMessage = credentialsResult.ErrorMessage;
+            StatusMessage = Text(
+                $"Azure AI Service の認証情報が未設定です。設定画面で保存するか、環境変数を設定してください: SPEECH_REGION, SPEECH_KEY",
+                "Azure AI Service credentials are not configured. Save them in the settings area or set environment variables: SPEECH_REGION, SPEECH_KEY");
             AddActivityLog(credentialsResult.ErrorMessage);
             return;
         }
 
-        var worker = _workerFactory.Create(SelectedTargetLanguage.Code, recordingFileName);
+        var worker = _workerFactory.Create(SelectedTargetLanguage.Code, recordingFileName, SelectedUiLanguage?.Language ?? UiLanguage.Japanese);
         SubscribeWorker(worker);
 
         try
@@ -413,7 +422,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         if (string.IsNullOrWhiteSpace(normalizedRegion) || string.IsNullOrWhiteSpace(normalizedApiKey))
         {
-            SettingsStatusMessage = "Azure AI Service のリージョンと API キーを入力してから保存してください。";
+            SettingsStatusMessage = Text("Azure AI Service のリージョンと API キーを入力してから保存してください。", "Enter the Azure AI Service region and API key before saving.");
             return;
         }
 
@@ -622,7 +631,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         _dispatcher.Invoke(() =>
         {
-            SettingsStatusMessage = $"設定の保存に失敗しました: {ex.Message}";
+            SettingsStatusMessage = Text($"設定の保存に失敗しました: {ex.Message}", $"Failed to save settings: {ex.Message}");
             AddActivityLog(SettingsStatusMessage);
         });
     }

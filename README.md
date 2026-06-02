@@ -4,6 +4,8 @@ English | [日本語](#日本語)
 
 Speech Translator Desktop Plus is a Windows desktop speech translator and recorder using [Azure AI Speech](https://azure.microsoft.com/en-us/products/ai-services/ai-speech).
 
+![Speech Translator Desktop Plus translating a Microsoft Build livestream](docs/images/build-live-translation-demo.png)
+
 This project is based on [tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator). The original project is licensed under the MIT License. The original copyright and license text are preserved in [LICENSE](./LICENSE).
 
 ## Features
@@ -21,20 +23,30 @@ This project is based on [tsubakimoto/speech-translator](https://github.com/tsub
 ## Prerequisites
 
 - Windows 10/11
-- [.NET 10.0 SDK](https://dot.net/download) for development
+- [.NET 10.0 SDK](https://dot.net/download) for development or source builds
 - Azure AI Speech resource
   - The Azure Speech F0 tier includes limited free monthly usage.
+
+## Quick setup
+
+From the repository root:
+
+```powershell
+.\scripts\setup.ps1
+```
+
+The setup script installs a local .NET 10 SDK if needed, publishes a self-contained Windows build to `%LOCALAPPDATA%\Programs\SpeechTranslatorDesktopPlus`, and creates a desktop shortcut.
 
 ## Run the desktop app from source
 
 ```powershell
-.\Start-SpeechTranslatorDesktopPlus.ps1
+.\scripts\run-dev.ps1
 ```
 
 or:
 
 ```cmd
-Start-SpeechTranslatorDesktopPlus.cmd
+scripts\run-dev.cmd
 ```
 
 In the app:
@@ -61,10 +73,12 @@ The selected folder is persisted in the local settings database. If no custom fo
 Use the publish helper to place the app in a folder of your choice:
 
 ```powershell
-.\Publish-SpeechTranslatorDesktopPlus.ps1 -InstallPath "$env:LOCALAPPDATA\Programs\SpeechTranslatorDesktopPlus" -CreateDesktopShortcut
+.\scripts\publish.ps1 -InstallPath "$env:LOCALAPPDATA\Programs\SpeechTranslatorDesktopPlus" -CreateDesktopShortcut
 ```
 
-You can replace `-InstallPath` with any writable folder. This is a lightweight folder-based install, not an MSI/MSIX installer.
+You can replace `-InstallPath` with any writable folder. By default, this creates a self-contained Windows build. This is a lightweight folder-based install, not an MSI/MSIX installer.
+
+Repository helper scripts live in [`scripts/`](scripts/) to keep the root directory focused.
 
 ## Console app
 
@@ -111,6 +125,8 @@ Based on:
 
 Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.com/ja-jp/products/ai-services/ai-speech) を使った Windows デスクトップ向けのリアルタイム音声翻訳・記録アプリです。
 
+![Microsoft Build のライブ配信を翻訳している Speech Translator Desktop Plus](docs/images/build-live-translation-demo.png)
+
 このプロジェクトは [tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator) をベースにしています。元プロジェクトは MIT License です。元の著作権表示とライセンス文は [LICENSE](./LICENSE) に残しています。
 
 ## 機能
@@ -130,20 +146,30 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 ## 前提条件
 
 - Windows 10/11
-- 開発時は [.NET 10.0 SDK](https://dot.net/download)
+- 開発時またはソースからのビルド時は [.NET 10.0 SDK](https://dot.net/download)
 - Azure AI Speech リソース
   - Azure Speech の F0 レベルには月あたりの無料利用枠があります
+
+## クイックセットアップ
+
+リポジトリルートで実行します。
+
+```powershell
+.\scripts\setup.ps1
+```
+
+セットアップスクリプトは、必要に応じてユーザー領域に .NET 10 SDK を導入し、自己完結型の Windows ビルドを `%LOCALAPPDATA%\Programs\SpeechTranslatorDesktopPlus` に配置し、デスクトップショートカットを作成します。
 
 ## ソースからデスクトップアプリを起動
 
 ```powershell
-.\Start-SpeechTranslatorDesktopPlus.ps1
+.\scripts\run-dev.ps1
 ```
 
 または:
 
 ```cmd
-Start-SpeechTranslatorDesktopPlus.cmd
+scripts\run-dev.cmd
 ```
 
 アプリ内での手順:
@@ -171,10 +197,12 @@ Start-SpeechTranslatorDesktopPlus.cmd
 次の publish helper で、好きなフォルダーにアプリを配置できます。
 
 ```powershell
-.\Publish-SpeechTranslatorDesktopPlus.ps1 -InstallPath "$env:LOCALAPPDATA\Programs\SpeechTranslatorDesktopPlus" -CreateDesktopShortcut
+.\scripts\publish.ps1 -InstallPath "$env:LOCALAPPDATA\Programs\SpeechTranslatorDesktopPlus" -CreateDesktopShortcut
 ```
 
-`-InstallPath` は任意の書き込み可能なフォルダーに置き換えられます。これは MSI/MSIX ではなく、フォルダー配置型の軽量インストール方式です。
+`-InstallPath` は任意の書き込み可能なフォルダーに置き換えられます。既定では自己完結型の Windows ビルドを作成します。これは MSI/MSIX ではなく、フォルダー配置型の軽量インストール方式です。
+
+補助スクリプトは [`scripts/`](scripts/) にまとめ、リポジトリルートを見やすくしています。
 
 ## コンソールアプリ
 

@@ -27,6 +27,23 @@ public class DesktopTranslationWorkerTests
         statuses.Should().NotContain(e => e.Status == DesktopTranslationStatus.TranslatedSpeech);
     }
 
+    [Fact]
+    public void HandleTranslatedSpeech_WhenEnglishUiAndRecordingWriteFails_RaisesEnglishError()
+    {
+        var recordingFileService = new ThrowingRecordingFileService(new IOException("disk full"));
+        var worker = new DesktopTranslationWorker("ja-JP", "session-01", recordingFileService, UiLanguage.English);
+        var statuses = new List<WorkerStatusChangedEventArgs>();
+
+        worker.StatusChanged += (_, e) => statuses.Add(e);
+
+        worker.HandleTranslatedSpeech("hello", "こんにちは");
+
+        statuses.Should().ContainSingle(e =>
+            e.Status == DesktopTranslationStatus.Error &&
+            e.Message.Contains("Failed to save recording file") &&
+            e.Message.Contains("disk full"));
+    }
+
     private sealed class ThrowingRecordingFileService : IRecordingFileService
     {
         private readonly Exception _exception;

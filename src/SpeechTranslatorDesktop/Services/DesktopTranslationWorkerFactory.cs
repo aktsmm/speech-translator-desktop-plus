@@ -1,3 +1,5 @@
+using SpeechTranslatorDesktop.Models;
+
 namespace SpeechTranslatorDesktop.Services;
 
 public sealed class DesktopTranslationWorkerFactory : IDesktopTranslationWorkerFactory
@@ -11,6 +13,11 @@ public sealed class DesktopTranslationWorkerFactory : IDesktopTranslationWorkerF
 
     public IDesktopTranslationWorker Create(string targetLanguage, string? recordingFileName)
     {
-        return new DesktopTranslationWorker(targetLanguage, recordingFileName, _recordingFileService);
+        return Create(targetLanguage, recordingFileName, UiLanguage.Japanese);
+    }
+
+    public IDesktopTranslationWorker Create(string targetLanguage, string? recordingFileName, UiLanguage uiLanguage)
+    {
+        return new DesktopTranslationWorker(targetLanguage, recordingFileName, _recordingFileService, uiLanguage);
     }
 }

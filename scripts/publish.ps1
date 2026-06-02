@@ -1,6 +1,7 @@
 param(
     [string]$InstallPath = (Join-Path $env:LOCALAPPDATA 'Programs\SpeechTranslatorDesktopPlus'),
-    [switch]$CreateDesktopShortcut
+    [switch]$CreateDesktopShortcut,
+    [switch]$FrameworkDependent
 )
 
 $ErrorActionPreference = 'Stop'
@@ -11,13 +12,14 @@ if (-not (Test-Path -LiteralPath $dotnet)) {
     $dotnet = 'dotnet'
 }
 
-$repoRoot = $PSScriptRoot
+$repoRoot = Split-Path $PSScriptRoot
 $projectPath = Join-Path $repoRoot 'src\SpeechTranslatorDesktop\SpeechTranslatorDesktop.csproj'
 $resolvedInstallPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($InstallPath)
 
 New-Item -ItemType Directory -Force -Path $resolvedInstallPath | Out-Null
 $env:PATH = "$dotnetDir;$env:PATH"
-& $dotnet publish $projectPath -c Release -r win-x64 --self-contained false -o $resolvedInstallPath
+$selfContained = -not $FrameworkDependent
+& $dotnet publish $projectPath -c Release -r win-x64 --self-contained:$selfContained -o $resolvedInstallPath
 
 if ($CreateDesktopShortcut) {
     $shortcut = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Speech Translator Desktop Plus.lnk'

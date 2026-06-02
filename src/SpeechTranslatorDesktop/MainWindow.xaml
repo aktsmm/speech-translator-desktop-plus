@@ -28,6 +28,8 @@
             <TextBlock FontWeight="Bold" Text="{Binding SourceLanguageLabel}" />
             <ComboBox ItemsSource="{Binding AvailableLanguages}"
                       SelectedItem="{Binding SelectedSourceLanguage}"
+                      AutomationProperties.Name="{Binding SourceLanguageLabel}"
+                      ToolTip="{Binding SourceLanguageLabel}"
                       Margin="0,6,0,0" />
         </StackPanel>
 
@@ -37,6 +39,8 @@
             <TextBlock FontWeight="Bold" Text="{Binding TargetLanguageLabel}" />
             <ComboBox ItemsSource="{Binding AvailableLanguages}"
                       SelectedItem="{Binding SelectedTargetLanguage}"
+                      AutomationProperties.Name="{Binding TargetLanguageLabel}"
+                      ToolTip="{Binding TargetLanguageLabel}"
                       Margin="0,6,0,0" />
         </StackPanel>
 
@@ -45,6 +49,8 @@
                     Margin="0,0,12,12">
             <TextBlock FontWeight="Bold" Text="{Binding RecordingFileNameLabel}" />
             <TextBox Margin="0,6,0,0"
+                     AutomationProperties.Name="{Binding RecordingFileNameLabel}"
+                     ToolTip="{Binding RecordingFileNameLabel}"
                      Text="{Binding RecordingFileName, UpdateSourceTrigger=PropertyChanged}" />
         </StackPanel>
 
@@ -54,6 +60,8 @@
             <TextBlock FontWeight="Bold" Text="{Binding AudioInputLabel}" />
             <ComboBox ItemsSource="{Binding AvailableAudioInputSources}"
                       SelectedItem="{Binding SelectedAudioInputSource}"
+                      AutomationProperties.Name="{Binding AudioInputLabel}"
+                      ToolTip="{Binding AudioInputLabel}"
                       Margin="0,6,0,0" />
         </StackPanel>
 
@@ -84,16 +92,22 @@
                          Grid.Column="1"
                          Margin="0,0,12,8"
                          IsReadOnly="True"
+                         AutomationProperties.Name="{Binding RecordingsFolderLabel}"
+                         ToolTip="{Binding RecordingsFolderPath}"
                          Text="{Binding RecordingsFolderPath, Mode=OneWay}" />
                 <StackPanel Grid.Row="0"
                             Grid.Column="2"
                             Orientation="Horizontal">
                     <Button Width="80"
                             Command="{Binding ChooseRecordingsFolderCommand}"
+                            AutomationProperties.Name="{Binding ChooseButtonText}"
+                            ToolTip="{Binding ChooseButtonText}"
                             Content="{Binding ChooseButtonText}" />
                     <Button Width="80"
                             Margin="8,0,0,0"
                             Command="{Binding OpenRecordingsFolderCommand}"
+                            AutomationProperties.Name="{Binding OpenButtonText}"
+                            ToolTip="{Binding OpenButtonText}"
                             Content="{Binding OpenButtonText}" />
                 </StackPanel>
 
@@ -106,6 +120,8 @@
                 <TextBox Grid.Row="1"
                           Grid.Column="1"
                           Margin="0,0,12,8"
+                          AutomationProperties.Name="Azure AI Service Region"
+                          ToolTip="Azure AI Service Region"
                           Text="{Binding AzureRegion, UpdateSourceTrigger=PropertyChanged}" />
 
                 <TextBlock Grid.Row="2"
@@ -117,6 +133,8 @@
                  <PasswordBox Grid.Row="2"
                                Grid.Column="1"
                                Margin="0,0,12,8"
+                               AutomationProperties.Name="{Binding ApiKeyLabel}"
+                               ToolTip="{Binding ApiKeyLabel}"
                                local:PasswordBoxBindingBehavior.Attach="True"
                                local:PasswordBoxBindingBehavior.BoundPassword="{Binding AzureApiKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
@@ -125,6 +143,8 @@
                         Grid.Column="2"
                         Width="120"
                         Command="{Binding SaveSettingsCommand}"
+                        AutomationProperties.Name="{Binding SaveButtonText}"
+                        ToolTip="{Binding SaveButtonText}"
                         Content="{Binding SaveButtonText}" />
 
                 <TextBlock Grid.Row="3"
@@ -143,14 +163,20 @@
                 <ComboBox ItemsSource="{Binding AvailableUiLanguages}"
                           SelectedItem="{Binding SelectedUiLanguage}"
                           Width="120"
+                          AutomationProperties.Name="{Binding UiLanguageLabel}"
+                          ToolTip="{Binding UiLanguageLabel}"
                           Margin="0,6,0,0" />
             </StackPanel>
             <Button Width="120"
                     Command="{Binding StartCommand}"
+                    AutomationProperties.Name="{Binding StartButtonText}"
+                    ToolTip="{Binding StartButtonText}"
                     Content="{Binding StartButtonText}" />
             <Button Width="120"
                     Margin="12,0,0,0"
                     Command="{Binding StopCommand}"
+                    AutomationProperties.Name="{Binding StopButtonText}"
+                    ToolTip="{Binding StopButtonText}"
                     Content="{Binding StopButtonText}" />
             <TextBlock Margin="24,4,0,0"
                        VerticalAlignment="Center"
