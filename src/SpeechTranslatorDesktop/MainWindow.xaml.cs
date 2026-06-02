@@ -6,6 +6,7 @@ namespace SpeechTranslatorDesktop;
 public partial class MainWindow : Window
 {
     private RecentTranslationsWindow? _recentTranslationsWindow;
+    private SettingsWindow? _settingsWindow;
 
     public MainWindow()
     {
@@ -45,5 +46,25 @@ public partial class MainWindow : Window
         }
 
         _recentTranslationsWindow.Activate();
+    }
+
+    private void ShowSettingsWindow(object sender, RoutedEventArgs e)
+    {
+        if (_settingsWindow is null)
+        {
+            _settingsWindow = new SettingsWindow
+            {
+                Owner = this,
+                DataContext = DataContext
+            };
+            _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+        }
+
+        if (!_settingsWindow.IsVisible)
+        {
+            _settingsWindow.Show();
+        }
+
+        _settingsWindow.Activate();
     }
 }

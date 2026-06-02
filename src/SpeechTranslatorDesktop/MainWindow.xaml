@@ -4,244 +4,267 @@
         xmlns:local="clr-namespace:SpeechTranslatorDesktop.Behaviors"
         Title="Speech Translator Desktop Plus"
         Icon="Assets/AppIcon.ico"
-        Height="700"
-        Width="960"
-        MinHeight="480"
-        MinWidth="720">
-    <Grid Margin="16">
-        <Grid.Resources>
-            <local:BindingProxy x:Key="DataContextProxy" Data="{Binding}" />
-        </Grid.Resources>
+        Height="760"
+        Width="1120"
+        MinHeight="620"
+        MinWidth="900"
+        Background="#F5F7FB">
+    <Window.Resources>
+        <local:BindingProxy x:Key="DataContextProxy" Data="{Binding}" />
+
+        <Style x:Key="Card" TargetType="{x:Type Border}">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="#E5E7EB" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Padding" Value="16" />
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="14" Direction="270" Opacity="0.08" ShadowDepth="3" />
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="{x:Type TextBlock}">
+            <Setter Property="Foreground" Value="#111827" />
+        </Style>
+
+        <Style x:Key="FieldLabel" TargetType="{x:Type TextBlock}">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#4B5563" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+
+        <Style TargetType="{x:Type ComboBox}">
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="Padding" Value="8,4" />
+        </Style>
+
+        <Style TargetType="{x:Type TextBox}">
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="Padding" Value="8,4" />
+        </Style>
+
+        <Style x:Key="ActionButton" TargetType="{x:Type Button}">
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="Padding" Value="16,6" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="#E5E7EB" />
+            <Setter Property="Foreground" Value="#111827" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+
+        <Style x:Key="PrimaryButton" BasedOn="{StaticResource ActionButton}" TargetType="{x:Type Button}">
+            <Setter Property="Background" Value="#2563EB" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
+        <Style x:Key="DangerButton" BasedOn="{StaticResource ActionButton}" TargetType="{x:Type Button}">
+            <Setter Property="Background" Value="#FEE2E2" />
+            <Setter Property="Foreground" Value="#991B1B" />
+        </Style>
+
+        <Style x:Key="WrappedTranslationCellText" TargetType="{x:Type TextBlock}">
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="MaxHeight" Value="60" />
+            <Setter Property="Padding" Value="8,4" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="*" />
+            <RowDefinition Height="160" />
         </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
 
-        <StackPanel Grid.Row="0"
-                    Grid.Column="0"
-                    Margin="0,0,12,12">
-            <TextBlock FontWeight="Bold" Text="{Binding SourceLanguageLabel}" />
-            <ComboBox ItemsSource="{Binding AvailableLanguages}"
-                      SelectedItem="{Binding SelectedSourceLanguage}"
-                      AutomationProperties.Name="{Binding SourceLanguageLabel}"
-                      ToolTip="{Binding SourceLanguageLabel}"
-                      Margin="0,6,0,0" />
-        </StackPanel>
-
-        <StackPanel Grid.Row="0"
-                    Grid.Column="1"
-                    Margin="12,0,0,12">
-            <TextBlock FontWeight="Bold" Text="{Binding TargetLanguageLabel}" />
-            <ComboBox ItemsSource="{Binding AvailableLanguages}"
-                      SelectedItem="{Binding SelectedTargetLanguage}"
-                      AutomationProperties.Name="{Binding TargetLanguageLabel}"
-                      ToolTip="{Binding TargetLanguageLabel}"
-                      Margin="0,6,0,0" />
-        </StackPanel>
-
-        <StackPanel Grid.Row="1"
-                    Grid.Column="0"
-                    Margin="0,0,12,12">
-            <TextBlock FontWeight="Bold" Text="{Binding RecordingFileNameLabel}" />
-            <TextBox Margin="0,6,0,0"
-                     AutomationProperties.Name="{Binding RecordingFileNameLabel}"
-                     ToolTip="{Binding RecordingFileNameLabel}"
-                     Text="{Binding RecordingFileName, UpdateSourceTrigger=PropertyChanged}" />
-        </StackPanel>
-
-        <StackPanel Grid.Row="1"
-                    Grid.Column="1"
-                    Margin="12,0,0,12">
-            <TextBlock FontWeight="Bold" Text="{Binding AudioInputLabel}" />
-            <ComboBox ItemsSource="{Binding AvailableAudioInputSources}"
-                      SelectedItem="{Binding SelectedAudioInputSource}"
-                      AutomationProperties.Name="{Binding AudioInputLabel}"
-                      ToolTip="{Binding AudioInputLabel}"
-                      Margin="0,6,0,0" />
-        </StackPanel>
-
-        <GroupBox Grid.Row="2"
-                  Grid.ColumnSpan="2"
-                  Header="{Binding AzureSettingsHeader}"
-                  Margin="0,0,0,12">
-            <Grid Margin="12">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
+        <Border Grid.Row="0"
+                Margin="0,0,0,16"
+                Padding="20"
+                Background="#111827"
+                CornerRadius="18">
+            <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Row="0"
-                           Grid.Column="0"
-                           Margin="0,0,12,8"
-                           VerticalAlignment="Center"
-                           FontWeight="Bold"
-                           Text="{Binding RecordingsFolderLabel}" />
-                <TextBox Grid.Row="0"
-                         Grid.Column="1"
-                         Margin="0,0,12,8"
-                         IsReadOnly="True"
-                         AutomationProperties.Name="{Binding RecordingsFolderLabel}"
-                         ToolTip="{Binding RecordingsFolderPath}"
-                         Text="{Binding RecordingsFolderPath, Mode=OneWay}" />
-                <StackPanel Grid.Row="0"
-                            Grid.Column="2"
-                            Orientation="Horizontal">
-                    <Button Width="80"
-                            Command="{Binding ChooseRecordingsFolderCommand}"
-                            AutomationProperties.Name="{Binding ChooseButtonText}"
-                            ToolTip="{Binding ChooseButtonText}"
-                            Content="{Binding ChooseButtonText}" />
-                    <Button Width="80"
-                            Margin="8,0,0,0"
-                            Command="{Binding OpenRecordingsFolderCommand}"
-                            AutomationProperties.Name="{Binding OpenButtonText}"
-                            ToolTip="{Binding OpenButtonText}"
-                            Content="{Binding OpenButtonText}" />
+                <StackPanel Grid.Column="0">
+                    <TextBlock Foreground="White"
+                               FontSize="26"
+                               FontWeight="Bold"
+                               Text="Speech Translator Desktop Plus" />
+                    <TextBlock Margin="0,6,0,0"
+                               Foreground="#CBD5E1"
+                               Text="Azure AI Speech realtime captions, translation, and local notes." />
                 </StackPanel>
 
-                <TextBlock Grid.Row="1"
-                           Grid.Column="0"
-                           Margin="0,0,12,8"
-                           VerticalAlignment="Center"
-                           FontWeight="Bold"
-                           Text="Region" />
-                <TextBox Grid.Row="1"
-                          Grid.Column="1"
-                          Margin="0,0,12,8"
-                          AutomationProperties.Name="Azure AI Service Region"
-                          ToolTip="Azure AI Service Region"
-                          Text="{Binding AzureRegion, UpdateSourceTrigger=PropertyChanged}" />
-
-                <TextBlock Grid.Row="2"
-                           Grid.Column="0"
-                           Margin="0,0,12,8"
-                           VerticalAlignment="Center"
-                           FontWeight="Bold"
-                           Text="{Binding ApiKeyLabel}" />
-                 <PasswordBox Grid.Row="2"
-                               Grid.Column="1"
-                               Margin="0,0,12,8"
-                               AutomationProperties.Name="{Binding ApiKeyLabel}"
-                               ToolTip="{Binding ApiKeyLabel}"
-                               local:PasswordBoxBindingBehavior.Attach="True"
-                               local:PasswordBoxBindingBehavior.BoundPassword="{Binding AzureApiKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-                <Button Grid.Row="1"
-                        Grid.RowSpan="2"
-                        Grid.Column="2"
-                        Width="120"
-                        Command="{Binding SaveSettingsCommand}"
-                        AutomationProperties.Name="{Binding SaveButtonText}"
-                        ToolTip="{Binding SaveButtonText}"
-                        Content="{Binding SaveButtonText}" />
-
-                <TextBlock Grid.Row="3"
-                           Grid.ColumnSpan="3"
-                           Text="{Binding SettingsStatusMessage}"
-                           TextWrapping="Wrap" />
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <ComboBox Width="132"
+                              ItemsSource="{Binding AvailableUiLanguages}"
+                              SelectedItem="{Binding SelectedUiLanguage}"
+                              AutomationProperties.Name="{Binding UiLanguageLabel}"
+                              ToolTip="{Binding UiLanguageLabel}" />
+                    <Button Margin="12,0,0,0"
+                            Style="{StaticResource ActionButton}"
+                            Click="ShowSettingsWindow"
+                            AutomationProperties.Name="{Binding SettingsButtonText}"
+                            ToolTip="{Binding SettingsButtonText}"
+                            Content="{Binding SettingsButtonText}" />
+                </StackPanel>
             </Grid>
-        </GroupBox>
+        </Border>
 
-        <StackPanel Grid.Row="3"
-                     Grid.ColumnSpan="2"
-                     Orientation="Horizontal"
-                     Margin="0,0,0,12">
-            <StackPanel Margin="0,0,12,0">
-                <TextBlock FontWeight="Bold" Text="{Binding UiLanguageLabel}" />
-                <ComboBox ItemsSource="{Binding AvailableUiLanguages}"
-                          SelectedItem="{Binding SelectedUiLanguage}"
-                          Width="120"
-                          AutomationProperties.Name="{Binding UiLanguageLabel}"
-                          ToolTip="{Binding UiLanguageLabel}"
-                          Margin="0,6,0,0" />
-            </StackPanel>
-            <Button Width="120"
-                    Command="{Binding StartCommand}"
-                    AutomationProperties.Name="{Binding StartButtonText}"
-                    ToolTip="{Binding StartButtonText}"
-                    Content="{Binding StartButtonText}" />
-            <Button Width="120"
-                    Margin="12,0,0,0"
-                    Command="{Binding StopCommand}"
-                    AutomationProperties.Name="{Binding StopButtonText}"
-                    ToolTip="{Binding StopButtonText}"
-                    Content="{Binding StopButtonText}" />
-            <Button Width="120"
-                    Margin="12,0,0,0"
-                    Command="{Binding ClearLogsCommand}"
-                    AutomationProperties.Name="{Binding ClearLogsButtonText}"
-                    ToolTip="{Binding ClearLogsButtonText}"
-                    Content="{Binding ClearLogsButtonText}" />
-            <Button Width="120"
-                    Margin="12,0,0,0"
-                    Click="ShowRecentTranslationsWindow"
-                    AutomationProperties.Name="{Binding ShowRecentTranslationsButtonText}"
-                    ToolTip="{Binding ShowRecentTranslationsButtonText}"
-                    Content="{Binding ShowRecentTranslationsButtonText}" />
-            <TextBlock Margin="24,4,0,0"
-                       VerticalAlignment="Center"
-                       FontWeight="Bold"
-                       Text="{Binding StatusMessage}" />
-        </StackPanel>
+        <Border Grid.Row="1"
+                Style="{StaticResource Card}"
+                Margin="0,0,0,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-        <GroupBox Grid.Row="4"
-                  Grid.ColumnSpan="2"
-                  Header="{Binding TranslationLogHeader}"
-                  Margin="0,0,0,12">
-            <DataGrid ItemsSource="{Binding TranslationLogs}"
-                      AutoGenerateColumns="False"
-                      GridLinesVisibility="Horizontal"
-                      IsReadOnly="True"
-                      HeadersVisibility="Column">
-                <DataGrid.Resources>
-                    <Style x:Key="WrappedTranslationCellText" TargetType="{x:Type TextBlock}">
-                        <Setter Property="TextWrapping" Value="Wrap" />
-                        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-                        <Setter Property="MaxHeight" Value="60" />
-                        <Setter Property="Padding" Value="4,2" />
-                    </Style>
-                    <Style TargetType="{x:Type DataGridRow}">
-                        <Setter Property="MaxHeight" Value="72" />
-                    </Style>
-                </DataGrid.Resources>
-                <DataGrid.Columns>
-                    <DataGridTextColumn Binding="{Binding SourceText}"
-                                        ElementStyle="{StaticResource WrappedTranslationCellText}"
-                                        Width="*">
-                        <DataGridTextColumn.Header>
-                            <TextBlock Text="{Binding Data.SourceTextHeader, Source={StaticResource DataContextProxy}}" />
-                        </DataGridTextColumn.Header>
-                    </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding TranslatedText}"
-                                        ElementStyle="{StaticResource WrappedTranslationCellText}"
-                                        Width="*">
-                        <DataGridTextColumn.Header>
-                            <TextBlock Text="{Binding Data.TranslatedTextHeader, Source={StaticResource DataContextProxy}}" />
-                        </DataGridTextColumn.Header>
-                    </DataGridTextColumn>
-                </DataGrid.Columns>
-            </DataGrid>
-        </GroupBox>
+                <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,12,12">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding SourceLanguageLabel}" />
+                    <ComboBox ItemsSource="{Binding AvailableLanguages}"
+                              SelectedItem="{Binding SelectedSourceLanguage}"
+                              AutomationProperties.Name="{Binding SourceLanguageLabel}"
+                              ToolTip="{Binding SourceLanguageLabel}" />
+                </StackPanel>
 
-        <GroupBox Grid.Row="5"
-                  Grid.ColumnSpan="2"
-                  Header="{Binding StatusLogHeader}">
-            <ListBox ItemsSource="{Binding ActivityLogs}" />
-        </GroupBox>
+                <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,12,12">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding TargetLanguageLabel}" />
+                    <ComboBox ItemsSource="{Binding AvailableLanguages}"
+                              SelectedItem="{Binding SelectedTargetLanguage}"
+                              AutomationProperties.Name="{Binding TargetLanguageLabel}"
+                              ToolTip="{Binding TargetLanguageLabel}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,12,12">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding AudioInputLabel}" />
+                    <ComboBox ItemsSource="{Binding AvailableAudioInputSources}"
+                              SelectedItem="{Binding SelectedAudioInputSource}"
+                              AutomationProperties.Name="{Binding AudioInputLabel}"
+                              ToolTip="{Binding AudioInputLabel}" />
+                </StackPanel>
+
+                <TextBlock Grid.Row="0"
+                           Grid.Column="3"
+                           Margin="16,22,0,0"
+                           MinWidth="130"
+                           VerticalAlignment="Top"
+                           FontSize="14"
+                           FontWeight="Bold"
+                           Foreground="#2563EB"
+                           Text="{Binding StatusMessage}" />
+
+                <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,12,0">
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding RecordingFileNameLabel}" />
+                    <TextBox AutomationProperties.Name="{Binding RecordingFileNameLabel}"
+                             ToolTip="{Binding RecordingFileNameLabel}"
+                             Text="{Binding RecordingFileName, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+
+                <WrapPanel Grid.Row="1"
+                           Grid.Column="2"
+                           Grid.ColumnSpan="2"
+                           Margin="0,20,0,0"
+                           HorizontalAlignment="Right">
+                    <Button MinWidth="100"
+                            Margin="0,0,8,0"
+                            Style="{StaticResource PrimaryButton}"
+                            Command="{Binding StartCommand}"
+                            AutomationProperties.Name="{Binding StartButtonText}"
+                            ToolTip="{Binding StartButtonText}"
+                            Content="{Binding StartButtonText}" />
+                    <Button MinWidth="100"
+                            Margin="0,0,8,0"
+                            Style="{StaticResource ActionButton}"
+                            Command="{Binding StopCommand}"
+                            AutomationProperties.Name="{Binding StopButtonText}"
+                            ToolTip="{Binding StopButtonText}"
+                            Content="{Binding StopButtonText}" />
+                    <Button MinWidth="110"
+                            Margin="0,0,8,0"
+                            Style="{StaticResource DangerButton}"
+                            Command="{Binding ClearLogsCommand}"
+                            AutomationProperties.Name="{Binding ClearLogsButtonText}"
+                            ToolTip="{Binding ClearLogsButtonText}"
+                            Content="{Binding ClearLogsButtonText}" />
+                    <Button MinWidth="190"
+                            Style="{StaticResource ActionButton}"
+                            Click="ShowRecentTranslationsWindow"
+                            AutomationProperties.Name="{Binding ShowRecentTranslationsButtonText}"
+                            ToolTip="{Binding ShowRecentTranslationsButtonText}"
+                            Content="{Binding ShowRecentTranslationsButtonText}" />
+                </WrapPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2"
+                Style="{StaticResource Card}"
+                Margin="0,0,0,16">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top"
+                           Margin="0,0,0,12"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Text="{Binding TranslationLogHeader}" />
+                <DataGrid ItemsSource="{Binding TranslationLogs}"
+                          AutoGenerateColumns="False"
+                          BorderThickness="0"
+                          GridLinesVisibility="Horizontal"
+                          IsReadOnly="True"
+                          HeadersVisibility="Column"
+                          RowHeaderWidth="0">
+                    <DataGrid.Resources>
+                        <Style TargetType="{x:Type DataGridRow}">
+                            <Setter Property="MaxHeight" Value="72" />
+                        </Style>
+                    </DataGrid.Resources>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Binding="{Binding SourceText}"
+                                            ElementStyle="{StaticResource WrappedTranslationCellText}"
+                                            Width="*">
+                            <DataGridTextColumn.Header>
+                                <TextBlock Text="{Binding Data.SourceTextHeader, Source={StaticResource DataContextProxy}}" />
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding TranslatedText}"
+                                            ElementStyle="{StaticResource WrappedTranslationCellText}"
+                                            Width="*">
+                            <DataGridTextColumn.Header>
+                                <TextBlock Text="{Binding Data.TranslatedTextHeader, Source={StaticResource DataContextProxy}}" />
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Row="3"
+                Style="{StaticResource Card}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top"
+                           Margin="0,0,0,8"
+                           FontSize="16"
+                           FontWeight="SemiBold"
+                           Text="{Binding StatusLogHeader}" />
+                <ListBox ItemsSource="{Binding ActivityLogs}"
+                         BorderThickness="0" />
+            </DockPanel>
+        </Border>
     </Grid>
 </Window>

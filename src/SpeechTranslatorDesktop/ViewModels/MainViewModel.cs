@@ -305,7 +305,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string SaveButtonText => Text("保存", "Save");
 
-    public string ShowRecentTranslationsButtonText => Text("直近3件", "Latest 3");
+    public string SettingsButtonText => Text("設定", "Settings");
+
+    public string SettingsWindowTitle => Text("設定", "Settings");
+
+    public string ShowRecentTranslationsButtonText => Text("別ウィンドウで翻訳を開く", "Open translations window");
 
     public string SourceLanguageLabel => Text("話者言語", "Speaker language");
 
@@ -320,6 +324,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public string TargetLanguageLabel => Text("翻訳先言語", "Target language");
 
     public string TranslationLogHeader => Text("翻訳ログ", "Translation log");
+
+    public string TranslationsWindowTitle => Text("翻訳ウィンドウ（最新3件）", "Translations (latest 3)");
 
     public string TranslatedTextHeader => Text("翻訳文", "Translation");
 
@@ -630,6 +636,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(RecordingFileNameLabel));
         OnPropertyChanged(nameof(RecordingsFolderLabel));
         OnPropertyChanged(nameof(SaveButtonText));
+        OnPropertyChanged(nameof(SettingsButtonText));
+        OnPropertyChanged(nameof(SettingsWindowTitle));
         OnPropertyChanged(nameof(ShowRecentTranslationsButtonText));
         OnPropertyChanged(nameof(SourceLanguageLabel));
         OnPropertyChanged(nameof(SourceTextHeader));
@@ -638,6 +646,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(StopButtonText));
         OnPropertyChanged(nameof(TargetLanguageLabel));
         OnPropertyChanged(nameof(TranslationLogHeader));
+        OnPropertyChanged(nameof(TranslationsWindowTitle));
         OnPropertyChanged(nameof(TranslatedTextHeader));
         OnPropertyChanged(nameof(UiLanguageLabel));
     }

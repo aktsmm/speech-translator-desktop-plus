@@ -389,6 +389,10 @@ public class MainViewModelTests
         viewModel.TargetLanguageLabel.Should().Be("Target language");
         viewModel.StartButtonText.Should().Be("Start");
         viewModel.StopButtonText.Should().Be("Stop");
+        viewModel.SettingsButtonText.Should().Be("Settings");
+        viewModel.SettingsWindowTitle.Should().Be("Settings");
+        viewModel.ShowRecentTranslationsButtonText.Should().Be("Open translations window");
+        viewModel.TranslationsWindowTitle.Should().Be("Translations (latest 3)");
         viewModel.TranslationLogHeader.Should().Be("Translation log");
         viewModel.AvailableAudioInputSources.Select(option => option.DisplayName)
             .Should()

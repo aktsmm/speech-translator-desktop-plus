@@ -16,6 +16,7 @@ This project is based on [tsubakimoto/speech-translator](https://github.com/tsub
 - Translation logs are shown newest-first, so the latest text stays visible.
 - Translation log recording as UTF-8 text.
 - Recording folder selection, persistence, and "open folder" UI.
+- Dedicated settings window for Azure Speech credentials and recording folder controls.
 - Japanese and English UI language switching.
 - Major speech translation languages are available from the source/target language selectors.
 - Azure AI Speech region/API key persistence in SQLite with the API key protected by Windows DPAPI.
@@ -34,8 +35,9 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 - Wrapped translation table rows, capped to roughly three visible lines.
 - Empty translation row suppression.
 - Clear logs action that resets the on-screen logs and starts a fresh recording file on the next start.
-- Optional `Latest 3` pop-out window for monitoring only the newest source/translation pairs.
+- Optional translation pop-out window for monitoring the three newest source/translation pairs.
 - Configurable and persisted recording folder.
+- Dedicated settings window to keep the main translation screen focused.
 - `Open folder` and `Choose folder` controls.
 - Japanese/English UI switching.
 - Additional source/target language choices.
@@ -77,7 +79,7 @@ scripts\run-dev.cmd
 ## Basic usage
 
 1. Select UI language: `日本語` or `English`.
-2. Enter the Azure AI Speech `Region` and `API Key`, then click `Save`.
+2. Open `Settings` and save the Azure AI Speech `Region` and `API Key`.
 3. Select source language and target language.
 4. Select audio input:
    - `Microphone`
@@ -86,7 +88,7 @@ scripts\run-dev.cmd
 5. Optionally enter a recording file name stem, using letters/numbers/`-`/`_` only.
 6. Click `Start`.
 7. Click `Clear logs` to clear the visible translation/status logs. If a recording file name is set, the next `Start` creates a new timestamped recording file instead of appending to the previous file.
-8. Click `Latest 3` to open a separate window that shows only the three newest source/translation pairs.
+8. Click `Open translations window` to open a separate window that shows only the three newest source/translation pairs.
 
 If the recording file name is empty, translation is shown in the UI but not saved to a text file.
 
@@ -94,7 +96,7 @@ Rows with no source text or no translated text are ignored to avoid blank lines 
 
 ## Recording folder
 
-Use the recordings folder controls in the app to choose and open the folder where translation logs are saved.
+Use `Settings` to choose and open the folder where translation logs are saved.
 
 The selected folder is persisted in the local settings database. If no custom folder is selected, logs are saved under `recordings/` relative to the app executable directory.
 
