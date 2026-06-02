@@ -105,6 +105,21 @@ Your last-used UI language, mode, source language, target language, and audio in
 
 Rows with no source text are ignored. In translation mode, rows with no translated text are also ignored to avoid blank lines in the UI and recording files.
 
+## Azure AI Speech free tier
+
+As a reference, Azure AI Speech currently offers a **Free (F0)** tier that can be useful for trying this app before moving to pay-as-you-go.
+
+As of 2026-06-03, the Azure Speech pricing page lists:
+
+- Speech to Text: Real-time Transcription, 5 audio hours free per month.
+- Speech Translation: Standard, 5 audio hours free per month.
+- Text to Speech: Neural, 0.5 million characters free per month.
+
+Free tier availability, quotas, and included amounts can change. Check the official pricing and quota pages before relying on these limits:
+
+- Azure Speech pricing: https://azure.microsoft.com/pricing/details/cognitive-services/speech-services/
+- Azure Speech quotas and limits: https://learn.microsoft.com/azure/ai-services/speech-service/speech-services-quotas-and-limits
+
 ## Recording folder
 
 Use `Settings` to choose and open the folder where translation logs are saved.

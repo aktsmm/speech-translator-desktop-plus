@@ -109,6 +109,21 @@ scripts\run-dev.cmd
 
 原文が空の行は、UIにも記録ファイルにも出さないようにしています。翻訳モードでは、翻訳文が空の行も空行防止のため抑止します。
 
+## Azure AI Speech の無料枠
+
+参考情報として、Azure AI Speech には、このアプリを従量課金へ進む前に試しやすい **Free (F0)** SKU があります。
+
+2026-06-03 時点で、Azure Speech の価格ページには次の無料枠が記載されています。
+
+- Speech to Text: Real-time Transcription が月5音声時間まで無料
+- Speech Translation: Standard が月5音声時間まで無料
+- Text to Speech: Neural が月50万文字まで無料
+
+無料枠の有無、クォータ、含まれる時間や文字数は変更される可能性があります。利用前に公式の価格ページとクォータページを確認してください。
+
+- Azure Speech pricing: https://azure.microsoft.com/pricing/details/cognitive-services/speech-services/
+- Azure Speech quotas and limits: https://learn.microsoft.com/azure/ai-services/speech-service/speech-services-quotas-and-limits
+
 ## 保存先フォルダー
 
 `設定` から、翻訳ログを保存するフォルダーを選択・開くことができます。
