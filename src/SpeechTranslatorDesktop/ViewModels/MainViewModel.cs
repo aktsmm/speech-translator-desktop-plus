@@ -461,6 +461,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string RecordingsFolderLabel => Text("保存先", "Recordings folder");
 
+    public string RecordingFolderPickerTitle => Text("翻訳ログの保存先フォルダーを選択", "Choose recordings folder");
+
     public string SaveButtonText => Text("保存", "Save");
 
     public string SaveRecordingLabel => Text("記録を保存する", "Save recording");
@@ -821,7 +823,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private async Task ChooseRecordingsFolderAsync()
     {
-        var selectedFolder = _recordingFolderPicker.PickFolder(RecordingsFolderPath);
+        var selectedFolder = _recordingFolderPicker.PickFolder(RecordingsFolderPath, RecordingFolderPickerTitle);
         if (string.IsNullOrWhiteSpace(selectedFolder))
         {
             return;
@@ -1053,6 +1055,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(RecordingFileNameLabel));
         OnPropertyChanged(nameof(RecordingFileNamePreview));
         OnPropertyChanged(nameof(RecordingsFolderLabel));
+        OnPropertyChanged(nameof(RecordingFolderPickerTitle));
         OnPropertyChanged(nameof(SaveButtonText));
         OnPropertyChanged(nameof(SaveRecordingLabel));
         OnPropertyChanged(nameof(SettingsButtonText));

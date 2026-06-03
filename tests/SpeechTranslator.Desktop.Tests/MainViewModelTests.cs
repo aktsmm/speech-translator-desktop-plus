@@ -185,9 +185,10 @@ public class MainViewModelTests
     {
         var recordingFileService = new FakeRecordingFileService();
         var recordingFolderSettingsStore = new FakeRecordingFolderSettingsStore();
+        var recordingFolderPicker = new FakeRecordingFolderPicker(@"C:\selected-recordings");
         var viewModel = CreateViewModel(
             recordingFileService: recordingFileService,
-            recordingFolderPicker: new FakeRecordingFolderPicker(@"C:\selected-recordings"),
+            recordingFolderPicker: recordingFolderPicker,
             recordingFolderSettingsStore: recordingFolderSettingsStore);
 
         await ExecuteAsync(viewModel.ChooseRecordingsFolderCommand);
@@ -196,6 +197,19 @@ public class MainViewModelTests
         recordingFolderSettingsStore.SavedDirectoryPath.Should().Be(@"C:\selected-recordings");
         viewModel.RecordingsFolderPath.Should().Be(@"C:\selected-recordings");
         viewModel.StatusMessage.Should().Be("保存先を変更しました。");
+        recordingFolderPicker.LastTitle.Should().Be("翻訳ログの保存先フォルダーを選択");
+    }
+
+    [Fact]
+    public async Task ChooseRecordingsFolder_WhenEnglishUi_UsesEnglishPickerTitle()
+    {
+        var recordingFolderPicker = new FakeRecordingFolderPicker(@"C:\selected-recordings");
+        var viewModel = CreateViewModel(recordingFolderPicker: recordingFolderPicker);
+        viewModel.SelectedUiLanguage = viewModel.AvailableUiLanguages.Single(option => option.Language == UiLanguage.English);
+
+        await ExecuteAsync(viewModel.ChooseRecordingsFolderCommand);
+
+        recordingFolderPicker.LastTitle.Should().Be("Choose recordings folder");
     }
 
     [Fact]
@@ -1028,13 +1042,20 @@ public class MainViewModelTests
     private sealed class FakeRecordingFolderPicker : IRecordingFolderPicker
     {
         private readonly string? _selectedFolder;
+        public string? LastInitialDirectory { get; private set; }
+        public string? LastTitle { get; private set; }
 
         public FakeRecordingFolderPicker(string? selectedFolder)
         {
             _selectedFolder = selectedFolder;
         }
 
-        public string? PickFolder(string initialDirectory) => _selectedFolder;
+        public string? PickFolder(string initialDirectory, string title)
+        {
+            LastInitialDirectory = initialDirectory;
+            LastTitle = title;
+            return _selectedFolder;
+        }
     }
 
     private sealed class FakeRecordingFolderSettingsStore : IRecordingFolderSettingsStore

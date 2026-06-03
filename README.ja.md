@@ -6,7 +6,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 
 このプロジェクトは [tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator) をベースにしています。元プロジェクトは MIT License です。元の著作権表示とライセンス文は [LICENSE](./LICENSE) に残しています。
 
-> この README は version 1.8.1 を対象にしています。
+> この README は version 1.8.2 を対象にしています。
 
 ## スクリーンショット
 
@@ -82,7 +82,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 ### 方法1: Release zip をダウンロード
 
 1. 最新の GitHub Release を開きます。
-2. `SpeechTranslatorDesktopPlus-win-x64.zip` をダウンロードします。保管用に `SpeechTranslatorDesktopPlus-win-x64-1.8.1.zip` のような version 付きコピーも公開されます。
+2. `SpeechTranslatorDesktopPlus-win-x64.zip` をダウンロードします。保管用に `SpeechTranslatorDesktopPlus-win-x64-1.8.2.zip` のような version 付きコピーも公開されます。
 3. 任意の書き込み可能なフォルダーへ展開します。
 4. `SpeechTranslatorDesktopPlus.exe` を実行します。
 
@@ -104,6 +104,12 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+実行ポリシーを変更できない場合は、cmd ラッパーを使えます。
+
+```cmd
+scripts\setup.cmd
 ```
 
 保存済み設定を残したままローカルアプリ本体を削除する場合:
@@ -155,6 +161,17 @@ scripts\run-dev.cmd
 
 原文が空の行は、UIにも記録ファイルにも出さないようにしています。翻訳モードでは、翻訳文が空の行も空行防止のため抑止します。
 
+## トラブルシュート
+
+| 症状 | 確認すること |
+| --- | --- |
+| セットアップが publish 前に失敗する | Windows 10 以降か確認してください。.NET のダウンロードに失敗する場合は、インターネット/プロキシ設定を確認するか、.NET 10 SDK を手動インストールしてから `.\scripts\setup.ps1 -SkipDotNetInstall` を実行してください。 |
+| PowerShell がスクリプト実行をブロックする | `scripts\setup.cmd` を使うか、`Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser` でローカルスクリプトを許可してください。 |
+| Azure 認証情報が未設定と表示される | `設定` を開き、Azure AI Speech の `Region` と `API Key` を保存してください。または、起動前にユーザー環境変数 `SPEECH_REGION` / `SPEECH_KEY` を設定してください。 |
+| マイクまたは PC 音声が認識されない | Windows のマイクプライバシー設定と、翻訳したい再生デバイスが Windows の既定デバイスになっているか確認してください。 |
+| 設定や保存先フォルダーが保持されない | 書き込み可能なフォルダーにインストールし、`%LOCALAPPDATA%\SpeechTranslatorDesktop` に書き込めることを確認してください。 |
+| Release zip の整合性を確認したい | Release の `SHA256SUMS.txt` をダウンロードし、`Get-FileHash -Algorithm SHA256 .\SpeechTranslatorDesktopPlus-win-x64.zip` の結果と比較してください。 |
+
 ## Azure AI Speech の無料枠
 
 参考情報として、Azure AI Speech には、このアプリを従量課金へ進む前に試しやすい **Free (F0)** SKU があります。
@@ -190,7 +207,7 @@ Release zip 作成:
 .\scripts\package.ps1
 ```
 
-デスクトップ版の Release asset 名は `SpeechTranslatorDesktopPlus-win-x64.zip` です。保管用に `SpeechTranslatorDesktopPlus-win-x64-{version}.zip` という version 付きコピーも作成します。GitHub Actions workflow では、元のコンソールアプリをソース利用者向けに確認できる console zip もアップロードします。
+デスクトップ版の Release asset 名は `SpeechTranslatorDesktopPlus-win-x64.zip` です。保管用に `SpeechTranslatorDesktopPlus-win-x64-{version}.zip` という version 付きコピーも作成します。Release にはチェックサム用の `SHA256SUMS.txt` もアップロードします。GitHub Actions workflow では、元のコンソールアプリをソース利用者向けに確認できる console zip もアップロードします。
 
 補助スクリプトは [`scripts/`](scripts/) にまとめ、リポジトリルートを見やすくしています。
 

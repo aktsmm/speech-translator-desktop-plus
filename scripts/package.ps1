@@ -22,3 +22,8 @@ if (Test-Path -LiteralPath $zipPath) {
 
 Compress-Archive -Path (Join-Path $staging '*') -DestinationPath $zipPath -Force
 Write-Host "Created package: $zipPath"
+
+$checksumPath = Join-Path $OutputDirectory 'SHA256SUMS.txt'
+$hash = Get-FileHash -Algorithm SHA256 -LiteralPath $zipPath
+"$($hash.Hash.ToLowerInvariant())  $PackageName" | Set-Content -LiteralPath $checksumPath -Encoding ascii
+Write-Host "Created checksum: $checksumPath"

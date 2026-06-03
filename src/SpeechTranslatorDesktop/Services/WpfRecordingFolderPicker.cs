@@ -4,11 +4,11 @@ namespace SpeechTranslatorDesktop.Services;
 
 public sealed class WpfRecordingFolderPicker : IRecordingFolderPicker
 {
-    public string? PickFolder(string initialDirectory)
+    public string? PickFolder(string initialDirectory, string title)
     {
         var dialog = new OpenFolderDialog
         {
-            Title = "翻訳ログの保存先フォルダーを選択",
+            Title = title,
             InitialDirectory = Directory.Exists(initialDirectory) ? initialDirectory : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             Multiselect = false
         };

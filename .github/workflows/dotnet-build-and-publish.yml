@@ -53,12 +53,15 @@ jobs:
         Compress-Archive -Path artifacts/publish/console/* -DestinationPath "artifacts/release/SpeechTranslatorConsole-win-x64-${{ steps.version.outputs.version }}.zip" -Force
         Compress-Archive -Path artifacts/publish/desktop/* -DestinationPath "artifacts/release/SpeechTranslatorDesktopPlus-win-x64.zip" -Force
         Copy-Item "artifacts/release/SpeechTranslatorDesktopPlus-win-x64.zip" "artifacts/release/SpeechTranslatorDesktopPlus-win-x64-${{ steps.version.outputs.version }}.zip" -Force
+        Get-ChildItem artifacts/release/*.zip |
+          ForEach-Object { "{0}  {1}" -f (Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName).Hash.ToLowerInvariant(), $_.Name } |
+          Set-Content artifacts/release/SHA256SUMS.txt -Encoding ascii
 
     - name: Upload publish artifacts
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7
       with:
         name: publish-${{ steps.version.outputs.version }}
-        path: artifacts/release/*.zip
+        path: artifacts/release/*
 
   release:
     needs: build
@@ -80,4 +83,4 @@ jobs:
         name: ${{ needs.build.outputs.version }}
         generate_release_notes: true
         target_commitish: ${{ github.sha }}
-        files: artifacts/release/*.zip
+        files: artifacts/release/*

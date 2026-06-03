@@ -6,7 +6,7 @@ Speech Translator Desktop Plus is a Windows desktop speech translator and record
 
 This project is based on [tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator). The original project is licensed under the MIT License. The original copyright and license text are preserved in [LICENSE](./LICENSE).
 
-> Documentation target: version 1.8.1.
+> Documentation target: version 1.8.2.
 
 ## Screenshots
 
@@ -78,7 +78,7 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 ### Option 1: Download the release zip
 
 1. Open the latest GitHub release.
-2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`. A versioned copy such as `SpeechTranslatorDesktopPlus-win-x64-1.8.1.zip` is also published for archiving.
+2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`. A versioned copy such as `SpeechTranslatorDesktopPlus-win-x64-1.8.2.zip` is also published for archiving.
 3. Extract it to any writable folder.
 4. Run `SpeechTranslatorDesktopPlus.exe`.
 
@@ -100,6 +100,12 @@ Requirements:
 
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+If you cannot change the execution policy, run the cmd wrapper instead:
+
+```cmd
+scripts\setup.cmd
 ```
 
 To remove the local app files later while keeping saved settings:
@@ -150,6 +156,17 @@ Your last-used UI language, mode, source language, target language, audio input,
 
 Rows with no source text are ignored. In translation mode, rows with no translated text are also ignored to avoid blank lines in the UI and recording files.
 
+## Troubleshooting
+
+| Problem | What to check |
+| --- | --- |
+| Setup fails before publishing | Confirm Windows 10 or later. If .NET download fails, check internet/proxy settings or install .NET 10 SDK manually, then run `.\scripts\setup.ps1 -SkipDotNetInstall`. |
+| PowerShell blocks scripts | Use `scripts\setup.cmd`, or allow local scripts with `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`. |
+| App says Azure credentials are missing | Open `Settings` and save the Azure AI Speech `Region` and `API Key`, or set `SPEECH_REGION` and `SPEECH_KEY` as user environment variables before launching the app. |
+| No microphone or PC audio is recognized | Check Windows privacy permissions for microphone access and confirm the playback device you want is the Windows default device. |
+| Settings or recording folder changes do not persist | Use a writable install folder and confirm `%LOCALAPPDATA%\SpeechTranslatorDesktop` can be written. |
+| Release zip integrity check is needed | Download `SHA256SUMS.txt` from the release and compare it with `Get-FileHash -Algorithm SHA256 .\SpeechTranslatorDesktopPlus-win-x64.zip`. |
+
 ## Azure AI Speech free tier
 
 As a reference, Azure AI Speech currently offers a **Free (F0)** tier that can be useful for trying this app before moving to pay-as-you-go.
@@ -185,7 +202,7 @@ Create a release zip:
 .\scripts\package.ps1
 ```
 
-The desktop release asset is named `SpeechTranslatorDesktopPlus-win-x64.zip`, with a versioned copy named `SpeechTranslatorDesktopPlus-win-x64-{version}.zip` for archiving. The GitHub Actions workflow also uploads a console zip for source users who want the original console app.
+The desktop release asset is named `SpeechTranslatorDesktopPlus-win-x64.zip`, with a versioned copy named `SpeechTranslatorDesktopPlus-win-x64-{version}.zip` for archiving. `SHA256SUMS.txt` is uploaded with release checksums. The GitHub Actions workflow also uploads a console zip for source users who want the original console app.
 
 Helper scripts live in [`scripts/`](scripts/) to keep the repository root focused.
 
