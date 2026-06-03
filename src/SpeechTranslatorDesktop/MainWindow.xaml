@@ -36,14 +36,48 @@
             <Setter Property="Margin" Value="0,0,0,6" />
         </Style>
 
+        <LinearGradientBrush x:Key="HeroBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#0F172A" Offset="0" />
+            <GradientStop Color="#1E3A8A" Offset="0.62" />
+            <GradientStop Color="#2563EB" Offset="1" />
+        </LinearGradientBrush>
+
         <Style TargetType="{x:Type ComboBox}">
             <Setter Property="MinHeight" Value="34" />
             <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Background" Value="#F9FAFB" />
+            <Setter Property="BorderBrush" Value="#CBD5E1" />
+            <Setter Property="BorderThickness" Value="1" />
         </Style>
 
         <Style TargetType="{x:Type TextBox}">
-            <Setter Property="MinHeight" Value="34" />
-            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Background" Value="#F9FAFB" />
+            <Setter Property="BorderBrush" Value="#CBD5E1" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TextBox}">
+                        <Border x:Name="Border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Margin="{TemplateBinding Padding}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#2563EB" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Border" Property="Opacity" Value="0.56" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="ActionButton" TargetType="{x:Type Button}">
@@ -54,6 +88,30 @@
             <Setter Property="Foreground" Value="#111827" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="Border"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="11"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Opacity" Value="0.88" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Border" Property="Opacity" Value="0.76" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Border" Property="Opacity" Value="0.42" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="PrimaryButton" BasedOn="{StaticResource ActionButton}" TargetType="{x:Type Button}">
@@ -66,11 +124,36 @@
             <Setter Property="Foreground" Value="#991B1B" />
         </Style>
 
-        <Style x:Key="WrappedTranslationCellText" TargetType="{x:Type TextBlock}">
+        <Style x:Key="LiveNoteCard" TargetType="{x:Type Border}">
+            <Setter Property="Margin" Value="0,0,0,12" />
+            <Setter Property="Padding" Value="14" />
+            <Setter Property="Background" Value="#F8FAFC" />
+            <Setter Property="BorderBrush" Value="#E2E8F0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="13" />
+        </Style>
+
+        <Style x:Key="LiveNoteCaption" TargetType="{x:Type TextBlock}">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#64748B" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+
+        <Style x:Key="LiveNoteText" TargetType="{x:Type TextBlock}">
             <Setter Property="TextWrapping" Value="Wrap" />
-            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-            <Setter Property="MaxHeight" Value="60" />
-            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="LineHeight" Value="20" />
+            <Setter Property="Foreground" Value="#0F172A" />
+        </Style>
+
+        <Style x:Key="ActivityPill" TargetType="{x:Type Border}">
+            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="Background" Value="#F8FAFC" />
+            <Setter Property="BorderBrush" Value="#E2E8F0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
         </Style>
     </Window.Resources>
 
@@ -85,7 +168,7 @@
         <Border Grid.Row="0"
                 Margin="0,0,0,16"
                 Padding="20"
-                Background="#111827"
+                Background="{StaticResource HeroBrush}"
                 CornerRadius="18">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -250,36 +333,57 @@
                            FontSize="18"
                            FontWeight="SemiBold"
                            Text="{Binding TranslationLogHeader}" />
-                <DataGrid ItemsSource="{Binding TranslationLogs}"
-                          AutoGenerateColumns="False"
-                          BorderThickness="0"
-                          GridLinesVisibility="Horizontal"
-                          IsReadOnly="True"
-                          HeadersVisibility="Column"
-                          RowHeaderWidth="0">
-                    <DataGrid.Resources>
-                        <Style TargetType="{x:Type DataGridRow}">
-                            <Setter Property="MaxHeight" Value="72" />
+                <ListBox ItemsSource="{Binding TranslationLogs}"
+                         BorderThickness="0"
+                         Background="Transparent"
+                         ScrollViewer.CanContentScroll="True"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                         VirtualizingPanel.IsVirtualizing="True"
+                         VirtualizingPanel.VirtualizationMode="Recycling"
+                         VirtualizingPanel.ScrollUnit="Item"
+                         AutomationProperties.Name="{Binding TranslationLogHeader}">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="{x:Type ListBoxItem}">
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Margin" Value="0" />
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                         </Style>
-                    </DataGrid.Resources>
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Binding="{Binding SourceText}"
-                                            ElementStyle="{StaticResource WrappedTranslationCellText}"
-                                            Width="*">
-                            <DataGridTextColumn.Header>
-                                <TextBlock Text="{Binding Data.SourceTextHeader, Source={StaticResource DataContextProxy}}" />
-                            </DataGridTextColumn.Header>
-                        </DataGridTextColumn>
-                        <DataGridTextColumn Binding="{Binding TranslatedText}"
-                                            ElementStyle="{StaticResource WrappedTranslationCellText}"
-                                            Visibility="{Binding Data.TranslationColumnVisibility, Source={StaticResource DataContextProxy}}"
-                                            Width="*">
-                            <DataGridTextColumn.Header>
-                                <TextBlock Text="{Binding Data.TranslatedTextHeader, Source={StaticResource DataContextProxy}}" />
-                            </DataGridTextColumn.Header>
-                        </DataGridTextColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource LiveNoteCard}"
+                                        AutomationProperties.Name="{Binding AutomationText}">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock Grid.Row="0"
+                                                   Style="{StaticResource LiveNoteCaption}"
+                                                   Text="{Binding Data.SourceTextHeader, Source={StaticResource DataContextProxy}}" />
+                                        <TextBlock Grid.Row="1"
+                                                   Style="{StaticResource LiveNoteText}"
+                                                   FontWeight="SemiBold"
+                                                   Text="{Binding SourceText}" />
+
+                                        <TextBlock Grid.Row="2"
+                                                   Margin="0,12,0,4"
+                                                   Style="{StaticResource LiveNoteCaption}"
+                                                   Visibility="{Binding Data.TranslationColumnVisibility, Source={StaticResource DataContextProxy}}"
+                                                   Text="{Binding Data.TranslatedTextHeader, Source={StaticResource DataContextProxy}}" />
+                                        <TextBlock Grid.Row="3"
+                                                   Style="{StaticResource LiveNoteText}"
+                                                   FontSize="16"
+                                                   Visibility="{Binding Data.TranslationColumnVisibility, Source={StaticResource DataContextProxy}}"
+                                                   Text="{Binding TranslatedText}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
             </DockPanel>
         </Border>
 
@@ -292,7 +396,32 @@
                            FontWeight="SemiBold"
                            Text="{Binding StatusLogHeader}" />
                 <ListBox ItemsSource="{Binding ActivityLogs}"
-                         BorderThickness="0" />
+                         BorderThickness="0"
+                         Background="Transparent"
+                         ScrollViewer.CanContentScroll="True"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                         VirtualizingPanel.IsVirtualizing="True"
+                         VirtualizingPanel.VirtualizationMode="Recycling"
+                         VirtualizingPanel.ScrollUnit="Item"
+                         AutomationProperties.Name="{Binding StatusLogHeader}">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="{x:Type ListBoxItem}">
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Margin" Value="0" />
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource ActivityPill}"
+                                        AutomationProperties.Name="{Binding}">
+                                    <TextBlock Text="{Binding}"
+                                               TextWrapping="Wrap"
+                                               Foreground="#334155" />
+                                </Border>
+                            </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
             </DockPanel>
         </Border>
     </Grid>

@@ -80,6 +80,14 @@ public class DesktopTranslationWorkerTests
     }
 
     [Fact]
+    public void TranslationLogItem_AutomationText_IncludesTranslationWhenPresent()
+    {
+        var item = new TranslationLogItem("hello", "こんにちは");
+
+        item.AutomationText.Should().Be("hello こんにちは");
+    }
+
+    [Fact]
     public void HandleTranslatedSpeech_WhenEnglishUiAndRecordingWriteFails_RaisesEnglishError()
     {
         var recordingFileService = new ThrowingRecordingFileService(new IOException("disk full"));
@@ -108,6 +116,7 @@ public class DesktopTranslationWorkerTests
         worker.HandleTranscribedSpeech("  hello transcript  ");
 
         translations.Should().ContainSingle().Which.Should().BeEquivalentTo(new TranslationLogItem("hello transcript", string.Empty));
+        translations[0].AutomationText.Should().Be("hello transcript");
         recordingFileService.LastTranscriptionText.Should().Be("hello transcript");
         recordingFileService.AppendTranscriptionCallCount.Should().Be(1);
     }

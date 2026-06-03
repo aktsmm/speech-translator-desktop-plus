@@ -31,6 +31,7 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 - Desktop app branding as **Speech Translator Desktop Plus**.
 - A custom application icon.
 - Modern card-based desktop UI focused on live captioning and note-taking.
+- Card-based live log view instead of a spreadsheet-style grid.
 - A mode selector for `Translate + transcript` and `Transcript only`.
 - PC audio capture via WASAPI loopback.
 - Combined `Microphone + PC audio` input mode.
@@ -39,7 +40,8 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 - Last-used language/input/mode/save/prefix preferences are persisted and restored.
 - Save recording toggle and automatic `{prefix}_yyyyMMdd_HHmmss.txt` file naming.
 - Newest-first translation and status logs.
-- Wrapped translation table rows, capped to roughly three visible lines.
+- Compact activity feed for status events.
+- Wrapped live-note cards for readable source and translation text.
 - Empty translation row suppression.
 - Clear logs action that resets only the on-screen logs; recording files are already created fresh on each start.
 - Optional live-notes pop-out window with card-style monitoring for the three newest source/transcript or source/translation pairs.

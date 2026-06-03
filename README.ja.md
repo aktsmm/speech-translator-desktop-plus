@@ -33,6 +33,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 - デスクトップアプリ名を **Speech Translator Desktop Plus** に変更
 - カスタムアプリアイコンを追加
 - ライブ字幕・メモ取りに集中しやすいモダンなカード型デスクトップUI
+- 表形式ではなくカード型で読めるライブログ表示
 - `翻訳 + 書き起こし` / `書き起こしのみ` を選べる利用モード切り替え
 - WASAPI loopback による PC 音声キャプチャ
 - `マイク + PC音声` 入力モード
@@ -41,7 +42,8 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 - 前回利用した言語・入力・モード・保存設定・ファイル名prefixの永続化と復元
 - `記録を保存する` のON/OFF切り替えと `{prefix}_yyyyMMdd_HHmmss.txt` 形式の自動命名
 - 翻訳ログ・状態ログを新しい順に表示
-- 翻訳テーブルのセルを最大3行程度で折り返し表示
+- 状態イベントをコンパクトなActivity feedとして表示
+- 原文・翻訳文を読みやすく折り返すライブノートカード
 - 空の翻訳行を抑止
 - ログクリア操作
   - 画面上の翻訳ログ・状態ログのみをクリアします。記録ファイルは開始ごとに新規作成されます
