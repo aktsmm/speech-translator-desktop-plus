@@ -6,7 +6,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 
 このプロジェクトは [tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator) をベースにしています。元プロジェクトは MIT License です。元の著作権表示とライセンス文は [LICENSE](./LICENSE) に残しています。
 
-> この README は version 1.8.2 を対象にしています。
+> この README は version 1.8.3 を対象にしています。
 
 ## スクリーンショット
 
@@ -30,6 +30,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
   - YouTube、ライブ配信、PC で再生中の音声を VB-CABLE なしで翻訳できます
 - 翻訳ログは新しいものが上に表示されるため、最新テキストをスクロールせず確認できます
 - 翻訳ログと状態ログは、必要に応じて折りたためます
+- メイン操作カードでは、状態表示と保存プレビューを関連する操作の横に置き、縦方向の余白を抑えています
 - 翻訳が不要な場面向けの `書き起こしのみ` モード
 - タイムスタンプ付きファイル名で、翻訳/書き起こしログを UTF-8 テキストとして保存
 - ライブログ全体、個別カード、原文のみ、訳文のみをワンクリックでコピー
@@ -60,6 +61,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 - `記録を保存する` のON/OFF切り替えと `{prefix}_yyyyMMdd_HHmmss.txt` 形式の自動命名
 - 翻訳ログ・状態ログを新しい順に表示
 - 翻訳ログ・状態ログの折りたたみ表示
+- 状態表示と保存プレビューを横配置にした省スペースなメイン操作UI
 - 全ログコピー、原文のみコピー、訳文のみコピー、カード単位コピーに対応
 - 状態イベントをコンパクトなActivity feedとして表示
 - 原文・翻訳文を読みやすく折り返すライブノートカード
@@ -82,7 +84,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 ### 方法1: Release zip をダウンロード
 
 1. 最新の GitHub Release を開きます。
-2. `SpeechTranslatorDesktopPlus-win-x64.zip` をダウンロードします。保管用に `SpeechTranslatorDesktopPlus-win-x64-1.8.2.zip` のような version 付きコピーも公開されます。
+2. `SpeechTranslatorDesktopPlus-win-x64.zip` をダウンロードします。保管用に `SpeechTranslatorDesktopPlus-win-x64-1.8.3.zip` のような version 付きコピーも公開されます。
 3. 任意の書き込み可能なフォルダーへ展開します。
 4. `SpeechTranslatorDesktopPlus.exe` を実行します。
 

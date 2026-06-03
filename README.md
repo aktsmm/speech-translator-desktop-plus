@@ -6,7 +6,7 @@ Speech Translator Desktop Plus is a Windows desktop speech translator and record
 
 This project is based on [tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator). The original project is licensed under the MIT License. The original copyright and license text are preserved in [LICENSE](./LICENSE).
 
-> Documentation target: version 1.8.2.
+> Documentation target: version 1.8.3.
 
 ## Screenshots
 
@@ -29,6 +29,7 @@ This project is based on [tsubakimoto/speech-translator](https://github.com/tsub
 - PC audio input using WASAPI loopback, so YouTube, livestreams, and other system playback can be translated without VB-CABLE.
 - Translation logs are shown newest-first, so the latest text stays visible.
 - Translation and status logs can be collapsed when you want a smaller live workspace.
+- The main control card keeps status and recording-save hints inline to avoid unnecessary vertical whitespace.
 - Transcript-only mode for cases where translation is not needed.
 - Translation/transcription log recording as UTF-8 text, with automatic timestamped file names.
 - One-click copy for all live log entries, an individual card, source text only, or translation text only. Per-card copy actions sit beside the text so they do not consume a separate row.
@@ -57,6 +58,7 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 - Save recording toggle and automatic `{prefix}_yyyyMMdd_HHmmss.txt` file naming.
 - Newest-first translation and status logs.
 - Collapsible translation and status log sections.
+- Compact main controls with status and recording preview placed beside related controls.
 - One-click copy for all logs, source-only logs, translation-only logs, and per-card copy actions.
 - Compact activity feed for status events.
 - Wrapped live-note cards for readable source and translation text.
@@ -78,7 +80,7 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 ### Option 1: Download the release zip
 
 1. Open the latest GitHub release.
-2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`. A versioned copy such as `SpeechTranslatorDesktopPlus-win-x64-1.8.2.zip` is also published for archiving.
+2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`. A versioned copy such as `SpeechTranslatorDesktopPlus-win-x64-1.8.3.zip` is also published for archiving.
 3. Extract it to any writable folder.
 4. Run `SpeechTranslatorDesktopPlus.exe`.
 

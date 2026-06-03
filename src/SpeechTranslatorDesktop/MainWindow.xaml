@@ -223,7 +223,6 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,12,12">
@@ -265,68 +264,78 @@
                               AutomationProperties.Name="{Binding SaveRecordingLabel}"
                               ToolTip="{Binding SaveRecordingLabel}"
                               Content="{Binding SaveRecordingLabel}" />
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding RecordingFileNameLabel}" />
+                    <DockPanel Margin="0,0,0,6">
+                        <TextBlock DockPanel.Dock="Right"
+                                   Margin="12,0,0,0"
+                                   FontSize="12"
+                                   Foreground="#6B7280"
+                                   Text="{Binding RecordingFileNamePreview}" />
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding RecordingFileNameLabel}" />
+                    </DockPanel>
                     <TextBox AutomationProperties.Name="{Binding RecordingFileNameLabel}"
                               ToolTip="{Binding RecordingFileNameLabel}"
                               Text="{Binding RecordingFileName, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Margin="0,6,0,0"
-                               FontSize="12"
-                               Foreground="#6B7280"
-                               Text="{Binding RecordingFileNamePreview}" />
                 </StackPanel>
 
-                <WrapPanel Grid.Row="1"
-                           Grid.Column="2"
-                           Grid.ColumnSpan="2"
-                           Margin="0,20,0,0"
-                           HorizontalAlignment="Right">
-                    <Button MinWidth="100"
-                            Margin="0,0,8,0"
-                            Style="{StaticResource PrimaryButton}"
-                            Command="{Binding StartCommand}"
-                            AutomationProperties.Name="{Binding StartButtonText}"
-                            ToolTip="{Binding StartButtonText}"
-                            Content="{Binding StartButtonText}" />
-                    <Button MinWidth="100"
-                            Margin="0,0,8,0"
-                            Style="{StaticResource ActionButton}"
-                            Command="{Binding StopCommand}"
-                            AutomationProperties.Name="{Binding StopButtonText}"
-                            ToolTip="{Binding StopButtonText}"
-                            Content="{Binding StopButtonText}" />
-                    <Button MinWidth="110"
-                            Margin="0,0,8,0"
-                            Style="{StaticResource DangerButton}"
-                            Command="{Binding ClearLogsCommand}"
-                            AutomationProperties.Name="{Binding ClearLogsButtonText}"
-                            ToolTip="{Binding ClearLogsButtonText}"
-                            Content="{Binding ClearLogsButtonText}" />
-                    <Button MinWidth="190"
-                            Style="{StaticResource ActionButton}"
-                            Click="ShowRecentTranslationsWindow"
-                            AutomationProperties.Name="{Binding ShowRecentTranslationsButtonText}"
-                            ToolTip="{Binding ShowRecentTranslationsButtonText}"
-                            Content="{Binding ShowRecentTranslationsButtonText}" />
-                </WrapPanel>
+                <Grid Grid.Row="1"
+                      Grid.Column="2"
+                      Grid.ColumnSpan="2"
+                      Margin="0,20,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                <Border Grid.Row="2"
-                        Grid.Column="0"
-                        Grid.ColumnSpan="4"
-                        Margin="0,14,0,0"
-                        Padding="10,6"
-                        HorizontalAlignment="Left"
-                        Background="#EFF6FF"
-                        CornerRadius="10"
-                        AutomationProperties.Name="{Binding StatusLabel}">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock FontWeight="SemiBold"
-                                   Foreground="#1D4ED8"
-                                   Text="{Binding StatusLabel}" />
-                        <TextBlock Margin="8,0,0,0"
-                                   Foreground="#1E3A8A"
-                                   Text="{Binding StatusMessage}" />
-                    </StackPanel>
-                </Border>
+                    <WrapPanel Grid.Row="0"
+                               HorizontalAlignment="Right">
+                        <Button MinWidth="100"
+                                Margin="0,0,8,0"
+                                Style="{StaticResource PrimaryButton}"
+                                Command="{Binding StartCommand}"
+                                AutomationProperties.Name="{Binding StartButtonText}"
+                                ToolTip="{Binding StartButtonText}"
+                                Content="{Binding StartButtonText}" />
+                        <Button MinWidth="100"
+                                Margin="0,0,8,0"
+                                Style="{StaticResource ActionButton}"
+                                Command="{Binding StopCommand}"
+                                AutomationProperties.Name="{Binding StopButtonText}"
+                                ToolTip="{Binding StopButtonText}"
+                                Content="{Binding StopButtonText}" />
+                        <Button MinWidth="110"
+                                Margin="0,0,8,0"
+                                Style="{StaticResource DangerButton}"
+                                Command="{Binding ClearLogsCommand}"
+                                AutomationProperties.Name="{Binding ClearLogsButtonText}"
+                                ToolTip="{Binding ClearLogsButtonText}"
+                                Content="{Binding ClearLogsButtonText}" />
+                    </WrapPanel>
+
+                    <DockPanel Grid.Row="1"
+                               Margin="0,8,0,0"
+                               HorizontalAlignment="Right">
+                        <Border Margin="0,0,8,0"
+                                Padding="10,6"
+                                Background="#EFF6FF"
+                                CornerRadius="10"
+                                AutomationProperties.Name="{Binding StatusLabel}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock FontWeight="SemiBold"
+                                           Foreground="#1D4ED8"
+                                           Text="{Binding StatusLabel}" />
+                                <TextBlock Margin="8,0,0,0"
+                                           Foreground="#1E3A8A"
+                                           Text="{Binding StatusMessage}" />
+                            </StackPanel>
+                        </Border>
+                        <Button MinWidth="190"
+                                Style="{StaticResource ActionButton}"
+                                Click="ShowRecentTranslationsWindow"
+                                AutomationProperties.Name="{Binding ShowRecentTranslationsButtonText}"
+                                ToolTip="{Binding ShowRecentTranslationsButtonText}"
+                                Content="{Binding ShowRecentTranslationsButtonText}" />
+                    </DockPanel>
+                </Grid>
             </Grid>
         </Border>
 
