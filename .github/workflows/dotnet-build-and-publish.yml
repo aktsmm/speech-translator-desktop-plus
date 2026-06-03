@@ -50,8 +50,9 @@ jobs:
       shell: pwsh
       run: |
         New-Item -ItemType Directory -Path artifacts/release -Force | Out-Null
-        Compress-Archive -Path artifacts/publish/console/* -DestinationPath "artifacts/release/speech-translator-console-${{ steps.version.outputs.version }}.zip" -Force
-        Compress-Archive -Path artifacts/publish/desktop/* -DestinationPath "artifacts/release/speech-translator-desktop-${{ steps.version.outputs.version }}.zip" -Force
+        Compress-Archive -Path artifacts/publish/console/* -DestinationPath "artifacts/release/SpeechTranslatorConsole-win-x64-${{ steps.version.outputs.version }}.zip" -Force
+        Compress-Archive -Path artifacts/publish/desktop/* -DestinationPath "artifacts/release/SpeechTranslatorDesktopPlus-win-x64.zip" -Force
+        Copy-Item "artifacts/release/SpeechTranslatorDesktopPlus-win-x64.zip" "artifacts/release/SpeechTranslatorDesktopPlus-win-x64-${{ steps.version.outputs.version }}.zip" -Force
 
     - name: Upload publish artifacts
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7

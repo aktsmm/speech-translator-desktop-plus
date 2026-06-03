@@ -33,6 +33,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private string _statusMessage = string.Empty;
     private bool _isRecordingSaveEnabled = true;
     private bool _isRunning;
+    private bool _isStatusLogExpanded = true;
+    private bool _isTranslationLogExpanded = true;
 
     public MainViewModel(
         IUiDispatcher dispatcher,
@@ -186,6 +188,37 @@ public sealed class MainViewModel : INotifyPropertyChanged
             _isRecordingSaveEnabled = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(RecordingFileNamePreview));
+        }
+    }
+
+    public bool IsStatusLogExpanded
+    {
+        get => _isStatusLogExpanded;
+        set
+        {
+            if (_isStatusLogExpanded == value)
+            {
+                return;
+            }
+
+            _isStatusLogExpanded = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsTranslationLogExpanded
+    {
+        get => _isTranslationLogExpanded;
+        set
+        {
+            if (_isTranslationLogExpanded == value)
+            {
+                return;
+            }
+
+            _isTranslationLogExpanded = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(TranslationLogRowHeight));
         }
     }
 
@@ -403,6 +436,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string CopyTranslationButtonText => Text("訳文コピー", "Copy translation");
 
+    public string MainWindowTitle => "Speech Translator Desktop Plus";
+
     public string OpenButtonText => Text("開く", "Open");
 
     public string RecognitionModeLabel => Text("利用モード", "Mode");
@@ -461,6 +496,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public bool IsTranslationMode => SelectedRecognitionMode?.Mode != RecognitionMode.TranscriptionOnly;
 
     public Visibility TranslationColumnVisibility => IsTranslationMode ? Visibility.Visible : Visibility.Collapsed;
+
+    public GridLength TranslationLogRowHeight => IsTranslationLogExpanded ? new GridLength(1, GridUnitType.Star) : GridLength.Auto;
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {

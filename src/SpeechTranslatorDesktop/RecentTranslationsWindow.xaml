@@ -110,18 +110,26 @@
                     <Border Margin="0,0,0,10"
                             Style="{StaticResource NoteCard}">
                         <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <WrapPanel Grid.Row="0"
-                                       Margin="0,0,0,10"
-                                       HorizontalAlignment="Right">
-                                <Button Margin="0,0,8,0"
-                                        Style="{StaticResource PrimaryButton}"
-                                        Command="{Binding DataContext.CopyTranslationLogCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        CommandParameter="{Binding}"
+                            <StackPanel Grid.Row="0"
+                                        Grid.RowSpan="3"
+                                        Grid.Column="1"
+                                        Margin="16,0,0,0"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Top"
+                                        Orientation="Horizontal">
+                                 <Button Margin="0,0,8,0"
+                                         Style="{StaticResource PrimaryButton}"
+                                         Command="{Binding DataContext.CopyTranslationLogCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                         CommandParameter="{Binding}"
                                         AutomationProperties.Name="{Binding DataContext.CopyBlockButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
                                         ToolTip="{Binding DataContext.CopyBlockButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
                                         Content="{Binding DataContext.CopyBlockButtonText, RelativeSource={RelativeSource AncestorType=Window}}" />
@@ -132,24 +140,26 @@
                                         AutomationProperties.Name="{Binding DataContext.CopySourceButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
                                         ToolTip="{Binding DataContext.CopySourceButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
                                         Content="{Binding DataContext.CopySourceButtonText, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                <Button Style="{StaticResource ActionButton}"
-                                        Command="{Binding DataContext.CopyTranslatedTextCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        CommandParameter="{Binding}"
-                                        AutomationProperties.Name="{Binding DataContext.CopyTranslationButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        ToolTip="{Binding DataContext.CopyTranslationButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        Visibility="{Binding DataContext.TranslationColumnVisibility, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        Content="{Binding DataContext.CopyTranslationButtonText, RelativeSource={RelativeSource AncestorType=Window}}" />
-                            </WrapPanel>
-                            <TextBlock Grid.Row="1"
+                                 <Button Style="{StaticResource ActionButton}"
+                                         Command="{Binding DataContext.CopyTranslatedTextCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                         CommandParameter="{Binding}"
+                                         AutomationProperties.Name="{Binding DataContext.CopyTranslationButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
+                                         ToolTip="{Binding DataContext.CopyTranslationButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
+                                         Visibility="{Binding DataContext.TranslationColumnVisibility, RelativeSource={RelativeSource AncestorType=Window}}"
+                                         Content="{Binding DataContext.CopyTranslationButtonText, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            </StackPanel>
+                            <TextBlock Grid.Row="0"
+                                       Grid.Column="0"
                                        Margin="0,0,0,6"
                                        FontWeight="SemiBold"
                                        TextWrapping="Wrap"
                                        Text="{Binding SourceText}" />
-                             <TextBlock Grid.Row="2"
-                                        FontSize="16"
-                                        Visibility="{Binding DataContext.TranslationColumnVisibility, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        TextWrapping="Wrap"
-                                        Text="{Binding TranslatedText}" />
+                            <TextBlock Grid.Row="1"
+                                       Grid.Column="0"
+                                       FontSize="16"
+                                       Visibility="{Binding DataContext.TranslationColumnVisibility, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       TextWrapping="Wrap"
+                                       Text="{Binding TranslatedText}" />
                         </Grid>
                     </Border>
                 </DataTemplate>

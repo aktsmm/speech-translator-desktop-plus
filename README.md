@@ -6,6 +6,8 @@ Speech Translator Desktop Plus is a Windows desktop speech translator and record
 
 This project is based on [tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator). The original project is licensed under the MIT License. The original copyright and license text are preserved in [LICENSE](./LICENSE).
 
+> Documentation target: version 1.8.1.
+
 ## Screenshots
 
 ### English UI
@@ -26,9 +28,10 @@ This project is based on [tsubakimoto/speech-translator](https://github.com/tsub
 - Microphone input.
 - PC audio input using WASAPI loopback, so YouTube, livestreams, and other system playback can be translated without VB-CABLE.
 - Translation logs are shown newest-first, so the latest text stays visible.
+- Translation and status logs can be collapsed when you want a smaller live workspace.
 - Transcript-only mode for cases where translation is not needed.
 - Translation/transcription log recording as UTF-8 text, with automatic timestamped file names.
-- One-click copy for all live log entries, an individual card, source text only, or translation text only.
+- One-click copy for all live log entries, an individual card, source text only, or translation text only. Per-card copy actions sit beside the text so they do not consume a separate row.
 - Last-used UI language, source language, target language, input source, mode, save setting, and file name prefix are restored on the next launch.
 - Recording folder selection, persistence, and "open folder" UI.
 - Dedicated settings window for Azure Speech credentials and recording folder controls.
@@ -53,9 +56,11 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 - Last-used language/input/mode/save/prefix preferences are persisted and restored.
 - Save recording toggle and automatic `{prefix}_yyyyMMdd_HHmmss.txt` file naming.
 - Newest-first translation and status logs.
+- Collapsible translation and status log sections.
 - One-click copy for all logs, source-only logs, translation-only logs, and per-card copy actions.
 - Compact activity feed for status events.
 - Wrapped live-note cards for readable source and translation text.
+- Compact live-note cards in both the main window and the pop-out window.
 - Empty translation row suppression.
 - Clear logs action that resets only the on-screen logs; recording files are already created fresh on each start.
 - Optional live-notes pop-out window with card-style monitoring for the three newest source/transcript or source/translation pairs.
@@ -73,7 +78,7 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 ### Option 1: Download the release zip
 
 1. Open the latest GitHub release.
-2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`.
+2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`. A versioned copy such as `SpeechTranslatorDesktopPlus-win-x64-1.8.1.zip` is also published for archiving.
 3. Extract it to any writable folder.
 4. Run `SpeechTranslatorDesktopPlus.exe`.
 
@@ -85,7 +90,25 @@ From the repository root:
 .\scripts\setup.ps1
 ```
 
-The setup script installs a local .NET 10 SDK if needed, publishes a self-contained Windows build to `%LOCALAPPDATA%\Programs\SpeechTranslatorDesktopPlus`, and creates a desktop shortcut.
+The setup script installs a local .NET 10 SDK if needed, publishes a self-contained Windows build to `%LOCALAPPDATA%\Programs\SpeechTranslatorDesktopPlus`, and creates a desktop shortcut. It does not change the system-wide .NET installation.
+
+Requirements:
+
+- Windows 10 or later.
+- Internet access when the local .NET 10 SDK is not installed yet.
+- PowerShell script execution must be allowed. If Windows blocks local scripts, run PowerShell as the current user and use:
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+To remove the local app files later while keeping saved settings:
+
+```powershell
+.\scripts\uninstall.ps1
+```
+
+Use `.\scripts\uninstall.ps1 -RemoveSettings` only when you also want to delete the local settings database.
 
 ## Run from source
 
@@ -117,8 +140,9 @@ scripts\run-dev.cmd
    - Each start creates a new `{prefix}_yyyyMMdd_HHmmss.txt` file, for example `build2026_20260603_080250.txt`.
 8. Click `Start`.
 9. Click `Clear logs` to clear the visible translation/status logs. Recording files are already created fresh on each start.
-10. Use `Copy all`, `Copy all source`, or `Copy all translations` to copy the full live log in different formats. Use `Copy`, `Copy source`, or `Copy translation` on a card to copy only that block. For keyboard shortcuts, first click the live log list or press `Tab` until the list is focused, select a card, then use `Ctrl+C` for the selected block, `Ctrl+Shift+C` for source text, and `Ctrl+T` for translation text.
-11. Click `Open live notes window` to open a separate window that shows only the three newest source/transcript or source/translation pairs.
+10. Collapse `Translation log` or `Status log` when you want to reduce the visible log area.
+11. Use `Copy all`, `Copy all source`, or `Copy all translations` to copy the full live log in different formats. Use `Copy`, `Copy source`, or `Copy translation` on a card to copy only that block. For keyboard shortcuts, first click the live log list or press `Tab` until the list is focused, select a card, then use `Ctrl+C` for the selected block, `Ctrl+Shift+C` for source text, and `Ctrl+T` for translation text.
+12. Click `Open live notes window` to open a separate window that shows only the three newest source/transcript or source/translation pairs.
 
 If `Save recording` is off, translation/transcription is shown in the UI but not saved to a text file.
 
@@ -160,6 +184,8 @@ Create a release zip:
 ```powershell
 .\scripts\package.ps1
 ```
+
+The desktop release asset is named `SpeechTranslatorDesktopPlus-win-x64.zip`, with a versioned copy named `SpeechTranslatorDesktopPlus-win-x64-{version}.zip` for archiving. The GitHub Actions workflow also uploads a console zip for source users who want the original console app.
 
 Helper scripts live in [`scripts/`](scripts/) to keep the repository root focused.
 

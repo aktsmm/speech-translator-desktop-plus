@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:SpeechTranslatorDesktop.Behaviors"
-        Title="Speech Translator Desktop Plus"
+        Title="{Binding MainWindowTitle}"
         Icon="Assets/AppIcon.ico"
         Height="760"
         Width="1120"
@@ -167,8 +167,8 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="160" />
+            <RowDefinition Height="{Binding TranslationLogRowHeight}" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <Border Grid.Row="0"
@@ -333,78 +333,89 @@
         <Border Grid.Row="2"
                 Style="{StaticResource Card}"
                 Margin="0,0,0,16">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top"
-                           Margin="0,0,0,12"
-                           FontSize="18"
-                           FontWeight="SemiBold"
-                           Text="{Binding TranslationLogHeader}" />
-                <WrapPanel DockPanel.Dock="Top"
-                           Margin="0,0,0,12">
-                    <Button Margin="0,0,8,0"
-                            Style="{StaticResource ActionButton}"
-                            Command="{Binding CopyAllLogsCommand}"
-                            AutomationProperties.Name="{Binding CopyAllLogsButtonText}"
-                            ToolTip="{Binding CopyAllLogsButtonText}"
-                            Content="{Binding CopyAllLogsButtonText}" />
-                    <Button Margin="0,0,8,0"
-                            Style="{StaticResource ActionButton}"
-                            Command="{Binding CopyAllSourceLogsCommand}"
-                            AutomationProperties.Name="{Binding CopyAllSourceLogsButtonText}"
-                            ToolTip="{Binding CopyAllSourceLogsButtonText}"
-                            Content="{Binding CopyAllSourceLogsButtonText}" />
-                    <Button Style="{StaticResource ActionButton}"
-                            Command="{Binding CopyAllTranslatedLogsCommand}"
-                            AutomationProperties.Name="{Binding CopyAllTranslatedLogsButtonText}"
-                            ToolTip="{Binding CopyAllTranslatedLogsButtonText}"
-                            Visibility="{Binding TranslationColumnVisibility}"
-                            Content="{Binding CopyAllTranslatedLogsButtonText}" />
-                </WrapPanel>
-                <ListBox ItemsSource="{Binding TranslationLogs}"
-                         SelectedItem="{Binding SelectedTranslationLog}"
-                         BorderThickness="0"
-                         Background="Transparent"
-                         KeyboardNavigation.TabNavigation="Once"
-                         ScrollViewer.CanContentScroll="True"
-                         ScrollViewer.VerticalScrollBarVisibility="Auto"
-                         VirtualizingPanel.IsVirtualizing="True"
-                         VirtualizingPanel.VirtualizationMode="Recycling"
-                         VirtualizingPanel.ScrollUnit="Item"
-                         AutomationProperties.Name="{Binding TranslationLogHeader}">
-                    <ListBox.InputBindings>
-                        <KeyBinding Key="C"
-                                    Modifiers="Control"
-                                    Command="{Binding CopySelectedTranslationLogCommand}" />
-                        <KeyBinding Key="C"
-                                    Modifiers="Control+Shift"
-                                    Command="{Binding CopySelectedSourceTextCommand}" />
-                        <KeyBinding Key="T"
-                                    Modifiers="Control"
-                                    Command="{Binding CopySelectedTranslatedTextCommand}" />
-                    </ListBox.InputBindings>
-                    <ListBox.ItemContainerStyle>
-                        <Style TargetType="{x:Type ListBoxItem}">
-                            <Setter Property="Padding" Value="0" />
-                            <Setter Property="Margin" Value="0" />
-                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                        </Style>
-                    </ListBox.ItemContainerStyle>
-                    <ListBox.ItemTemplate>
+            <Expander x:Name="TranslationLogExpander"
+                      IsExpanded="{Binding IsTranslationLogExpanded}"
+                      AutomationProperties.AutomationId="TranslationLogExpander"
+                      AutomationProperties.Name="{Binding TranslationLogHeader}">
+                <Expander.Header>
+                    <TextBlock FontSize="18"
+                               FontWeight="SemiBold"
+                               Text="{Binding TranslationLogHeader}" />
+                </Expander.Header>
+                <DockPanel Margin="0,12,0,0">
+                    <WrapPanel DockPanel.Dock="Top"
+                               Margin="0,0,0,12">
+                        <Button Margin="0,0,8,0"
+                                Style="{StaticResource ActionButton}"
+                                Command="{Binding CopyAllLogsCommand}"
+                                AutomationProperties.Name="{Binding CopyAllLogsButtonText}"
+                                ToolTip="{Binding CopyAllLogsButtonText}"
+                                Content="{Binding CopyAllLogsButtonText}" />
+                        <Button Margin="0,0,8,0"
+                                Style="{StaticResource ActionButton}"
+                                Command="{Binding CopyAllSourceLogsCommand}"
+                                AutomationProperties.Name="{Binding CopyAllSourceLogsButtonText}"
+                                ToolTip="{Binding CopyAllSourceLogsButtonText}"
+                                Content="{Binding CopyAllSourceLogsButtonText}" />
+                        <Button Style="{StaticResource ActionButton}"
+                                Command="{Binding CopyAllTranslatedLogsCommand}"
+                                AutomationProperties.Name="{Binding CopyAllTranslatedLogsButtonText}"
+                                ToolTip="{Binding CopyAllTranslatedLogsButtonText}"
+                                Visibility="{Binding TranslationColumnVisibility}"
+                                Content="{Binding CopyAllTranslatedLogsButtonText}" />
+                    </WrapPanel>
+                    <ListBox ItemsSource="{Binding TranslationLogs}"
+                             SelectedItem="{Binding SelectedTranslationLog}"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             KeyboardNavigation.TabNavigation="Once"
+                             ScrollViewer.CanContentScroll="True"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             VirtualizingPanel.IsVirtualizing="True"
+                             VirtualizingPanel.VirtualizationMode="Recycling"
+                             VirtualizingPanel.ScrollUnit="Item"
+                             AutomationProperties.Name="{Binding TranslationLogHeader}">
+                        <ListBox.InputBindings>
+                            <KeyBinding Key="C"
+                                        Modifiers="Control"
+                                        Command="{Binding CopySelectedTranslationLogCommand}" />
+                            <KeyBinding Key="C"
+                                        Modifiers="Control+Shift"
+                                        Command="{Binding CopySelectedSourceTextCommand}" />
+                            <KeyBinding Key="T"
+                                        Modifiers="Control"
+                                        Command="{Binding CopySelectedTranslatedTextCommand}" />
+                        </ListBox.InputBindings>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="{x:Type ListBoxItem}">
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="Margin" Value="0" />
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <Border Style="{StaticResource LiveNoteCard}"
                                         AutomationProperties.Name="{Binding AutomationText}">
                                     <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
                                         <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
 
-                                        <WrapPanel Grid.Row="0"
-                                                   Margin="0,0,0,10"
-                                                   HorizontalAlignment="Right">
+                                        <StackPanel Grid.Row="0"
+                                                    Grid.RowSpan="4"
+                                                    Grid.Column="1"
+                                                    Margin="16,0,0,0"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Top"
+                                                    Orientation="Horizontal">
                                             <Button Margin="0,0,8,0"
                                                     Style="{StaticResource PrimaryButton}"
                                                     Command="{Binding DataContext.CopyTranslationLogCommand, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -426,22 +437,26 @@
                                                     ToolTip="{Binding DataContext.CopyTranslationButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
                                                     Visibility="{Binding DataContext.TranslationColumnVisibility, RelativeSource={RelativeSource AncestorType=Window}}"
                                                     Content="{Binding DataContext.CopyTranslationButtonText, RelativeSource={RelativeSource AncestorType=Window}}" />
-                                        </WrapPanel>
+                                        </StackPanel>
 
-                                        <TextBlock Grid.Row="1"
+                                        <TextBlock Grid.Row="0"
+                                                   Grid.Column="0"
                                                    Style="{StaticResource LiveNoteCaption}"
                                                    Text="{Binding Data.SourceTextHeader, Source={StaticResource DataContextProxy}}" />
-                                        <TextBlock Grid.Row="2"
+                                        <TextBlock Grid.Row="1"
+                                                   Grid.Column="0"
                                                    Style="{StaticResource LiveNoteText}"
                                                    FontWeight="SemiBold"
                                                    Text="{Binding SourceText}" />
 
-                                        <TextBlock Grid.Row="3"
+                                        <TextBlock Grid.Row="2"
+                                                   Grid.Column="0"
                                                    Margin="0,12,0,4"
                                                    Style="{StaticResource LiveNoteCaption}"
                                                    Visibility="{Binding Data.TranslationColumnVisibility, Source={StaticResource DataContextProxy}}"
                                                    Text="{Binding Data.TranslatedTextHeader, Source={StaticResource DataContextProxy}}" />
-                                        <TextBlock Grid.Row="4"
+                                        <TextBlock Grid.Row="3"
+                                                   Grid.Column="0"
                                                    Style="{StaticResource LiveNoteText}"
                                                    FontSize="16"
                                                    Visibility="{Binding Data.TranslationColumnVisibility, Source={StaticResource DataContextProxy}}"
@@ -449,20 +464,25 @@
                                     </Grid>
                                 </Border>
                             </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </DockPanel>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Expander>
         </Border>
 
         <Border Grid.Row="3"
                 Style="{StaticResource Card}">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Top"
-                           Margin="0,0,0,8"
-                           FontSize="16"
-                           FontWeight="SemiBold"
-                           Text="{Binding StatusLogHeader}" />
-                <ListBox ItemsSource="{Binding ActivityLogs}"
+            <Expander IsExpanded="{Binding IsStatusLogExpanded}"
+                      AutomationProperties.AutomationId="StatusLogExpander"
+                      AutomationProperties.Name="{Binding StatusLogHeader}">
+                <Expander.Header>
+                    <TextBlock FontSize="16"
+                               FontWeight="SemiBold"
+                               Text="{Binding StatusLogHeader}" />
+                </Expander.Header>
+                <ListBox Margin="0,8,0,0"
+                         MaxHeight="128"
+                         ItemsSource="{Binding ActivityLogs}"
                          BorderThickness="0"
                          Background="Transparent"
                          ScrollViewer.CanContentScroll="True"
@@ -479,17 +499,17 @@
                         </Style>
                     </ListBox.ItemContainerStyle>
                     <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <Border Style="{StaticResource ActivityPill}"
-                                        AutomationProperties.Name="{Binding}">
-                                    <TextBlock Text="{Binding}"
-                                               TextWrapping="Wrap"
-                                               Foreground="#334155" />
-                                </Border>
-                            </DataTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource ActivityPill}"
+                                    AutomationProperties.Name="{Binding}">
+                                <TextBlock Text="{Binding}"
+                                           TextWrapping="Wrap"
+                                           Foreground="#334155" />
+                            </Border>
+                        </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
-            </DockPanel>
+            </Expander>
         </Border>
     </Grid>
 </Window>

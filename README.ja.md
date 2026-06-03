@@ -6,6 +6,8 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 
 このプロジェクトは [tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator) をベースにしています。元プロジェクトは MIT License です。元の著作権表示とライセンス文は [LICENSE](./LICENSE) に残しています。
 
+> この README は version 1.8.1 を対象にしています。
+
 ## スクリーンショット
 
 ### 日本語UI
@@ -27,9 +29,11 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 - WASAPI loopback による PC 音声入力
   - YouTube、ライブ配信、PC で再生中の音声を VB-CABLE なしで翻訳できます
 - 翻訳ログは新しいものが上に表示されるため、最新テキストをスクロールせず確認できます
+- 翻訳ログと状態ログは、必要に応じて折りたためます
 - 翻訳が不要な場面向けの `書き起こしのみ` モード
 - タイムスタンプ付きファイル名で、翻訳/書き起こしログを UTF-8 テキストとして保存
 - ライブログ全体、個別カード、原文のみ、訳文のみをワンクリックでコピー
+  - カード単位のコピー操作は本文横に配置し、コピー用の行で縦スペースを消費しないようにしています
 - 前回利用した UI言語、話者言語、翻訳先言語、入力、利用モード、保存設定、ファイル名prefixを次回起動時に復元
 - 保存先フォルダーの選択、永続化、フォルダーを開く UI
 - Azure Speech 認証情報と保存先をメイン画面から分離した設定ウィンドウ
@@ -55,9 +59,11 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 - 前回利用した言語・入力・モード・保存設定・ファイル名prefixの永続化と復元
 - `記録を保存する` のON/OFF切り替えと `{prefix}_yyyyMMdd_HHmmss.txt` 形式の自動命名
 - 翻訳ログ・状態ログを新しい順に表示
+- 翻訳ログ・状態ログの折りたたみ表示
 - 全ログコピー、原文のみコピー、訳文のみコピー、カード単位コピーに対応
 - 状態イベントをコンパクトなActivity feedとして表示
 - 原文・翻訳文を読みやすく折り返すライブノートカード
+- メイン画面と別ウィンドウの両方で、省スペースなライブノートカードを使用
 - 空の翻訳行を抑止
 - ログクリア操作
   - 画面上の翻訳ログ・状態ログのみをクリアします。記録ファイルは開始ごとに新規作成されます
@@ -76,7 +82,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 ### 方法1: Release zip をダウンロード
 
 1. 最新の GitHub Release を開きます。
-2. `SpeechTranslatorDesktopPlus-win-x64.zip` をダウンロードします。
+2. `SpeechTranslatorDesktopPlus-win-x64.zip` をダウンロードします。保管用に `SpeechTranslatorDesktopPlus-win-x64-1.8.1.zip` のような version 付きコピーも公開されます。
 3. 任意の書き込み可能なフォルダーへ展開します。
 4. `SpeechTranslatorDesktopPlus.exe` を実行します。
 
@@ -88,7 +94,25 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 .\scripts\setup.ps1
 ```
 
-セットアップスクリプトは、必要に応じてユーザー領域に .NET 10 SDK を導入し、自己完結型の Windows ビルドを `%LOCALAPPDATA%\Programs\SpeechTranslatorDesktopPlus` に配置し、デスクトップショートカットを作成します。
+セットアップスクリプトは、必要に応じてユーザー領域に .NET 10 SDK を導入し、自己完結型の Windows ビルドを `%LOCALAPPDATA%\Programs\SpeechTranslatorDesktopPlus` に配置し、デスクトップショートカットを作成します。システム全体の .NET インストールは変更しません。
+
+必要条件:
+
+- Windows 10 以降
+- ローカル .NET 10 SDK が未導入の場合はインターネット接続
+- PowerShell スクリプト実行が許可されていること。Windows にローカルスクリプト実行をブロックされた場合は、現在のユーザーで PowerShell を開き、次を実行してください。
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+保存済み設定を残したままローカルアプリ本体を削除する場合:
+
+```powershell
+.\scripts\uninstall.ps1
+```
+
+ローカル設定DBも削除したい場合だけ、`.\scripts\uninstall.ps1 -RemoveSettings` を使ってください。
 
 ## ソースから起動
 
@@ -121,8 +145,9 @@ scripts\run-dev.cmd
    - 開始するたびに `{prefix}_yyyyMMdd_HHmmss.txt` 形式の新しいファイルを作成します。例: `build2026_20260603_080250.txt`
 8. `開始` を押します。
 9. `ログクリア` を押すと、画面上の翻訳ログ・状態ログをクリアします。記録ファイルは開始ごとに新規作成されます。
-10. `すべてコピー`、`原文をすべてコピー`、`訳文をすべてコピー` でライブログ全体を形式別にコピーできます。カード内の `コピー`、`原文コピー`、`訳文コピー` でそのブロックだけコピーできます。キーボードショートカットを使う場合は、ライブログ一覧をクリックするか `Tab` で一覧へフォーカスし、カードを選択してから `Ctrl+C` で選択中ブロック、`Ctrl+Shift+C` で原文、`Ctrl+T` で訳文をコピーできます。
-11. `別ウィンドウでライブノートを開く` を押すと、原文・書き起こし/翻訳文の最新3件だけを別ウィンドウで確認できます。
+10. 表示領域を減らしたいときは、`翻訳ログ` または `状態ログ` を折りたためます。
+11. `すべてコピー`、`原文をすべてコピー`、`訳文をすべてコピー` でライブログ全体を形式別にコピーできます。カード内の `コピー`、`原文コピー`、`訳文コピー` でそのブロックだけコピーできます。キーボードショートカットを使う場合は、ライブログ一覧をクリックするか `Tab` で一覧へフォーカスし、カードを選択してから `Ctrl+C` で選択中ブロック、`Ctrl+Shift+C` で原文、`Ctrl+T` で訳文をコピーできます。
+12. `別ウィンドウでライブノートを開く` を押すと、原文・書き起こし/翻訳文の最新3件だけを別ウィンドウで確認できます。
 
 `記録を保存する` がOFFの場合、翻訳/書き起こしは画面に表示されますがテキストファイルには保存されません。
 
@@ -164,6 +189,8 @@ Release zip 作成:
 ```powershell
 .\scripts\package.ps1
 ```
+
+デスクトップ版の Release asset 名は `SpeechTranslatorDesktopPlus-win-x64.zip` です。保管用に `SpeechTranslatorDesktopPlus-win-x64-{version}.zip` という version 付きコピーも作成します。GitHub Actions workflow では、元のコンソールアプリをソース利用者向けに確認できる console zip もアップロードします。
 
 補助スクリプトは [`scripts/`](scripts/) にまとめ、リポジトリルートを見やすくしています。
 

@@ -28,6 +28,43 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public void InitialState_LogSectionsAreExpanded()
+    {
+        var viewModel = CreateViewModel();
+
+        viewModel.IsTranslationLogExpanded.Should().BeTrue();
+        viewModel.IsStatusLogExpanded.Should().BeTrue();
+        viewModel.TranslationLogRowHeight.GridUnitType.Should().Be(GridUnitType.Star);
+    }
+
+    [Fact]
+    public void IsTranslationLogExpanded_WhenCollapsed_UsesAutoRowHeight()
+    {
+        var viewModel = CreateViewModel();
+        var changedProperties = new List<string?>();
+        viewModel.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName);
+
+        viewModel.IsTranslationLogExpanded = false;
+
+        viewModel.TranslationLogRowHeight.Should().Be(GridLength.Auto);
+        changedProperties.Should().Contain(nameof(MainViewModel.IsTranslationLogExpanded));
+        changedProperties.Should().Contain(nameof(MainViewModel.TranslationLogRowHeight));
+    }
+
+    [Fact]
+    public void IsStatusLogExpanded_WhenChanged_RaisesPropertyChanged()
+    {
+        var viewModel = CreateViewModel();
+        var changedProperties = new List<string?>();
+        viewModel.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName);
+
+        viewModel.IsStatusLogExpanded = false;
+
+        viewModel.IsStatusLogExpanded.Should().BeFalse();
+        changedProperties.Should().Contain(nameof(MainViewModel.IsStatusLogExpanded));
+    }
+
+    [Fact]
     public async Task Start_WhenCredentialsMissing_ShowsErrorAndDoesNotStart()
     {
         var translationController = new FakeTranslationController();
