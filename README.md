@@ -6,7 +6,7 @@ Speech Translator Desktop Plus is a Windows desktop speech translator and record
 
 This project is based on [tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator). The original project is licensed under the MIT License. The original copyright and license text are preserved in [LICENSE](./LICENSE).
 
-> Documentation target: version 1.8.3.
+> Documentation target: version 1.8.4.
 
 ## Screenshots
 
@@ -80,7 +80,7 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 ### Option 1: Download the release zip
 
 1. Open the latest GitHub release.
-2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`. A versioned copy such as `SpeechTranslatorDesktopPlus-win-x64-1.8.3.zip` is also published for archiving.
+2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`. A versioned copy such as `SpeechTranslatorDesktopPlus-win-x64-1.8.4.zip` is also published for archiving.
 3. Extract it to any writable folder.
 4. Run `SpeechTranslatorDesktopPlus.exe`.
 

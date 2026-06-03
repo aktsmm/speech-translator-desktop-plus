@@ -6,7 +6,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 
 このプロジェクトは [tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator) をベースにしています。元プロジェクトは MIT License です。元の著作権表示とライセンス文は [LICENSE](./LICENSE) に残しています。
 
-> この README は version 1.8.3 を対象にしています。
+> この README は version 1.8.4 を対象にしています。
 
 ## スクリーンショット
 
@@ -84,7 +84,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 ### 方法1: Release zip をダウンロード
 
 1. 最新の GitHub Release を開きます。
-2. `SpeechTranslatorDesktopPlus-win-x64.zip` をダウンロードします。保管用に `SpeechTranslatorDesktopPlus-win-x64-1.8.3.zip` のような version 付きコピーも公開されます。
+2. `SpeechTranslatorDesktopPlus-win-x64.zip` をダウンロードします。保管用に `SpeechTranslatorDesktopPlus-win-x64-1.8.4.zip` のような version 付きコピーも公開されます。
 3. 任意の書き込み可能なフォルダーへ展開します。
 4. `SpeechTranslatorDesktopPlus.exe` を実行します。
 
