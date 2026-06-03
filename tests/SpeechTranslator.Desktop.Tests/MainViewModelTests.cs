@@ -444,6 +444,7 @@ public class MainViewModelTests
         viewModel.TranslationLogs.Should().ContainSingle();
         viewModel.TranslationLogs[0].SourceText.Should().Be("hello");
         viewModel.TranslationLogs[0].TranslatedText.Should().Be("こんにちは");
+        viewModel.SelectedTranslationLog.Should().BeNull();
     }
 
     [Fact]
@@ -484,6 +485,119 @@ public class MainViewModelTests
 
         clipboardService.LastText.Should().Be($"Source:{Environment.NewLine}hello{Environment.NewLine}{Environment.NewLine}Translation:{Environment.NewLine}こんにちは");
         viewModel.StatusMessage.Should().Be("コピーしました。");
+    }
+
+    [Fact]
+    public async Task CopySourceText_CopiesOnlySourceText()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var clipboardService = new FakeClipboardService();
+        var viewModel = CreateViewModel(
+            clipboardService: clipboardService,
+            workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+
+        await ExecuteAsync(viewModel.StartCommand);
+        worker.RaiseTranslationLogged(new TranslationLogItem("hello", "こんにちは"));
+
+        await ExecuteAsync(viewModel.CopySourceTextCommand, viewModel.TranslationLogs[0]);
+
+        clipboardService.LastText.Should().Be("hello");
+        viewModel.StatusMessage.Should().Be("コピーしました。");
+    }
+
+    [Fact]
+    public async Task CopyTranslatedText_CopiesOnlyTranslatedText()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var clipboardService = new FakeClipboardService();
+        var viewModel = CreateViewModel(
+            clipboardService: clipboardService,
+            workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+
+        await ExecuteAsync(viewModel.StartCommand);
+        worker.RaiseTranslationLogged(new TranslationLogItem("hello", "こんにちは"));
+
+        await ExecuteAsync(viewModel.CopyTranslatedTextCommand, viewModel.TranslationLogs[0]);
+
+        clipboardService.LastText.Should().Be("こんにちは");
+        viewModel.StatusMessage.Should().Be("コピーしました。");
+    }
+
+    [Fact]
+    public async Task CopySelectedCommands_CopySelectedLogParts()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var clipboardService = new FakeClipboardService();
+        var viewModel = CreateViewModel(
+            clipboardService: clipboardService,
+            workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+
+        await ExecuteAsync(viewModel.StartCommand);
+        worker.RaiseTranslationLogged(new TranslationLogItem("hello", "こんにちは"));
+        viewModel.SelectedTranslationLog = viewModel.TranslationLogs[0];
+
+        await ExecuteAsync(viewModel.CopySelectedSourceTextCommand);
+        clipboardService.LastText.Should().Be("hello");
+
+        await ExecuteAsync(viewModel.CopySelectedTranslatedTextCommand);
+        clipboardService.LastText.Should().Be("こんにちは");
+
+        await ExecuteAsync(viewModel.CopySelectedTranslationLogCommand);
+        clipboardService.LastText.Should().Contain("Source:").And.Contain("Translation:");
+    }
+
+    [Fact]
+    public async Task CopyAllSourceLogs_CopiesOnlySourceTextInDisplayedOrder()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var clipboardService = new FakeClipboardService();
+        var viewModel = CreateViewModel(
+            clipboardService: clipboardService,
+            workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+
+        await ExecuteAsync(viewModel.StartCommand);
+        worker.RaiseTranslationLogged(new TranslationLogItem("first", "最初"));
+        worker.RaiseTranslationLogged(new TranslationLogItem("second", "次"));
+
+        await ExecuteAsync(viewModel.CopyAllSourceLogsCommand);
+
+        clipboardService.LastText.Should().Be($"second{Environment.NewLine}{Environment.NewLine}first");
+    }
+
+    [Fact]
+    public async Task CopyAllTranslatedLogs_CopiesOnlyTranslatedTextInDisplayedOrder()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var clipboardService = new FakeClipboardService();
+        var viewModel = CreateViewModel(
+            clipboardService: clipboardService,
+            workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+
+        await ExecuteAsync(viewModel.StartCommand);
+        worker.RaiseTranslationLogged(new TranslationLogItem("first", "最初"));
+        worker.RaiseTranslationLogged(new TranslationLogItem("second", "次"));
+
+        await ExecuteAsync(viewModel.CopyAllTranslatedLogsCommand);
+
+        clipboardService.LastText.Should().Be($"次{Environment.NewLine}{Environment.NewLine}最初");
+    }
+
+    [Fact]
+    public async Task CopyAllTranslatedLogs_WhenNoTranslations_ShowsMessage()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var clipboardService = new FakeClipboardService();
+        var viewModel = CreateViewModel(
+            clipboardService: clipboardService,
+            workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+
+        await ExecuteAsync(viewModel.StartCommand);
+        worker.RaiseTranslationLogged(new TranslationLogItem("transcript", string.Empty));
+
+        await ExecuteAsync(viewModel.CopyAllTranslatedLogsCommand);
+
+        clipboardService.LastText.Should().BeNull();
+        viewModel.StatusMessage.Should().Be("コピーする訳文がありません。");
     }
 
     [Fact]

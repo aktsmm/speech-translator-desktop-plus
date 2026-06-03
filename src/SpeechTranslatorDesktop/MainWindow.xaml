@@ -84,6 +84,7 @@
             <Setter Property="MinHeight" Value="38" />
             <Setter Property="Padding" Value="16,6" />
             <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="BorderBrush" Value="#2563EB" />
             <Setter Property="Background" Value="#E5E7EB" />
             <Setter Property="Foreground" Value="#111827" />
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -93,6 +94,8 @@
                     <ControlTemplate TargetType="{x:Type Button}">
                         <Border x:Name="Border"
                                 Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="11"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center"
@@ -104,6 +107,9 @@
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="Border" Property="Opacity" Value="0.76" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Border" Property="BorderThickness" Value="2" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="Border" Property="Opacity" Value="0.42" />
@@ -333,23 +339,49 @@
                            FontSize="18"
                            FontWeight="SemiBold"
                            Text="{Binding TranslationLogHeader}" />
-                <Button DockPanel.Dock="Top"
-                        Margin="0,0,0,12"
-                        HorizontalAlignment="Left"
-                        Style="{StaticResource ActionButton}"
-                        Command="{Binding CopyAllLogsCommand}"
-                        AutomationProperties.Name="{Binding CopyAllLogsButtonText}"
-                        ToolTip="{Binding CopyAllLogsButtonText}"
-                        Content="{Binding CopyAllLogsButtonText}" />
+                <WrapPanel DockPanel.Dock="Top"
+                           Margin="0,0,0,12">
+                    <Button Margin="0,0,8,0"
+                            Style="{StaticResource ActionButton}"
+                            Command="{Binding CopyAllLogsCommand}"
+                            AutomationProperties.Name="{Binding CopyAllLogsButtonText}"
+                            ToolTip="{Binding CopyAllLogsButtonText}"
+                            Content="{Binding CopyAllLogsButtonText}" />
+                    <Button Margin="0,0,8,0"
+                            Style="{StaticResource ActionButton}"
+                            Command="{Binding CopyAllSourceLogsCommand}"
+                            AutomationProperties.Name="{Binding CopyAllSourceLogsButtonText}"
+                            ToolTip="{Binding CopyAllSourceLogsButtonText}"
+                            Content="{Binding CopyAllSourceLogsButtonText}" />
+                    <Button Style="{StaticResource ActionButton}"
+                            Command="{Binding CopyAllTranslatedLogsCommand}"
+                            AutomationProperties.Name="{Binding CopyAllTranslatedLogsButtonText}"
+                            ToolTip="{Binding CopyAllTranslatedLogsButtonText}"
+                            Visibility="{Binding TranslationColumnVisibility}"
+                            Content="{Binding CopyAllTranslatedLogsButtonText}" />
+                </WrapPanel>
                 <ListBox ItemsSource="{Binding TranslationLogs}"
+                         SelectedItem="{Binding SelectedTranslationLog}"
                          BorderThickness="0"
                          Background="Transparent"
+                         KeyboardNavigation.TabNavigation="Once"
                          ScrollViewer.CanContentScroll="True"
                          ScrollViewer.VerticalScrollBarVisibility="Auto"
                          VirtualizingPanel.IsVirtualizing="True"
                          VirtualizingPanel.VirtualizationMode="Recycling"
                          VirtualizingPanel.ScrollUnit="Item"
                          AutomationProperties.Name="{Binding TranslationLogHeader}">
+                    <ListBox.InputBindings>
+                        <KeyBinding Key="C"
+                                    Modifiers="Control"
+                                    Command="{Binding CopySelectedTranslationLogCommand}" />
+                        <KeyBinding Key="C"
+                                    Modifiers="Control+Shift"
+                                    Command="{Binding CopySelectedSourceTextCommand}" />
+                        <KeyBinding Key="T"
+                                    Modifiers="Control"
+                                    Command="{Binding CopySelectedTranslatedTextCommand}" />
+                    </ListBox.InputBindings>
                     <ListBox.ItemContainerStyle>
                         <Style TargetType="{x:Type ListBoxItem}">
                             <Setter Property="Padding" Value="0" />
@@ -370,15 +402,31 @@
                                             <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
 
-                                        <Button Grid.Row="0"
-                                                Margin="0,0,0,10"
-                                                HorizontalAlignment="Right"
-                                                Style="{StaticResource ActionButton}"
-                                                Command="{Binding DataContext.CopyTranslationLogCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                CommandParameter="{Binding}"
-                                                AutomationProperties.Name="{Binding DataContext.CopyBlockButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                ToolTip="{Binding DataContext.CopyBlockButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                Content="{Binding DataContext.CopyBlockButtonText, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                        <WrapPanel Grid.Row="0"
+                                                   Margin="0,0,0,10"
+                                                   HorizontalAlignment="Right">
+                                            <Button Margin="0,0,8,0"
+                                                    Style="{StaticResource PrimaryButton}"
+                                                    Command="{Binding DataContext.CopyTranslationLogCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}"
+                                                    AutomationProperties.Name="{Binding DataContext.CopyBlockButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    ToolTip="{Binding DataContext.CopyBlockButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    Content="{Binding DataContext.CopyBlockButtonText, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                            <Button Margin="0,0,8,0"
+                                                    Style="{StaticResource ActionButton}"
+                                                    Command="{Binding DataContext.CopySourceTextCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}"
+                                                    AutomationProperties.Name="{Binding DataContext.CopySourceButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    ToolTip="{Binding DataContext.CopySourceButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    Content="{Binding DataContext.CopySourceButtonText, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                            <Button Style="{StaticResource ActionButton}"
+                                                    Command="{Binding DataContext.CopyTranslatedTextCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}"
+                                                    AutomationProperties.Name="{Binding DataContext.CopyTranslationButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    ToolTip="{Binding DataContext.CopyTranslationButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    Visibility="{Binding DataContext.TranslationColumnVisibility, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    Content="{Binding DataContext.CopyTranslationButtonText, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                        </WrapPanel>
 
                                         <TextBlock Grid.Row="1"
                                                    Style="{StaticResource LiveNoteCaption}"

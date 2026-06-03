@@ -23,6 +23,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private RecognitionModeOption? _selectedRecognitionMode;
     private LanguageOption? _selectedSourceLanguage;
     private LanguageOption? _selectedTargetLanguage;
+    private TranslationLogItem? _selectedTranslationLog;
     private UiLanguageOption? _selectedUiLanguage;
     private string _azureApiKey = string.Empty;
     private string _azureRegion = string.Empty;
@@ -101,7 +102,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
         ChooseRecordingsFolderCommand = new AsyncRelayCommand(ChooseRecordingsFolderAsync, dispatcher: _dispatcher, onException: HandleCommandException);
         ClearLogsCommand = new AsyncRelayCommand(ClearLogsAsync, dispatcher: _dispatcher, onException: HandleCommandException);
         CopyAllLogsCommand = new AsyncRelayCommand(CopyAllLogsAsync, dispatcher: _dispatcher, onException: HandleCommandException);
+        CopyAllSourceLogsCommand = new AsyncRelayCommand(CopyAllSourceLogsAsync, dispatcher: _dispatcher, onException: HandleCommandException);
+        CopyAllTranslatedLogsCommand = new AsyncRelayCommand(CopyAllTranslatedLogsAsync, dispatcher: _dispatcher, onException: HandleCommandException);
         CopyTranslationLogCommand = new ParameterizedAsyncRelayCommand(CopyTranslationLogAsync, dispatcher: _dispatcher, onException: HandleCommandException);
+        CopySourceTextCommand = new ParameterizedAsyncRelayCommand(CopySourceTextAsync, dispatcher: _dispatcher, onException: HandleCommandException);
+        CopyTranslatedTextCommand = new ParameterizedAsyncRelayCommand(CopyTranslatedTextAsync, dispatcher: _dispatcher, onException: HandleCommandException);
+        CopySelectedTranslationLogCommand = new AsyncRelayCommand(() => CopyTranslationLogAsync(SelectedTranslationLog), dispatcher: _dispatcher, onException: HandleCommandException);
+        CopySelectedSourceTextCommand = new AsyncRelayCommand(() => CopySourceTextAsync(SelectedTranslationLog), dispatcher: _dispatcher, onException: HandleCommandException);
+        CopySelectedTranslatedTextCommand = new AsyncRelayCommand(() => CopyTranslatedTextAsync(SelectedTranslationLog), dispatcher: _dispatcher, onException: HandleCommandException);
         OpenRecordingsFolderCommand = new AsyncRelayCommand(OpenRecordingsFolderAsync, dispatcher: _dispatcher, onException: HandleCommandException);
         SaveSettingsCommand = new AsyncRelayCommand(SaveSettingsAsync, dispatcher: _dispatcher, onException: HandleSettingsCommandException);
     }
@@ -294,6 +302,21 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    public TranslationLogItem? SelectedTranslationLog
+    {
+        get => _selectedTranslationLog;
+        set
+        {
+            if (_selectedTranslationLog == value)
+            {
+                return;
+            }
+
+            _selectedTranslationLog = value;
+            OnPropertyChanged();
+        }
+    }
+
     public AsyncRelayCommand StartCommand { get; }
 
     public AsyncRelayCommand ChooseRecordingsFolderCommand { get; }
@@ -302,7 +325,21 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public AsyncRelayCommand CopyAllLogsCommand { get; }
 
+    public AsyncRelayCommand CopyAllSourceLogsCommand { get; }
+
+    public AsyncRelayCommand CopyAllTranslatedLogsCommand { get; }
+
     public ParameterizedAsyncRelayCommand CopyTranslationLogCommand { get; }
+
+    public ParameterizedAsyncRelayCommand CopySourceTextCommand { get; }
+
+    public ParameterizedAsyncRelayCommand CopyTranslatedTextCommand { get; }
+
+    public AsyncRelayCommand CopySelectedTranslationLogCommand { get; }
+
+    public AsyncRelayCommand CopySelectedSourceTextCommand { get; }
+
+    public AsyncRelayCommand CopySelectedTranslatedTextCommand { get; }
 
     public AsyncRelayCommand OpenRecordingsFolderCommand { get; }
 
@@ -356,7 +393,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string CopyAllLogsButtonText => Text("すべてコピー", "Copy all");
 
+    public string CopyAllSourceLogsButtonText => Text("原文をすべてコピー", "Copy all source");
+
+    public string CopyAllTranslatedLogsButtonText => Text("訳文をすべてコピー", "Copy all translations");
+
     public string CopyBlockButtonText => Text("コピー", "Copy");
+
+    public string CopySourceButtonText => Text("原文コピー", "Copy source");
+
+    public string CopyTranslationButtonText => Text("訳文コピー", "Copy translation");
 
     public string OpenButtonText => Text("開く", "Open");
 
@@ -617,23 +662,38 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private async Task CopyAllLogsAsync()
     {
-        if (TranslationLogs.Count == 0)
-        {
-            StatusMessage = Text("コピーするログがありません。", "No logs to copy.");
-            AddActivityLog(StatusMessage);
-            return;
-        }
-
-        var text = string.Join(
-            $"{Environment.NewLine}{Environment.NewLine}",
-            TranslationLogs.Select(FormatLogItem));
-        if (!await TrySetClipboardTextAsync(text))
+        if (!await CopyManyLogsAsync(TranslationLogs, FormatLogItem, Text("コピーするログがありません。", "No logs to copy.")))
         {
             return;
         }
 
         StatusMessage = Text("コピーしました。", "Copied.");
         AddActivityLog(Text("すべてのログをコピーしました。", "Copied all logs."));
+    }
+
+    private async Task CopyAllSourceLogsAsync()
+    {
+        if (!await CopyManyLogsAsync(TranslationLogs, item => item.SourceText, Text("コピーする原文がありません。", "No source text to copy.")))
+        {
+            return;
+        }
+
+        StatusMessage = Text("コピーしました。", "Copied.");
+        AddActivityLog(Text("すべての原文をコピーしました。", "Copied all source text."));
+    }
+
+    private async Task CopyAllTranslatedLogsAsync()
+    {
+        if (!await CopyManyLogsAsync(
+            TranslationLogs.Where(item => !string.IsNullOrWhiteSpace(item.TranslatedText)),
+            item => item.TranslatedText,
+            Text("コピーする訳文がありません。", "No translations to copy.")))
+        {
+            return;
+        }
+
+        StatusMessage = Text("コピーしました。", "Copied.");
+        AddActivityLog(Text("すべての訳文をコピーしました。", "Copied all translations."));
     }
 
     private async Task CopyTranslationLogAsync(object? parameter)
@@ -652,6 +712,59 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         StatusMessage = Text("コピーしました。", "Copied.");
         AddActivityLog(Text("ログブロックをコピーしました。", "Copied log block."));
+    }
+
+    private async Task CopySourceTextAsync(object? parameter)
+    {
+        if (parameter is not TranslationLogItem item || string.IsNullOrWhiteSpace(item.SourceText))
+        {
+            StatusMessage = Text("コピーする原文を選択してください。", "Select source text to copy.");
+            AddActivityLog(StatusMessage);
+            return;
+        }
+
+        if (!await TrySetClipboardTextAsync(item.SourceText))
+        {
+            return;
+        }
+
+        StatusMessage = Text("コピーしました。", "Copied.");
+        AddActivityLog(Text("原文をコピーしました。", "Copied source text."));
+    }
+
+    private async Task CopyTranslatedTextAsync(object? parameter)
+    {
+        if (parameter is not TranslationLogItem item || string.IsNullOrWhiteSpace(item.TranslatedText))
+        {
+            StatusMessage = Text("コピーする訳文を選択してください。", "Select translation text to copy.");
+            AddActivityLog(StatusMessage);
+            return;
+        }
+
+        if (!await TrySetClipboardTextAsync(item.TranslatedText))
+        {
+            return;
+        }
+
+        StatusMessage = Text("コピーしました。", "Copied.");
+        AddActivityLog(Text("訳文をコピーしました。", "Copied translation text."));
+    }
+
+    private async Task<bool> CopyManyLogsAsync(IEnumerable<TranslationLogItem> items, Func<TranslationLogItem, string> selector, string emptyMessage)
+    {
+        var blocks = items
+            .Select(selector)
+            .Where(text => !string.IsNullOrWhiteSpace(text))
+            .ToArray();
+        if (blocks.Length == 0)
+        {
+            StatusMessage = emptyMessage;
+            AddActivityLog(StatusMessage);
+            return false;
+        }
+
+        var text = string.Join($"{Environment.NewLine}{Environment.NewLine}", blocks);
+        return await TrySetClipboardTextAsync(text);
     }
 
     private async Task<bool> TrySetClipboardTextAsync(string text)
@@ -756,13 +869,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private void OnWorkerTranslationLogged(object? sender, TranslationLogItem e)
     {
-        _dispatcher.Invoke(() =>
-        {
-            TranslationLogs.Insert(0, e);
-            RecentTranslationLogs.Insert(0, e);
-            while (RecentTranslationLogs.Count > 3)
+            _dispatcher.Invoke(() =>
             {
-                RecentTranslationLogs.RemoveAt(RecentTranslationLogs.Count - 1);
+                TranslationLogs.Insert(0, e);
+                RecentTranslationLogs.Insert(0, e);
+                while (RecentTranslationLogs.Count > 3)
+                {
+                    RecentTranslationLogs.RemoveAt(RecentTranslationLogs.Count - 1);
             }
         });
     }
@@ -893,7 +1006,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(ChooseButtonText));
         OnPropertyChanged(nameof(ClearLogsButtonText));
         OnPropertyChanged(nameof(CopyAllLogsButtonText));
+        OnPropertyChanged(nameof(CopyAllSourceLogsButtonText));
+        OnPropertyChanged(nameof(CopyAllTranslatedLogsButtonText));
         OnPropertyChanged(nameof(CopyBlockButtonText));
+        OnPropertyChanged(nameof(CopySourceButtonText));
+        OnPropertyChanged(nameof(CopyTranslationButtonText));
         OnPropertyChanged(nameof(OpenButtonText));
         OnPropertyChanged(nameof(RecognitionModeLabel));
         OnPropertyChanged(nameof(RecordingFileNameLabel));
