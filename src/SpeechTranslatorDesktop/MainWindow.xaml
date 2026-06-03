@@ -333,6 +333,14 @@
                            FontSize="18"
                            FontWeight="SemiBold"
                            Text="{Binding TranslationLogHeader}" />
+                <Button DockPanel.Dock="Top"
+                        Margin="0,0,0,12"
+                        HorizontalAlignment="Left"
+                        Style="{StaticResource ActionButton}"
+                        Command="{Binding CopyAllLogsCommand}"
+                        AutomationProperties.Name="{Binding CopyAllLogsButtonText}"
+                        ToolTip="{Binding CopyAllLogsButtonText}"
+                        Content="{Binding CopyAllLogsButtonText}" />
                 <ListBox ItemsSource="{Binding TranslationLogs}"
                          BorderThickness="0"
                          Background="Transparent"
@@ -359,22 +367,33 @@
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
 
-                                        <TextBlock Grid.Row="0"
+                                        <Button Grid.Row="0"
+                                                Margin="0,0,0,10"
+                                                HorizontalAlignment="Right"
+                                                Style="{StaticResource ActionButton}"
+                                                Command="{Binding DataContext.CopyTranslationLogCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"
+                                                AutomationProperties.Name="{Binding DataContext.CopyBlockButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                ToolTip="{Binding DataContext.CopyBlockButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                Content="{Binding DataContext.CopyBlockButtonText, RelativeSource={RelativeSource AncestorType=Window}}" />
+
+                                        <TextBlock Grid.Row="1"
                                                    Style="{StaticResource LiveNoteCaption}"
                                                    Text="{Binding Data.SourceTextHeader, Source={StaticResource DataContextProxy}}" />
-                                        <TextBlock Grid.Row="1"
+                                        <TextBlock Grid.Row="2"
                                                    Style="{StaticResource LiveNoteText}"
                                                    FontWeight="SemiBold"
                                                    Text="{Binding SourceText}" />
 
-                                        <TextBlock Grid.Row="2"
+                                        <TextBlock Grid.Row="3"
                                                    Margin="0,12,0,4"
                                                    Style="{StaticResource LiveNoteCaption}"
                                                    Visibility="{Binding Data.TranslationColumnVisibility, Source={StaticResource DataContextProxy}}"
                                                    Text="{Binding Data.TranslatedTextHeader, Source={StaticResource DataContextProxy}}" />
-                                        <TextBlock Grid.Row="3"
+                                        <TextBlock Grid.Row="4"
                                                    Style="{StaticResource LiveNoteText}"
                                                    FontSize="16"
                                                    Visibility="{Binding Data.TranslationColumnVisibility, Source={StaticResource DataContextProxy}}"

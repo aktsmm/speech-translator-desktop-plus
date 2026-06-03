@@ -28,6 +28,7 @@ This project is based on [tsubakimoto/speech-translator](https://github.com/tsub
 - Translation logs are shown newest-first, so the latest text stays visible.
 - Transcript-only mode for cases where translation is not needed.
 - Translation/transcription log recording as UTF-8 text, with automatic timestamped file names.
+- One-click copy for all live log entries or an individual log card.
 - Last-used UI language, source language, target language, input source, mode, save setting, and file name prefix are restored on the next launch.
 - Recording folder selection, persistence, and "open folder" UI.
 - Dedicated settings window for Azure Speech credentials and recording folder controls.
@@ -52,6 +53,7 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 - Last-used language/input/mode/save/prefix preferences are persisted and restored.
 - Save recording toggle and automatic `{prefix}_yyyyMMdd_HHmmss.txt` file naming.
 - Newest-first translation and status logs.
+- One-click copy for all logs and per-card copy for sharing selected blocks.
 - Compact activity feed for status events.
 - Wrapped live-note cards for readable source and translation text.
 - Empty translation row suppression.
@@ -115,7 +117,8 @@ scripts\run-dev.cmd
    - Each start creates a new `{prefix}_yyyyMMdd_HHmmss.txt` file, for example `build2026_20260603_080250.txt`.
 8. Click `Start`.
 9. Click `Clear logs` to clear the visible translation/status logs. Recording files are already created fresh on each start.
-10. Click `Open live notes window` to open a separate window that shows only the three newest source/transcript or source/translation pairs.
+10. Use `Copy all` to copy the full live log, or `Copy` on a card to copy that block only.
+11. Click `Open live notes window` to open a separate window that shows only the three newest source/transcript or source/translation pairs.
 
 If `Save recording` is off, translation/transcription is shown in the UI but not saved to a text file.
 

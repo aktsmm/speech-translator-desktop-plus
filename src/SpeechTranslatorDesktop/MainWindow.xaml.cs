@@ -23,6 +23,7 @@ public partial class MainWindow : Window
             new WpfRecordingFolderPicker(),
             new SqliteRecordingFolderSettingsStore(settingsDatabasePath),
             new SqliteAppPreferencesStore(settingsDatabasePath),
+            new WpfClipboardService(),
             new DesktopTranslationController(),
             new DesktopTranslationWorkerFactory(recordingFileService));
         DataContext = viewModel;

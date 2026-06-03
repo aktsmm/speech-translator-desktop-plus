@@ -447,6 +447,95 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public async Task CopyAllLogs_CopiesAllLogsInDisplayedOrder()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var clipboardService = new FakeClipboardService();
+        var viewModel = CreateViewModel(
+            clipboardService: clipboardService,
+            workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+
+        await ExecuteAsync(viewModel.StartCommand);
+        worker.RaiseTranslationLogged(new TranslationLogItem("first", "最初"));
+        worker.RaiseTranslationLogged(new TranslationLogItem("second", "次"));
+
+        await ExecuteAsync(viewModel.CopyAllLogsCommand);
+
+        clipboardService.LastText.Should().Contain("second").And.Contain("first");
+        clipboardService.LastText!.IndexOf("second", StringComparison.Ordinal)
+            .Should()
+            .BeLessThan(clipboardService.LastText.IndexOf("first", StringComparison.Ordinal));
+        viewModel.StatusMessage.Should().Be("コピーしました。");
+    }
+
+    [Fact]
+    public async Task CopyTranslationLog_CopiesSingleLogBlock()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var clipboardService = new FakeClipboardService();
+        var viewModel = CreateViewModel(
+            clipboardService: clipboardService,
+            workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+
+        await ExecuteAsync(viewModel.StartCommand);
+        worker.RaiseTranslationLogged(new TranslationLogItem("hello", "こんにちは"));
+
+        await ExecuteAsync(viewModel.CopyTranslationLogCommand, viewModel.TranslationLogs[0]);
+
+        clipboardService.LastText.Should().Be($"Source:{Environment.NewLine}hello{Environment.NewLine}{Environment.NewLine}Translation:{Environment.NewLine}こんにちは");
+        viewModel.StatusMessage.Should().Be("コピーしました。");
+    }
+
+    [Fact]
+    public async Task CopyTranslationLog_WhenTranscriptOnly_CopiesSourceOnly()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var clipboardService = new FakeClipboardService();
+        var viewModel = CreateViewModel(
+            clipboardService: clipboardService,
+            workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+
+        await ExecuteAsync(viewModel.StartCommand);
+        worker.RaiseTranslationLogged(new TranslationLogItem("transcript", string.Empty));
+
+        await ExecuteAsync(viewModel.CopyTranslationLogCommand, viewModel.TranslationLogs[0]);
+
+        clipboardService.LastText.Should().Be("transcript");
+    }
+
+    [Fact]
+    public async Task CopyAllLogs_WhenNoLogs_ShowsMessageWithoutClipboardWrite()
+    {
+        var clipboardService = new FakeClipboardService();
+        var viewModel = CreateViewModel(clipboardService: clipboardService);
+
+        await ExecuteAsync(viewModel.CopyAllLogsCommand);
+
+        clipboardService.LastText.Should().BeNull();
+        viewModel.StatusMessage.Should().Be("コピーするログがありません。");
+    }
+
+    [Fact]
+    public async Task CopyAllLogs_WhenClipboardFails_ShowsError()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var clipboardService = new FakeClipboardService
+        {
+            SetTextException = new InvalidOperationException("clipboard locked")
+        };
+        var viewModel = CreateViewModel(
+            clipboardService: clipboardService,
+            workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+        await ExecuteAsync(viewModel.StartCommand);
+        worker.RaiseTranslationLogged(new TranslationLogItem("hello", "こんにちは"));
+
+        await ExecuteAsync(viewModel.CopyAllLogsCommand);
+
+        viewModel.StatusMessage.Should().Be("コピーに失敗しました: clipboard locked");
+        viewModel.ActivityLogs.Should().Contain(viewModel.StatusMessage);
+    }
+
+    [Fact]
     public async Task WorkerTranslationEvent_AddsNewestTranslationLogFirst()
     {
         var worker = new FakeDesktopTranslationWorker();
@@ -591,6 +680,7 @@ public class MainViewModelTests
         IRecordingFolderPicker? recordingFolderPicker = null,
         IRecordingFolderSettingsStore? recordingFolderSettingsStore = null,
         IAppPreferencesStore? appPreferencesStore = null,
+        IClipboardService? clipboardService = null,
         ITranslationController? translationController = null,
         IDesktopTranslationWorkerFactory? workerFactory = null)
     {
@@ -602,6 +692,7 @@ public class MainViewModelTests
             recordingFolderPicker ?? new FakeRecordingFolderPicker(null),
             recordingFolderSettingsStore ?? new FakeRecordingFolderSettingsStore(),
             appPreferencesStore ?? new FakeAppPreferencesStore(),
+            clipboardService ?? new FakeClipboardService(),
             translationController ?? new FakeTranslationController(),
             workerFactory ?? new FakeDesktopTranslationWorkerFactory(new FakeDesktopTranslationWorker()));
 
@@ -612,6 +703,11 @@ public class MainViewModelTests
     private static Task ExecuteAsync(ICommand command)
     {
         return ((AsyncRelayCommand)command).ExecuteAsync(null);
+    }
+
+    private static Task ExecuteAsync(ICommand command, object? parameter)
+    {
+        return ((ParameterizedAsyncRelayCommand)command).ExecuteAsync(parameter);
     }
 
     private sealed class ImmediateDispatcher : IUiDispatcher
@@ -820,6 +916,23 @@ public class MainViewModelTests
         public Task SaveAsync(AppPreferences preferences, CancellationToken cancellationToken = default)
         {
             SavedPreferences = preferences;
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeClipboardService : IClipboardService
+    {
+        public Exception? SetTextException { get; init; }
+        public string? LastText { get; private set; }
+
+        public Task SetTextAsync(string text)
+        {
+            if (SetTextException is not null)
+            {
+                throw SetTextException;
+            }
+
+            LastText = text;
             return Task.CompletedTask;
         }
     }

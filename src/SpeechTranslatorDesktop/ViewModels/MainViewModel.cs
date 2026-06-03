@@ -15,6 +15,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private readonly IRecordingFolderPicker _recordingFolderPicker;
     private readonly IRecordingFolderSettingsStore _recordingFolderSettingsStore;
     private readonly IAppPreferencesStore _appPreferencesStore;
+    private readonly IClipboardService _clipboardService;
     private readonly ITranslationController _translationController;
     private readonly IDesktopTranslationWorkerFactory _workerFactory;
     private IDesktopTranslationWorker? _currentWorker;
@@ -40,6 +41,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         IRecordingFolderPicker recordingFolderPicker,
         IRecordingFolderSettingsStore recordingFolderSettingsStore,
         IAppPreferencesStore appPreferencesStore,
+        IClipboardService clipboardService,
         ITranslationController translationController,
         IDesktopTranslationWorkerFactory workerFactory)
     {
@@ -50,6 +52,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _recordingFolderPicker = recordingFolderPicker ?? throw new ArgumentNullException(nameof(recordingFolderPicker));
         _recordingFolderSettingsStore = recordingFolderSettingsStore ?? throw new ArgumentNullException(nameof(recordingFolderSettingsStore));
         _appPreferencesStore = appPreferencesStore ?? throw new ArgumentNullException(nameof(appPreferencesStore));
+        _clipboardService = clipboardService ?? throw new ArgumentNullException(nameof(clipboardService));
         _translationController = translationController ?? throw new ArgumentNullException(nameof(translationController));
         _workerFactory = workerFactory ?? throw new ArgumentNullException(nameof(workerFactory));
 
@@ -97,6 +100,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         StopCommand = new AsyncRelayCommand(StopAsync, () => IsRunning, _dispatcher, HandleCommandException);
         ChooseRecordingsFolderCommand = new AsyncRelayCommand(ChooseRecordingsFolderAsync, dispatcher: _dispatcher, onException: HandleCommandException);
         ClearLogsCommand = new AsyncRelayCommand(ClearLogsAsync, dispatcher: _dispatcher, onException: HandleCommandException);
+        CopyAllLogsCommand = new AsyncRelayCommand(CopyAllLogsAsync, dispatcher: _dispatcher, onException: HandleCommandException);
+        CopyTranslationLogCommand = new ParameterizedAsyncRelayCommand(CopyTranslationLogAsync, dispatcher: _dispatcher, onException: HandleCommandException);
         OpenRecordingsFolderCommand = new AsyncRelayCommand(OpenRecordingsFolderAsync, dispatcher: _dispatcher, onException: HandleCommandException);
         SaveSettingsCommand = new AsyncRelayCommand(SaveSettingsAsync, dispatcher: _dispatcher, onException: HandleSettingsCommandException);
     }
@@ -295,6 +300,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public AsyncRelayCommand ClearLogsCommand { get; }
 
+    public AsyncRelayCommand CopyAllLogsCommand { get; }
+
+    public ParameterizedAsyncRelayCommand CopyTranslationLogCommand { get; }
+
     public AsyncRelayCommand OpenRecordingsFolderCommand { get; }
 
     public AsyncRelayCommand SaveSettingsCommand { get; }
@@ -344,6 +353,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public string ChooseButtonText => Text("選択", "Choose");
 
     public string ClearLogsButtonText => Text("ログクリア", "Clear logs");
+
+    public string CopyAllLogsButtonText => Text("すべてコピー", "Copy all");
+
+    public string CopyBlockButtonText => Text("コピー", "Copy");
 
     public string OpenButtonText => Text("開く", "Open");
 
@@ -602,6 +615,60 @@ public sealed class MainViewModel : INotifyPropertyChanged
         return Task.CompletedTask;
     }
 
+    private async Task CopyAllLogsAsync()
+    {
+        if (TranslationLogs.Count == 0)
+        {
+            StatusMessage = Text("コピーするログがありません。", "No logs to copy.");
+            AddActivityLog(StatusMessage);
+            return;
+        }
+
+        var text = string.Join(
+            $"{Environment.NewLine}{Environment.NewLine}",
+            TranslationLogs.Select(FormatLogItem));
+        if (!await TrySetClipboardTextAsync(text))
+        {
+            return;
+        }
+
+        StatusMessage = Text("コピーしました。", "Copied.");
+        AddActivityLog(Text("すべてのログをコピーしました。", "Copied all logs."));
+    }
+
+    private async Task CopyTranslationLogAsync(object? parameter)
+    {
+        if (parameter is not TranslationLogItem item)
+        {
+            StatusMessage = Text("コピーするログを選択してください。", "Select a log to copy.");
+            AddActivityLog(StatusMessage);
+            return;
+        }
+
+        if (!await TrySetClipboardTextAsync(FormatLogItem(item)))
+        {
+            return;
+        }
+
+        StatusMessage = Text("コピーしました。", "Copied.");
+        AddActivityLog(Text("ログブロックをコピーしました。", "Copied log block."));
+    }
+
+    private async Task<bool> TrySetClipboardTextAsync(string text)
+    {
+        try
+        {
+            await _clipboardService.SetTextAsync(text);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = Text($"コピーに失敗しました: {ex.Message}", $"Copy failed: {ex.Message}");
+            AddActivityLog(StatusMessage);
+            return false;
+        }
+    }
+
     private async Task ChooseRecordingsFolderAsync()
     {
         var selectedFolder = _recordingFolderPicker.PickFolder(RecordingsFolderPath);
@@ -825,6 +892,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(AzureSettingsHeader));
         OnPropertyChanged(nameof(ChooseButtonText));
         OnPropertyChanged(nameof(ClearLogsButtonText));
+        OnPropertyChanged(nameof(CopyAllLogsButtonText));
+        OnPropertyChanged(nameof(CopyBlockButtonText));
         OnPropertyChanged(nameof(OpenButtonText));
         OnPropertyChanged(nameof(RecognitionModeLabel));
         OnPropertyChanged(nameof(RecordingFileNameLabel));
@@ -865,6 +934,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private static string CreateTimestampedRecordingFileName(string baseFileName)
     {
         return $"{baseFileName}_{DateTime.Now:yyyyMMdd_HHmmss}";
+    }
+
+    private static string FormatLogItem(TranslationLogItem item)
+    {
+        return string.IsNullOrWhiteSpace(item.TranslatedText)
+            ? item.SourceText
+            : $"Source:{Environment.NewLine}{item.SourceText}{Environment.NewLine}{Environment.NewLine}Translation:{Environment.NewLine}{item.TranslatedText}";
     }
 
     private void HandleCommandException(Exception ex)
