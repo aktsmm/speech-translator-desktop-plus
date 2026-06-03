@@ -4,9 +4,21 @@
 
 Speech Translator Desktop Plus is a Windows desktop speech translator and recorder using [Azure AI Speech](https://azure.microsoft.com/en-us/products/ai-services/ai-speech).
 
-![Speech Translator Desktop Plus translating a Microsoft Build livestream](docs/images/build-live-translation-demo.png)
-
 This project is based on [tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator). The original project is licensed under the MIT License. The original copyright and license text are preserved in [LICENSE](./LICENSE).
+
+## Screenshots
+
+### English UI
+
+![Speech Translator Desktop Plus English UI](docs/images/main-window-en.png)
+
+### Japanese UI
+
+![Speech Translator Desktop Plus Japanese UI](docs/images/main-window-ja.png)
+
+### Livestream translation example
+
+![Speech Translator Desktop Plus translating a Microsoft Build livestream](docs/images/livestream-translation-demo.png)
 
 ## Features
 
