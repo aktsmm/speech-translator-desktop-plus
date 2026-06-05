@@ -182,26 +182,26 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="0">
+                <StackPanel Grid.Column="0"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
                     <TextBlock Foreground="White"
                                FontSize="26"
                                FontWeight="Bold"
+                               VerticalAlignment="Center"
                                Text="Speech Translator Desktop Plus" />
-                    <TextBlock Margin="0,6,0,0"
+                    <TextBlock Margin="14,2,0,0"
                                Foreground="#CBD5E1"
-                               Text="Azure AI Speech realtime captions, translation, and local notes." />
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding HeroSubtitle}"
+                               Text="{Binding HeroSubtitle}" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="1"
                             Orientation="Horizontal"
                             VerticalAlignment="Center">
-                    <ComboBox Width="132"
-                              ItemsSource="{Binding AvailableUiLanguages}"
-                              SelectedItem="{Binding SelectedUiLanguage}"
-                              AutomationProperties.Name="{Binding UiLanguageLabel}"
-                              ToolTip="{Binding UiLanguageLabel}" />
-                    <Button Margin="12,0,0,0"
-                            Style="{StaticResource ActionButton}"
+                    <Button Style="{StaticResource ActionButton}"
                             Click="ShowSettingsWindow"
                             AutomationProperties.Name="{Binding SettingsButtonText}"
                             ToolTip="{Binding SettingsButtonText}"

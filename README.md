@@ -6,7 +6,7 @@ Speech Translator Desktop Plus is a Windows desktop speech translator and record
 
 This project is based on [tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator). The original project is licensed under the MIT License. The original copyright and license text are preserved in [LICENSE](./LICENSE).
 
-> Documentation target: version 1.8.4.
+> Documentation target: version 1.8.5.
 
 ## Screenshots
 
@@ -33,9 +33,9 @@ This project is based on [tsubakimoto/speech-translator](https://github.com/tsub
 - Transcript-only mode for cases where translation is not needed.
 - Translation/transcription log recording as UTF-8 text, with automatic timestamped file names.
 - One-click copy for all live log entries, an individual card, source text only, or translation text only. Per-card copy actions sit beside the text so they do not consume a separate row.
-- Last-used UI language, source language, target language, input source, mode, save setting, and file name prefix are restored on the next launch.
+- Last-used UI language, source language, target language, input source, mode, save setting, and file name prefix are saved as soon as they change and restored on the next launch.
 - Recording folder selection, persistence, and "open folder" UI.
-- Dedicated settings window for Azure Speech credentials and recording folder controls.
+- Dedicated settings window for UI language, Azure Speech credentials, and recording folder controls.
 - Japanese and English UI language switching.
 - Major speech translation languages are available from the source/target language selectors.
 - Azure AI Speech region/API key persistence in SQLite with the API key protected by Windows DPAPI.
@@ -54,7 +54,7 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 - Combined `Microphone + PC audio` input mode.
 - `Microphone + PC audio` is the default input mode for livestream translation and note-taking.
 - Transcript-only mode using Azure Speech recognition when translation is unnecessary.
-- Last-used language/input/mode/save/prefix preferences are persisted and restored.
+- Last-used language/input/mode/save/prefix preferences are persisted immediately and restored.
 - Save recording toggle and automatic `{prefix}_yyyyMMdd_HHmmss.txt` file naming.
 - Newest-first translation and status logs.
 - Collapsible translation and status log sections.
@@ -67,9 +67,9 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 - Clear logs action that resets only the on-screen logs; recording files are already created fresh on each start.
 - Optional live-notes pop-out window with card-style monitoring for the three newest source/transcript or source/translation pairs.
 - Configurable and persisted recording folder.
-- Dedicated settings window to keep the main translation screen focused.
+- Dedicated settings window for UI language, credentials, and recording folders to keep the main translation screen focused.
 - `Open folder` and `Choose folder` controls.
-- Japanese/English UI switching.
+- Japanese/English UI switching from `Settings`.
 - Additional source/target language choices.
 - English-first README plus separate Japanese README.
 - One-command setup, self-contained publish, and release zip packaging scripts.
@@ -80,7 +80,7 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 ### Option 1: Download the release zip
 
 1. Open the latest GitHub release.
-2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`. A versioned copy such as `SpeechTranslatorDesktopPlus-win-x64-1.8.4.zip` is also published for archiving.
+2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`. A versioned copy such as `SpeechTranslatorDesktopPlus-win-x64-1.8.5.zip` is also published for archiving.
 3. Extract it to any writable folder.
 4. Run `SpeechTranslatorDesktopPlus.exe`.
 
@@ -132,25 +132,26 @@ scripts\run-dev.cmd
 
 ## Basic usage
 
-1. Select UI language: `日本語` or `English`.
-2. Open `Settings` and save the Azure AI Speech `Region` and `API Key`.
-3. Select mode:
+1. Open `Settings`.
+2. Select UI language: `日本語` or `English`. The choice is saved immediately.
+3. Save the Azure AI Speech `Region` and `API Key`.
+4. Select mode:
    - `Translate + transcript`
    - `Transcript only`
-4. Select source language and, when translation is enabled, target language.
-5. Select audio input:
+5. Select source language and, when translation is enabled, target language.
+6. Select audio input:
    - `Microphone`
    - `PC audio (default playback device)`
    - `Microphone + PC audio` (default)
-6. Choose whether to save recordings. Saving is on by default.
-7. Optionally enter a file name prefix, using letters/numbers/`-`/`_` only.
+7. Choose whether to save recordings. Saving is on by default.
+8. Optionally enter a file name prefix, using letters/numbers/`-`/`_` only.
    - Empty prefix uses `session`.
    - Each start creates a new `{prefix}_yyyyMMdd_HHmmss.txt` file, for example `build2026_20260603_080250.txt`.
-8. Click `Start`.
-9. Click `Clear logs` to clear the visible translation/status logs. Recording files are already created fresh on each start.
-10. Collapse `Translation log` or `Status log` when you want to reduce the visible log area.
-11. Use `Copy all`, `Copy all source`, or `Copy all translations` to copy the full live log in different formats. Use `Copy`, `Copy source`, or `Copy translation` on a card to copy only that block. For keyboard shortcuts, first click the live log list or press `Tab` until the list is focused, select a card, then use `Ctrl+C` for the selected block, `Ctrl+Shift+C` for source text, and `Ctrl+T` for translation text.
-12. Click `Open live notes window` to open a separate window that shows only the three newest source/transcript or source/translation pairs.
+9. Click `Start`.
+10. Click `Clear logs` to clear the visible translation/status logs. Recording files are already created fresh on each start.
+11. Collapse `Translation log` or `Status log` when you want to reduce the visible log area.
+12. Use `Copy all`, `Copy all source`, or `Copy all translations` to copy the full live log in different formats. Use `Copy`, `Copy source`, or `Copy translation` on a card to copy only that block. For keyboard shortcuts, first click the live log list or press `Tab` until the list is focused, select a card, then use `Ctrl+C` for the selected block, `Ctrl+Shift+C` for source text, and `Ctrl+T` for translation text.
+13. Click `Open live notes window` to open a separate window that shows only the three newest source/transcript or source/translation pairs.
 
 If `Save recording` is off, translation/transcription is shown in the UI but not saved to a text file.
 

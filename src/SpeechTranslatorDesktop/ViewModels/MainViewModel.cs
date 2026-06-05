@@ -18,6 +18,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private readonly IClipboardService _clipboardService;
     private readonly ITranslationController _translationController;
     private readonly IDesktopTranslationWorkerFactory _workerFactory;
+    private readonly SemaphoreSlim _appPreferencesSaveLock = new(1, 1);
     private IDesktopTranslationWorker? _currentWorker;
     private AudioInputSourceOption? _selectedAudioInputSource;
     private RecognitionModeOption? _selectedRecognitionMode;
@@ -35,6 +36,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private bool _isRunning;
     private bool _isStatusLogExpanded = true;
     private bool _isTranslationLogExpanded = true;
+    private bool _isLoadingAppPreferences;
+    private Task _pendingAppPreferencesSaveTask = Task.CompletedTask;
 
     public MainViewModel(
         IUiDispatcher dispatcher,
@@ -188,6 +191,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             _isRecordingSaveEnabled = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(RecordingFileNamePreview));
+            QueueAppPreferencesSave();
         }
     }
 
@@ -235,6 +239,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             _recordingFileNamePrefix = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(RecordingFileNamePreview));
+            QueueAppPreferencesSave();
         }
     }
 
@@ -265,6 +270,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
             _selectedAudioInputSource = value;
             OnPropertyChanged();
+            QueueAppPreferencesSave();
         }
     }
 
@@ -283,6 +289,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(IsTranslationMode));
             OnPropertyChanged(nameof(TranslationColumnVisibility));
             RaiseUiTextChanged();
+            QueueAppPreferencesSave();
         }
     }
 
@@ -302,6 +309,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             UpdateRecognitionModeLabels();
             UpdateLocalizedStatusMessage();
             RaiseUiTextChanged();
+            QueueAppPreferencesSave();
         }
     }
 
@@ -317,6 +325,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
             _selectedSourceLanguage = value;
             OnPropertyChanged();
+            QueueAppPreferencesSave();
         }
     }
 
@@ -332,6 +341,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
             _selectedTargetLanguage = value;
             OnPropertyChanged();
+            QueueAppPreferencesSave();
         }
     }
 
@@ -418,6 +428,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string AudioInputLabel => Text("音声入力", "Audio input");
 
+    public string AzureRegionLabel => Text("リージョン", "Region");
+
     public string AzureSettingsHeader => Text("保存先 / Azure AI Service 設定", "Recordings / Azure AI Service settings");
 
     public string ChooseButtonText => Text("選択", "Choose");
@@ -435,6 +447,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public string CopySourceButtonText => Text("原文コピー", "Copy source");
 
     public string CopyTranslationButtonText => Text("訳文コピー", "Copy translation");
+
+    public string HeroSubtitle => Text("Azure AI Speech でリアルタイム字幕・翻訳・ローカル記録。", "Azure AI Speech realtime captions, translation, and local notes.");
 
     public string MainWindowTitle => "Speech Translator Desktop Plus";
 
@@ -495,6 +509,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string UiLanguageLabel => Text("UI言語", "UI language");
 
+    public string UiLanguageSettingsHint => Text("選択するとすぐ保存され、次回起動時にも復元されます。", "Applies immediately and is restored on the next launch.");
+
     public bool IsTranslationMode => SelectedRecognitionMode?.Mode != RecognitionMode.TranscriptionOnly;
 
     public Visibility TranslationColumnVisibility => IsTranslationMode ? Visibility.Visible : Visibility.Collapsed;
@@ -550,6 +566,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         try
         {
+            _isLoadingAppPreferences = true;
             var preferences = await _appPreferencesStore.LoadAsync(cancellationToken);
             if (preferences is null)
             {
@@ -580,6 +597,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
         catch (Exception ex)
         {
             AddActivityLog(Text($"前回の選択設定の読み込みに失敗しました: {ex.Message}", $"Failed to load previous selections: {ex.Message}"));
+        }
+        finally
+        {
+            _isLoadingAppPreferences = false;
         }
     }
 
@@ -993,6 +1014,44 @@ public sealed class MainViewModel : INotifyPropertyChanged
             RecordingFileName));
     }
 
+    public Task FlushPendingAppPreferencesSaveAsync()
+    {
+        return _pendingAppPreferencesSaveTask;
+    }
+
+    private void QueueAppPreferencesSave()
+    {
+        if (_isLoadingAppPreferences)
+        {
+            return;
+        }
+
+        _pendingAppPreferencesSaveTask = SaveAppPreferencesWithLoggingAsync();
+    }
+
+    private async Task SaveAppPreferencesWithLoggingAsync()
+    {
+        try
+        {
+            await _appPreferencesSaveLock.WaitAsync();
+            try
+            {
+                await SaveAppPreferencesAsync();
+            }
+            finally
+            {
+                _appPreferencesSaveLock.Release();
+            }
+        }
+        catch (Exception ex)
+        {
+            _dispatcher.Invoke(() =>
+            {
+                AddActivityLog(Text($"選択設定の保存に失敗しました: {ex.Message}", $"Failed to save selections: {ex.Message}"));
+            });
+        }
+    }
+
     private string? CreateRecordingFileNameForStart()
     {
         if (!IsRecordingSaveEnabled)
@@ -1041,6 +1100,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         OnPropertyChanged(nameof(ApiKeyLabel));
         OnPropertyChanged(nameof(AudioInputLabel));
+        OnPropertyChanged(nameof(AzureRegionLabel));
         OnPropertyChanged(nameof(AzureSettingsHeader));
         OnPropertyChanged(nameof(ChooseButtonText));
         OnPropertyChanged(nameof(ClearLogsButtonText));
@@ -1050,6 +1110,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CopyBlockButtonText));
         OnPropertyChanged(nameof(CopySourceButtonText));
         OnPropertyChanged(nameof(CopyTranslationButtonText));
+        OnPropertyChanged(nameof(HeroSubtitle));
         OnPropertyChanged(nameof(OpenButtonText));
         OnPropertyChanged(nameof(RecognitionModeLabel));
         OnPropertyChanged(nameof(RecordingFileNameLabel));
@@ -1073,6 +1134,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(TranslationsWindowTitle));
         OnPropertyChanged(nameof(TranslatedTextHeader));
         OnPropertyChanged(nameof(UiLanguageLabel));
+        OnPropertyChanged(nameof(UiLanguageSettingsHint));
         OnPropertyChanged(nameof(IsTranslationMode));
         OnPropertyChanged(nameof(TranslationColumnVisibility));
     }

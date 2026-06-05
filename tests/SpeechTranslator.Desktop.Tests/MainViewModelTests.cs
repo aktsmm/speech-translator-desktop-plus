@@ -380,12 +380,14 @@ public class MainViewModelTests
         var preferencesStore = new FakeAppPreferencesStore();
         var viewModel = CreateViewModel(appPreferencesStore: preferencesStore);
         viewModel.SelectedUiLanguage = viewModel.AvailableUiLanguages.Single(option => option.Language == UiLanguage.English);
+        await viewModel.FlushPendingAppPreferencesSaveAsync();
         viewModel.SelectedRecognitionMode = viewModel.AvailableRecognitionModes.Single(mode => mode.Mode == RecognitionMode.TranscriptionOnly);
         viewModel.SelectedSourceLanguage = viewModel.AvailableLanguages.Single(language => language.Code == "ja-JP");
         viewModel.SelectedTargetLanguage = viewModel.AvailableLanguages.Single(language => language.Code == "en-US");
         viewModel.SelectedAudioInputSource = viewModel.AvailableAudioInputSources.Single(source => source.Source == AudioInputSource.SystemAudio);
         viewModel.IsRecordingSaveEnabled = false;
         viewModel.RecordingFileName = "build2026";
+        await viewModel.FlushPendingAppPreferencesSaveAsync();
 
         await ExecuteAsync(viewModel.StartCommand);
 
@@ -424,6 +426,69 @@ public class MainViewModelTests
         viewModel.IsRecordingSaveEnabled.Should().BeFalse();
         viewModel.RecordingFileName.Should().Be("build2026");
         viewModel.SourceTextHeader.Should().Be("Transcript");
+    }
+
+    [Fact]
+    public async Task SelectionChanges_SavePreferencesBeforeStart()
+    {
+        var preferencesStore = new FakeAppPreferencesStore();
+        var viewModel = CreateViewModel(appPreferencesStore: preferencesStore);
+
+        viewModel.SelectedUiLanguage = viewModel.AvailableUiLanguages.Single(option => option.Language == UiLanguage.English);
+        viewModel.SelectedRecognitionMode = viewModel.AvailableRecognitionModes.Single(mode => mode.Mode == RecognitionMode.TranscriptionOnly);
+        viewModel.SelectedSourceLanguage = viewModel.AvailableLanguages.Single(language => language.Code == "ja-JP");
+        viewModel.SelectedTargetLanguage = viewModel.AvailableLanguages.Single(language => language.Code == "en-US");
+        viewModel.SelectedAudioInputSource = viewModel.AvailableAudioInputSources.Single(source => source.Source == AudioInputSource.SystemAudio);
+        viewModel.IsRecordingSaveEnabled = false;
+        viewModel.RecordingFileName = "build2026";
+        await viewModel.FlushPendingAppPreferencesSaveAsync();
+
+        preferencesStore.SavedPreferences.Should().BeEquivalentTo(new AppPreferences(
+            nameof(UiLanguage.English),
+            "ja-JP",
+            "en-US",
+            nameof(AudioInputSource.SystemAudio),
+            nameof(RecognitionMode.TranscriptionOnly),
+            false,
+            "build2026"));
+    }
+
+    [Fact]
+    public async Task InitializeAsync_WhenPreferencesExist_DoesNotResaveDuringLoad()
+    {
+        var preferencesStore = new FakeAppPreferencesStore
+        {
+            LoadedPreferences = new AppPreferences(
+                nameof(UiLanguage.English),
+                "ja-JP",
+                "en-US",
+                nameof(AudioInputSource.SystemAudio),
+                nameof(RecognitionMode.TranscriptionOnly),
+                false,
+                "build2026")
+        };
+        var viewModel = CreateViewModel(appPreferencesStore: preferencesStore);
+        preferencesStore.ResetSavedPreferences();
+
+        await viewModel.InitializeAsync();
+        await viewModel.FlushPendingAppPreferencesSaveAsync();
+
+        preferencesStore.SavedPreferences.Should().BeNull();
+        preferencesStore.SaveCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task SelectionChange_WhenPreferenceSaveFails_LogsError()
+    {
+        var viewModel = CreateViewModel(appPreferencesStore: new FakeAppPreferencesStore
+        {
+            SaveException = new InvalidOperationException("database locked")
+        });
+
+        viewModel.SelectedUiLanguage = viewModel.AvailableUiLanguages.Single(option => option.Language == UiLanguage.English);
+        await viewModel.FlushPendingAppPreferencesSaveAsync();
+
+        viewModel.ActivityLogs.Should().Contain(log => log.Contains("database locked", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -738,6 +803,8 @@ public class MainViewModelTests
 
         viewModel.SourceLanguageLabel.Should().Be("Speaker language");
         viewModel.TargetLanguageLabel.Should().Be("Target language");
+        viewModel.HeroSubtitle.Should().Be("Azure AI Speech realtime captions, translation, and local notes.");
+        viewModel.AzureRegionLabel.Should().Be("Region");
         viewModel.StartButtonText.Should().Be("Start");
         viewModel.StopButtonText.Should().Be("Stop");
         viewModel.SettingsButtonText.Should().Be("Settings");
@@ -1079,6 +1146,8 @@ public class MainViewModelTests
     {
         public AppPreferences? LoadedPreferences { get; init; }
         public AppPreferences? SavedPreferences { get; private set; }
+        public Exception? SaveException { get; init; }
+        public int SaveCallCount { get; private set; }
 
         public Task<AppPreferences?> LoadAsync(CancellationToken cancellationToken = default)
         {
@@ -1087,8 +1156,20 @@ public class MainViewModelTests
 
         public Task SaveAsync(AppPreferences preferences, CancellationToken cancellationToken = default)
         {
+            SaveCallCount++;
+            if (SaveException is not null)
+            {
+                throw SaveException;
+            }
+
             SavedPreferences = preferences;
             return Task.CompletedTask;
+        }
+
+        public void ResetSavedPreferences()
+        {
+            SavedPreferences = null;
+            SaveCallCount = 0;
         }
     }
 
