@@ -6,7 +6,7 @@ Speech Translator Desktop Plus is a Windows desktop speech translator and record
 
 This project is based on [tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator). The original project is licensed under the MIT License. The original copyright and license text are preserved in [LICENSE](./LICENSE).
 
-> Documentation target: version 1.8.6.
+> Documentation target: version 1.8.7.
 
 ## Screenshots
 
@@ -37,6 +37,7 @@ This project is based on [tsubakimoto/speech-translator](https://github.com/tsub
 - Last-used UI language, source language, target language, input source, mode, save setting, and file name prefix are saved as soon as they change and restored on the next launch.
 - Recording folder selection, persistence, and "open folder" UI.
 - Dedicated settings window for UI language, Azure Speech credentials, and recording folder controls.
+- Provider clarity in Settings: Azure AI Speech is the current live provider, with Azure OpenAI Realtime / Whisper and other providers tracked as planned future work.
 - Japanese and English UI language switching.
 - Major speech translation languages are available from the source/target language selectors.
 - Azure AI Speech region/API key persistence in SQLite with the API key protected by Windows DPAPI.
@@ -70,6 +71,7 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 - Optional live-notes pop-out window with card-style monitoring for the three newest source/transcript or source/translation pairs.
 - Configurable and persisted recording folder.
 - Dedicated settings window for UI language, credentials, and recording folders to keep the main translation screen focused.
+- Settings explains why Azure AI Speech remains the default provider for low-latency real-time translation and why Azure OpenAI Realtime / Whisper are future provider work instead of selectable broken options.
 - `Open folder` and `Choose folder` controls.
 - Japanese/English UI switching from `Settings`.
 - Additional source/target language choices.
@@ -82,7 +84,7 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 ### Option 1: Download the release zip
 
 1. Open the latest GitHub release.
-2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`. A versioned copy such as `SpeechTranslatorDesktopPlus-win-x64-1.8.6.zip` is also published for archiving.
+2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`. A versioned copy such as `SpeechTranslatorDesktopPlus-win-x64-1.8.7.zip` is also published for archiving.
 3. Extract it to any writable folder.
 4. Run `SpeechTranslatorDesktopPlus.exe`.
 
@@ -162,6 +164,12 @@ When `Microphone + PC audio` is selected, only microphone-origin text is labeled
 Your last-used UI language, mode, source language, target language, audio input, save setting, and prefix are saved locally and restored when you launch the app again.
 
 Rows with no source text are ignored. In translation mode, rows with no translated text are also ignored to avoid blank lines in the UI and recording files.
+
+## Speech provider roadmap
+
+The current live provider is **Azure AI Speech**. It remains the default because it provides first-class C# Speech SDK support for low-latency real-time speech translation, transcription, and microphone/PC audio separation.
+
+Azure OpenAI Realtime / Whisper, OpenAI, Google Speech-to-Text, and AWS Transcribe are tracked as future provider candidates. They are not selectable yet because they require different audio pipelines, credentials, and translation behavior.
 
 ## Troubleshooting
 

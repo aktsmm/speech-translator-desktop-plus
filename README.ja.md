@@ -6,7 +6,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 
 このプロジェクトは [tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator) をベースにしています。元プロジェクトは MIT License です。元の著作権表示とライセンス文は [LICENSE](./LICENSE) に残しています。
 
-> この README は version 1.8.6 を対象にしています。
+> この README は version 1.8.7 を対象にしています。
 
 ## スクリーンショット
 
@@ -39,6 +39,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 - 前回利用した UI言語、話者言語、翻訳先言語、入力、利用モード、保存設定、ファイル名prefixを変更時に保存し、次回起動時に復元
 - 保存先フォルダーの選択、永続化、フォルダーを開く UI
 - UI言語、Azure Speech 認証情報、保存先をメイン画面から分離した設定ウィンドウ
+- 設定画面で現在のライブProviderが Azure AI Speech であること、Azure OpenAI Realtime / Whisper などは今後の対応候補であることを明示
 - 日本語 / 英語 UI の切り替え
 - 主要な音声翻訳言語を話者言語・翻訳先言語として選択可能
 - Azure AI Speech のリージョン/APIキーを SQLite に保存
@@ -74,6 +75,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 - 最新3件だけをカード形式の別ウィンドウで表示する `別ウィンドウでライブノートを開く` 機能
 - 保存先フォルダーの選択・永続化
 - 翻訳に集中できるよう、UI言語、Azure設定、保存先設定を専用の設定ウィンドウへ移動
+- 低遅延リアルタイム翻訳の既定Providerは Azure AI Speech のまま維持し、Azure OpenAI Realtime / Whisper は未実装の選択肢として誤表示しないProviderロードマップを追加
 - `開く` / `選択` UI
 - `設定` からの日本語 / 英語 UI 切り替え
 - 主要言語の選択肢追加
@@ -86,7 +88,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 ### 方法1: Release zip をダウンロード
 
 1. 最新の GitHub Release を開きます。
-2. `SpeechTranslatorDesktopPlus-win-x64.zip` をダウンロードします。保管用に `SpeechTranslatorDesktopPlus-win-x64-1.8.6.zip` のような version 付きコピーも公開されます。
+2. `SpeechTranslatorDesktopPlus-win-x64.zip` をダウンロードします。保管用に `SpeechTranslatorDesktopPlus-win-x64-1.8.7.zip` のような version 付きコピーも公開されます。
 3. 任意の書き込み可能なフォルダーへ展開します。
 4. `SpeechTranslatorDesktopPlus.exe` を実行します。
 
@@ -167,6 +169,12 @@ scripts\run-dev.cmd
 前回利用した UI言語、利用モード、話者言語、翻訳先言語、音声入力、保存設定、ファイル名prefixはローカルに保存され、次回起動時に復元されます。
 
 原文が空の行は、UIにも記録ファイルにも出さないようにしています。翻訳モードでは、翻訳文が空の行も空行防止のため抑止します。
+
+## 音声Providerロードマップ
+
+現在のライブProviderは **Azure AI Speech** です。低遅延のリアルタイム音声翻訳、書き起こし、マイク/PC音声分離を C# Speech SDK で安定して扱えるため、既定Providerとして維持しています。
+
+Azure OpenAI Realtime / Whisper、OpenAI、Google Speech-to-Text、AWS Transcribe などは今後のProvider候補です。音声パイプライン、認証情報、翻訳方式が異なるため、まだ選択可能なProviderとしては表示していません。
 
 ## トラブルシュート
 

@@ -430,7 +430,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string AzureRegionLabel => Text("リージョン", "Region");
 
-    public string AzureSettingsHeader => Text("保存先 / Azure AI Service 設定", "Recordings / Azure AI Service settings");
+    public string AzureSettingsHeader => Text("保存先 / Azure AI Speech 設定", "Recordings / Azure AI Speech settings");
 
     public string ChooseButtonText => Text("選択", "Choose");
 
@@ -476,6 +476,20 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public string RecordingsFolderLabel => Text("保存先", "Recordings folder");
 
     public string RecordingFolderPickerTitle => Text("翻訳ログの保存先フォルダーを選択", "Choose recordings folder");
+
+    public string SpeechProviderCurrentDescription => Text(
+        "低遅延のリアルタイム翻訳、書き起こし、マイク/PC音声分離を安定して扱えるため、現在の既定Providerです。",
+        "Current default provider because it supports low-latency real-time translation, transcription, and separated microphone/PC audio.");
+
+    public string SpeechProviderCurrentName => "Azure AI Speech";
+
+    public string SpeechProviderLabel => Text("音声Provider", "Speech provider");
+
+    public string SpeechProviderRoadmap => Text(
+        "Azure OpenAI Realtime / Whisper、OpenAI、Google、AWSなどは対応候補です。Azure OpenAI RealtimeはWebSocket/PCM音声パイプラインが必要なため、今後のProvider実装として追加します。",
+        "Azure OpenAI Realtime / Whisper, OpenAI, Google, and AWS are candidates. Azure OpenAI Realtime requires a WebSocket/PCM audio pipeline, so it will be added as a future provider implementation.");
+
+    public string SpeechProviderRoadmapLabel => Text("対応予定（現在は利用できません）", "Planned (not yet available)");
 
     public string SaveButtonText => Text("保存", "Save");
 
@@ -528,14 +542,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
             if (savedSettings is null)
             {
                 SettingsStatusMessage = Text(
-                    "Azure AI Service のリージョンと API キーを入力して保存してください。未保存の場合は SPEECH_REGION / SPEECH_KEY をフォールバックとして使用します。",
-                    "Enter and save the Azure AI Service region and API key. If not saved, SPEECH_REGION / SPEECH_KEY environment variables are used as fallback.");
+                    "Azure AI Speech のリージョンと API キーを入力して保存してください。未保存の場合は SPEECH_REGION / SPEECH_KEY をフォールバックとして使用します。",
+                    "Enter and save the Azure AI Speech region and API key. If not saved, SPEECH_REGION / SPEECH_KEY environment variables are used as fallback.");
                 return;
             }
 
             AzureRegion = savedSettings.Region;
             AzureApiKey = savedSettings.ApiKey;
-            SettingsStatusMessage = Text("保存済みの Azure AI Service 設定を読み込みました。", "Loaded saved Azure AI Service settings.");
+            SettingsStatusMessage = Text("保存済みの Azure AI Speech 設定を読み込みました。", "Loaded saved Azure AI Speech settings.");
         }
         catch (Exception ex)
         {
@@ -634,8 +648,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         if (!credentialsResult.IsValid || credentialsResult.Credentials is null)
         {
             StatusMessage = Text(
-                $"Azure AI Service の認証情報が未設定です。設定画面で保存するか、環境変数を設定してください: SPEECH_REGION, SPEECH_KEY",
-                "Azure AI Service credentials are not configured. Save them in the settings area or set environment variables: SPEECH_REGION, SPEECH_KEY");
+                $"Azure AI Speech の認証情報が未設定です。設定画面で保存するか、環境変数を設定してください: SPEECH_REGION, SPEECH_KEY",
+                "Azure AI Speech credentials are not configured. Save them in the settings area or set environment variables: SPEECH_REGION, SPEECH_KEY");
             AddActivityLog(credentialsResult.ErrorMessage);
             return;
         }
@@ -680,7 +694,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         if (string.IsNullOrWhiteSpace(normalizedRegion) || string.IsNullOrWhiteSpace(normalizedApiKey))
         {
-            SettingsStatusMessage = Text("Azure AI Service のリージョンと API キーを入力してから保存してください。", "Enter the Azure AI Service region and API key before saving.");
+            SettingsStatusMessage = Text("Azure AI Speech のリージョンと API キーを入力してから保存してください。", "Enter the Azure AI Speech region and API key before saving.");
             return;
         }
 
@@ -688,7 +702,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         AzureRegion = normalizedRegion;
         AzureApiKey = normalizedApiKey;
-        SettingsStatusMessage = Text("Azure AI Service 設定を保存しました。", "Saved Azure AI Service settings.");
+        SettingsStatusMessage = Text("Azure AI Speech 設定を保存しました。", "Saved Azure AI Speech settings.");
         AddActivityLog(SettingsStatusMessage);
     }
 
@@ -1117,6 +1131,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(RecordingFileNamePreview));
         OnPropertyChanged(nameof(RecordingsFolderLabel));
         OnPropertyChanged(nameof(RecordingFolderPickerTitle));
+        OnPropertyChanged(nameof(SpeechProviderCurrentDescription));
+        OnPropertyChanged(nameof(SpeechProviderCurrentName));
+        OnPropertyChanged(nameof(SpeechProviderLabel));
+        OnPropertyChanged(nameof(SpeechProviderRoadmap));
+        OnPropertyChanged(nameof(SpeechProviderRoadmapLabel));
         OnPropertyChanged(nameof(SaveButtonText));
         OnPropertyChanged(nameof(SaveRecordingLabel));
         OnPropertyChanged(nameof(SettingsButtonText));

@@ -27,7 +27,7 @@ public sealed class EnvironmentSpeechCredentialsProvider : ISpeechCredentialsPro
 
         if (missingVariables.Count > 0)
         {
-            return SpeechCredentialsResult.Failure($"Azure AI Service の認証情報が未設定です。設定画面で保存するか、環境変数を設定してください: {string.Join(", ", missingVariables)}");
+            return SpeechCredentialsResult.Failure($"Azure AI Speech の認証情報が未設定です。設定画面で保存するか、環境変数を設定してください: {string.Join(", ", missingVariables)}");
         }
 
         var normalizedRegion = region!.Trim();

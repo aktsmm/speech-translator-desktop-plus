@@ -835,6 +835,12 @@ public class MainViewModelTests
         viewModel.TargetLanguageLabel.Should().Be("Target language");
         viewModel.HeroSubtitle.Should().Be("Azure AI Speech realtime captions, translation, and local notes.");
         viewModel.AzureRegionLabel.Should().Be("Region");
+        viewModel.AzureSettingsHeader.Should().Be("Recordings / Azure AI Speech settings");
+        viewModel.SpeechProviderLabel.Should().Be("Speech provider");
+        viewModel.SpeechProviderCurrentName.Should().Be("Azure AI Speech");
+        viewModel.SpeechProviderCurrentDescription.Should().Contain("real-time translation");
+        viewModel.SpeechProviderRoadmapLabel.Should().Be("Planned (not yet available)");
+        viewModel.SpeechProviderRoadmap.Should().Contain("Azure OpenAI Realtime").And.Contain("future provider");
         viewModel.StartButtonText.Should().Be("Start");
         viewModel.StopButtonText.Should().Be("Stop");
         viewModel.SettingsButtonText.Should().Be("Settings");
@@ -847,6 +853,21 @@ public class MainViewModelTests
         viewModel.AvailableAudioInputSources.Select(option => option.DisplayName)
             .Should()
             .Equal("Microphone", "PC audio (default playback device)", "Microphone + PC audio");
+    }
+
+    [Fact]
+    public void SelectedUiLanguage_WhenJapanese_UpdatesProviderLabels()
+    {
+        var viewModel = CreateViewModel();
+
+        viewModel.SelectedUiLanguage = viewModel.AvailableUiLanguages.Single(option => option.Language == UiLanguage.Japanese);
+
+        viewModel.AzureSettingsHeader.Should().Be("保存先 / Azure AI Speech 設定");
+        viewModel.SpeechProviderLabel.Should().Be("音声Provider");
+        viewModel.SpeechProviderCurrentName.Should().Be("Azure AI Speech");
+        viewModel.SpeechProviderCurrentDescription.Should().Contain("低遅延").And.Contain("リアルタイム翻訳");
+        viewModel.SpeechProviderRoadmapLabel.Should().Be("対応予定（現在は利用できません）");
+        viewModel.SpeechProviderRoadmap.Should().Contain("Azure OpenAI Realtime").And.Contain("今後のProvider実装");
     }
 
     [Fact]
