@@ -642,7 +642,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         var targetLanguage = SelectedTargetLanguage?.Code ?? SelectedSourceLanguage.Code;
         var recognitionMode = SelectedRecognitionMode.Mode;
-        var worker = _workerFactory.Create(targetLanguage, recordingFileName, SelectedUiLanguage?.Language ?? UiLanguage.Japanese, recognitionMode);
+        var worker = _workerFactory.Create(targetLanguage, recordingFileName, SelectedUiLanguage?.Language ?? UiLanguage.Japanese, recognitionMode, SelectedAudioInputSource.Source);
         SubscribeWorker(worker);
 
         try
@@ -733,7 +733,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private async Task CopyAllSourceLogsAsync()
     {
-        if (!await CopyManyLogsAsync(TranslationLogs, item => item.SourceText, Text("コピーする原文がありません。", "No source text to copy.")))
+        if (!await CopyManyLogsAsync(TranslationLogs, item => item.DisplaySourceText, Text("コピーする原文がありません。", "No source text to copy.")))
         {
             return;
         }
@@ -783,7 +783,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             return;
         }
 
-        if (!await TrySetClipboardTextAsync(item.SourceText))
+        if (!await TrySetClipboardTextAsync(item.DisplaySourceText))
         {
             return;
         }
@@ -929,13 +929,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private void OnWorkerTranslationLogged(object? sender, TranslationLogItem e)
     {
-            _dispatcher.Invoke(() =>
+        _dispatcher.Invoke(() =>
+        {
+            TranslationLogs.Insert(0, e);
+            RecentTranslationLogs.Insert(0, e);
+            while (RecentTranslationLogs.Count > 3)
             {
-                TranslationLogs.Insert(0, e);
-                RecentTranslationLogs.Insert(0, e);
-                while (RecentTranslationLogs.Count > 3)
-                {
-                    RecentTranslationLogs.RemoveAt(RecentTranslationLogs.Count - 1);
+                RecentTranslationLogs.RemoveAt(RecentTranslationLogs.Count - 1);
             }
         });
     }
@@ -1158,8 +1158,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private static string FormatLogItem(TranslationLogItem item)
     {
         return string.IsNullOrWhiteSpace(item.TranslatedText)
-            ? item.SourceText
-            : $"Source:{Environment.NewLine}{item.SourceText}{Environment.NewLine}{Environment.NewLine}Translation:{Environment.NewLine}{item.TranslatedText}";
+            ? item.DisplaySourceText
+            : $"Source:{Environment.NewLine}{item.DisplaySourceText}{Environment.NewLine}{Environment.NewLine}Translation:{Environment.NewLine}{item.TranslatedText}";
     }
 
     private void HandleCommandException(Exception ex)

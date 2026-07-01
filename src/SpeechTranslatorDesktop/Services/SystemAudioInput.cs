@@ -34,17 +34,6 @@ public sealed class SystemAudioInput : IDisposable
         return Start([new WasapiLoopbackCapture()]);
     }
 
-    public static SystemAudioInput StartMicrophoneAndSystemAudio()
-    {
-        return Start([
-            new WasapiLoopbackCapture(),
-            new WaveInEvent()
-            {
-                WaveFormat = new WaveFormat(44100, 16, 1)
-            }
-        ]);
-    }
-
     private static SystemAudioInput Start(IEnumerable<IWaveIn> captures)
     {
         var format = AudioStreamFormat.GetWaveFormatPCM(OutputSampleRate, OutputBitsPerSample, OutputChannels);

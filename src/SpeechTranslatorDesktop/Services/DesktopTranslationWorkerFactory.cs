@@ -11,8 +11,8 @@ public sealed class DesktopTranslationWorkerFactory : IDesktopTranslationWorkerF
         _recordingFileService = recordingFileService ?? throw new ArgumentNullException(nameof(recordingFileService));
     }
 
-    public IDesktopTranslationWorker Create(string targetLanguage, string? recordingFileName, UiLanguage uiLanguage, RecognitionMode recognitionMode)
+    public IDesktopTranslationWorker Create(string targetLanguage, string? recordingFileName, UiLanguage uiLanguage, RecognitionMode recognitionMode, AudioInputSource audioInputSource)
     {
-        return new DesktopTranslationWorker(targetLanguage, recordingFileName, _recordingFileService, uiLanguage, recognitionMode);
+        return new DesktopTranslationWorker(targetLanguage, recordingFileName, _recordingFileService, uiLanguage, recognitionMode, audioInputSource);
     }
 }

@@ -86,6 +86,48 @@ public class DesktopTranslationControllerTests
         session.DisposeCallCount.Should().Be(2);
     }
 
+    [Fact]
+    public async Task CompositeTranslationSession_WhenOneChildCompletes_StopsSiblingAndCompletesAfterAllChildren()
+    {
+        var first = new FakeTranslationSession();
+        var second = new FakeTranslationSession();
+        second.EnqueueStopBehavior(() =>
+        {
+            second.Complete();
+            return Task.CompletedTask;
+        });
+        var completedCount = 0;
+        await using var composite = new CompositeTranslationSession([first, second], () => completedCount++);
+
+        first.Complete();
+        await composite.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        second.StopCallCount.Should().Be(1);
+        composite.IsRunning.Should().BeFalse();
+        completedCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task CompositeTranslationSession_WhenCompleted_CanRaiseSingleWorkerTerminalStatus()
+    {
+        var first = new FakeTranslationSession();
+        var second = new FakeTranslationSession();
+        second.EnqueueStopBehavior(() =>
+        {
+            second.Complete();
+            return Task.CompletedTask;
+        });
+        var worker = new DesktopTranslationWorker("ja-JP", null, new NoOpRecordingFileService(), audioInputSource: AudioInputSource.MicrophoneAndSystemAudio);
+        var statuses = new List<WorkerStatusChangedEventArgs>();
+        worker.StatusChanged += (_, e) => statuses.Add(e);
+        await using var composite = new CompositeTranslationSession([first, second], worker.NotifyCombinedSessionStopped);
+
+        first.Complete();
+        await composite.Completion.WaitAsync(TimeSpan.FromSeconds(2));
+
+        statuses.Should().ContainSingle(e => e.Status == DesktopTranslationStatus.SessionStopped);
+    }
+
     private static DesktopTranslationController CreateController(ITranslationSession session)
     {
         return new DesktopTranslationController((credentials, sourceLanguage, targetLanguage, audioInputSource, recognitionMode, worker, cancellationToken) =>
@@ -168,7 +210,15 @@ public class DesktopTranslationControllerTests
     {
         public TranslationRecognizerWorkerBase RecognizerWorker { get; } = new NoOpTranslationRecognizerWorker();
 
+        public TranslationRecognizerWorkerBase MicrophoneRecognizerWorker { get; } = new NoOpTranslationRecognizerWorker();
+
+        public TranslationRecognizerWorkerBase SystemAudioRecognizerWorker { get; } = new NoOpTranslationRecognizerWorker();
+
         public SpeechRecognizerWorkerBase SpeechRecognizerWorker { get; } = new NoOpSpeechRecognizerWorker();
+
+        public SpeechRecognizerWorkerBase MicrophoneSpeechRecognizerWorker { get; } = new NoOpSpeechRecognizerWorker();
+
+        public SpeechRecognizerWorkerBase SystemAudioSpeechRecognizerWorker { get; } = new NoOpSpeechRecognizerWorker();
 
         public event EventHandler<string>? MessageLogged;
 
@@ -204,6 +254,27 @@ public class DesktopTranslationControllerTests
         }
 
         public override void OnSpeechStartDetected(RecognitionEventArgs e)
+        {
+        }
+    }
+
+    private sealed class NoOpRecordingFileService : IRecordingFileService
+    {
+        public string RecordingsDirectory => @"C:\recordings";
+
+        public string? NormalizeFileName(string? fileName) => fileName;
+
+        public void AppendTranslation(string? fileName, string sourceText, string translatedText, string? speakerLabel = null)
+        {
+        }
+
+        public void AppendTranscription(string? fileName, string sourceText, string? speakerLabel = null)
+        {
+        }
+
+        public string OpenRecordingsFolder() => RecordingsDirectory;
+
+        public void SetRecordingsDirectory(string directoryPath)
         {
         }
     }

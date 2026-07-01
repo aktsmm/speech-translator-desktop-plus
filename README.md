@@ -6,7 +6,7 @@ Speech Translator Desktop Plus is a Windows desktop speech translator and record
 
 This project is based on [tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator). The original project is licensed under the MIT License. The original copyright and license text are preserved in [LICENSE](./LICENSE).
 
-> Documentation target: version 1.8.5.
+> Documentation target: version 1.8.6.
 
 ## Screenshots
 
@@ -27,6 +27,7 @@ This project is based on [tsubakimoto/speech-translator](https://github.com/tsub
 - Real-time speech translation with Azure AI Speech.
 - Microphone input.
 - PC audio input using WASAPI loopback, so YouTube, livestreams, and other system playback can be translated without VB-CABLE.
+- In `Microphone + PC audio` mode, microphone-origin speech is labeled as `Me`; PC audio remains unlabeled because it can contain multiple speakers.
 - Translation logs are shown newest-first, so the latest text stays visible.
 - Translation and status logs can be collapsed when you want a smaller live workspace.
 - The main control card keeps status and recording-save hints inline to avoid unnecessary vertical whitespace.
@@ -53,6 +54,7 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 - PC audio capture via WASAPI loopback.
 - Combined `Microphone + PC audio` input mode.
 - `Microphone + PC audio` is the default input mode for livestream translation and note-taking.
+- In combined input mode, the microphone and PC audio are recognized as separate streams so only your microphone speech is labeled as `Me`.
 - Transcript-only mode using Azure Speech recognition when translation is unnecessary.
 - Last-used language/input/mode/save/prefix preferences are persisted immediately and restored.
 - Save recording toggle and automatic `{prefix}_yyyyMMdd_HHmmss.txt` file naming.
@@ -80,7 +82,7 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 ### Option 1: Download the release zip
 
 1. Open the latest GitHub release.
-2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`. A versioned copy such as `SpeechTranslatorDesktopPlus-win-x64-1.8.5.zip` is also published for archiving.
+2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`. A versioned copy such as `SpeechTranslatorDesktopPlus-win-x64-1.8.6.zip` is also published for archiving.
 3. Extract it to any writable folder.
 4. Run `SpeechTranslatorDesktopPlus.exe`.
 
@@ -154,6 +156,8 @@ scripts\run-dev.cmd
 13. Click `Open live notes window` to open a separate window that shows only the three newest source/transcript or source/translation pairs.
 
 If `Save recording` is off, translation/transcription is shown in the UI but not saved to a text file.
+
+When `Microphone + PC audio` is selected, only microphone-origin text is labeled as `Me`. PC audio is intentionally not labeled as another person. For accurate labeling, use headphones; if speaker audio leaks into the microphone, the microphone recognizer can also pick up that PC audio.
 
 Your last-used UI language, mode, source language, target language, audio input, save setting, and prefix are saved locally and restored when you launch the app again.
 

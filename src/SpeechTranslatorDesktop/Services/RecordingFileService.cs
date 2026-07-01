@@ -13,6 +13,7 @@ public sealed class RecordingFileService : IRecordingFileService
     };
 
     private readonly string _rootDirectory;
+    private readonly object _appendSyncRoot = new();
     private string _recordingsDirectory;
 
     public RecordingFileService(string rootDirectory)
@@ -28,7 +29,7 @@ public sealed class RecordingFileService : IRecordingFileService
 
     public string RecordingsDirectory => _recordingsDirectory;
 
-    public void AppendTranslation(string? fileName, string sourceText, string translatedText)
+    public void AppendTranslation(string? fileName, string sourceText, string translatedText, string? speakerLabel = null)
     {
         var safeFileName = NormalizeFileName(fileName);
         if (safeFileName is null)
@@ -43,13 +44,16 @@ public sealed class RecordingFileService : IRecordingFileService
         var filePath = GetRecordingFilePath(recordingsDirectory, safeFileName);
         Directory.CreateDirectory(recordingsDirectory);
 
-        using var streamWriter = new StreamWriter(filePath, append: true, Encoding.UTF8);
-        streamWriter.WriteLine(sourceText);
-        streamWriter.WriteLine(translatedText);
-        streamWriter.WriteLine();
+        lock (_appendSyncRoot)
+        {
+            using var streamWriter = new StreamWriter(filePath, append: true, Encoding.UTF8);
+            streamWriter.WriteLine(FormatLine(sourceText, speakerLabel));
+            streamWriter.WriteLine(translatedText);
+            streamWriter.WriteLine();
+        }
     }
 
-    public void AppendTranscription(string? fileName, string sourceText)
+    public void AppendTranscription(string? fileName, string sourceText, string? speakerLabel = null)
     {
         var safeFileName = NormalizeFileName(fileName);
         if (safeFileName is null)
@@ -63,9 +67,12 @@ public sealed class RecordingFileService : IRecordingFileService
         var filePath = GetRecordingFilePath(recordingsDirectory, safeFileName);
         Directory.CreateDirectory(recordingsDirectory);
 
-        using var streamWriter = new StreamWriter(filePath, append: true, Encoding.UTF8);
-        streamWriter.WriteLine(sourceText);
-        streamWriter.WriteLine();
+        lock (_appendSyncRoot)
+        {
+            using var streamWriter = new StreamWriter(filePath, append: true, Encoding.UTF8);
+            streamWriter.WriteLine(FormatLine(sourceText, speakerLabel));
+            streamWriter.WriteLine();
+        }
     }
 
     public string OpenRecordingsFolder()
@@ -116,6 +123,13 @@ public sealed class RecordingFileService : IRecordingFileService
         }
 
         return filePath;
+    }
+
+    private static string FormatLine(string text, string? speakerLabel)
+    {
+        return string.IsNullOrWhiteSpace(speakerLabel)
+            ? text
+            : $"{speakerLabel.Trim()}: {text}";
     }
 
     private static string ValidateFileName(string fileName)

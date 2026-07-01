@@ -456,7 +456,7 @@
                                                    Grid.Column="0"
                                                    Style="{StaticResource LiveNoteText}"
                                                    FontWeight="SemiBold"
-                                                   Text="{Binding SourceText}" />
+                                                   Text="{Binding DisplaySourceText}" />
 
                                         <TextBlock Grid.Row="2"
                                                    Grid.Column="0"

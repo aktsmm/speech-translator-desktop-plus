@@ -7,7 +7,15 @@ public interface IDesktopTranslationWorker
 {
     TranslationRecognizerWorkerBase RecognizerWorker { get; }
 
+    TranslationRecognizerWorkerBase MicrophoneRecognizerWorker { get; }
+
+    TranslationRecognizerWorkerBase SystemAudioRecognizerWorker { get; }
+
     SpeechRecognizerWorkerBase SpeechRecognizerWorker { get; }
+
+    SpeechRecognizerWorkerBase MicrophoneSpeechRecognizerWorker { get; }
+
+    SpeechRecognizerWorkerBase SystemAudioSpeechRecognizerWorker { get; }
 
     event EventHandler<string>? MessageLogged;
 

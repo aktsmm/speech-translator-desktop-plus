@@ -375,6 +375,18 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public async Task Start_WhenCombinedInputSelected_PassesCombinedInputToWorkerFactory()
+    {
+        var workerFactory = new FakeDesktopTranslationWorkerFactory(new FakeDesktopTranslationWorker());
+        var viewModel = CreateViewModel(workerFactory: workerFactory);
+        viewModel.SelectedAudioInputSource = viewModel.AvailableAudioInputSources.Single(source => source.Source == AudioInputSource.MicrophoneAndSystemAudio);
+
+        await ExecuteAsync(viewModel.StartCommand);
+
+        workerFactory.LastAudioInputSource.Should().Be(AudioInputSource.MicrophoneAndSystemAudio);
+    }
+
+    [Fact]
     public async Task Start_SavesCurrentSelectionsAsPreferences()
     {
         var preferencesStore = new FakeAppPreferencesStore();
@@ -583,6 +595,24 @@ public class MainViewModelTests
             .Should()
             .BeLessThan(clipboardService.LastText.IndexOf("first", StringComparison.Ordinal));
         viewModel.StatusMessage.Should().Be("コピーしました。");
+    }
+
+    [Fact]
+    public async Task CopySourceText_WhenSpeakerLabelExists_CopiesLabeledSourceText()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var clipboardService = new FakeClipboardService();
+        var viewModel = CreateViewModel(
+            clipboardService: clipboardService,
+            workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+
+        await ExecuteAsync(viewModel.StartCommand);
+        worker.RaiseTranslationLogged(new TranslationLogItem("hello", "こんにちは", AudioSourceKind.Microphone, "自分"));
+
+        await ExecuteAsync(viewModel.CopySourceTextCommand, viewModel.TranslationLogs[0]);
+        await ExecuteAsync(viewModel.CopyTranslationLogCommand, viewModel.TranslationLogs[0]);
+
+        clipboardService.LastText.Should().Contain("自分: hello");
     }
 
     [Fact]
@@ -1046,17 +1076,19 @@ public class MainViewModelTests
         public int CreateCallCount { get; private set; }
         public string? LastRecordingFileName { get; private set; }
         public RecognitionMode? LastRecognitionMode { get; private set; }
+        public AudioInputSource? LastAudioInputSource { get; private set; }
 
         public FakeDesktopTranslationWorkerFactory(IDesktopTranslationWorker worker)
         {
             _worker = worker;
         }
 
-        public IDesktopTranslationWorker Create(string targetLanguage, string? recordingFileName, UiLanguage uiLanguage, RecognitionMode recognitionMode)
+        public IDesktopTranslationWorker Create(string targetLanguage, string? recordingFileName, UiLanguage uiLanguage, RecognitionMode recognitionMode, AudioInputSource audioInputSource)
         {
             CreateCallCount++;
             LastRecordingFileName = recordingFileName;
             LastRecognitionMode = recognitionMode;
+            LastAudioInputSource = audioInputSource;
             return _worker;
         }
     }
@@ -1080,11 +1112,11 @@ public class MainViewModelTests
             return string.IsNullOrWhiteSpace(fileName) ? null : fileName.Trim();
         }
 
-        public void AppendTranslation(string? fileName, string sourceText, string translatedText)
+        public void AppendTranslation(string? fileName, string sourceText, string translatedText, string? speakerLabel = null)
         {
         }
 
-        public void AppendTranscription(string? fileName, string sourceText)
+        public void AppendTranscription(string? fileName, string sourceText, string? speakerLabel = null)
         {
         }
 
@@ -1194,7 +1226,15 @@ public class MainViewModelTests
     {
         public TranslationRecognizerWorkerBase RecognizerWorker { get; } = new NoOpTranslationRecognizerWorker();
 
+        public TranslationRecognizerWorkerBase MicrophoneRecognizerWorker { get; } = new NoOpTranslationRecognizerWorker();
+
+        public TranslationRecognizerWorkerBase SystemAudioRecognizerWorker { get; } = new NoOpTranslationRecognizerWorker();
+
         public SpeechRecognizerWorkerBase SpeechRecognizerWorker { get; } = new NoOpSpeechRecognizerWorker();
+
+        public SpeechRecognizerWorkerBase MicrophoneSpeechRecognizerWorker { get; } = new NoOpSpeechRecognizerWorker();
+
+        public SpeechRecognizerWorkerBase SystemAudioSpeechRecognizerWorker { get; } = new NoOpSpeechRecognizerWorker();
 
         public event EventHandler<string>? MessageLogged;
 

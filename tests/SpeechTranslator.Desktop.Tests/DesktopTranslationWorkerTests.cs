@@ -80,6 +80,71 @@ public class DesktopTranslationWorkerTests
     }
 
     [Fact]
+    public void HandleTranslatedSpeech_WhenCombinedMicrophoneInput_LabelsAsSelf()
+    {
+        var recordingFileService = new RecordingSpyFileService();
+        var worker = new DesktopTranslationWorker(
+            "ja-JP",
+            "session-01",
+            recordingFileService,
+            audioInputSource: AudioInputSource.MicrophoneAndSystemAudio);
+        var translations = new List<TranslationLogItem>();
+
+        worker.TranslationLogged += (_, e) => translations.Add(e);
+
+        worker.HandleTranslatedSpeech("hello", "こんにちは", AudioSourceKind.Microphone);
+
+        var translation = translations.Should().ContainSingle().Subject;
+        translation.AudioSource.Should().Be(AudioSourceKind.Microphone);
+        translation.SpeakerLabel.Should().Be("自分");
+        translation.DisplaySourceText.Should().Be("自分: hello");
+        translation.AutomationText.Should().Be("自分: hello こんにちは");
+        recordingFileService.LastSpeakerLabel.Should().Be("自分");
+    }
+
+    [Fact]
+    public void HandleTranslatedSpeech_WhenCombinedSystemAudioInput_DoesNotLabelSpeaker()
+    {
+        var recordingFileService = new RecordingSpyFileService();
+        var worker = new DesktopTranslationWorker(
+            "ja-JP",
+            "session-01",
+            recordingFileService,
+            audioInputSource: AudioInputSource.MicrophoneAndSystemAudio);
+        var translations = new List<TranslationLogItem>();
+
+        worker.TranslationLogged += (_, e) => translations.Add(e);
+
+        worker.HandleTranslatedSpeech("hello", "こんにちは", AudioSourceKind.SystemAudio);
+
+        var translation = translations.Should().ContainSingle().Subject;
+        translation.AudioSource.Should().Be(AudioSourceKind.SystemAudio);
+        translation.SpeakerLabel.Should().BeNull();
+        translation.DisplaySourceText.Should().Be("hello");
+        recordingFileService.LastSpeakerLabel.Should().BeNull();
+    }
+
+    [Fact]
+    public void HandleTranslatedSpeech_WhenEnglishCombinedMicrophoneInput_LabelsAsMe()
+    {
+        var recordingFileService = new RecordingSpyFileService();
+        var worker = new DesktopTranslationWorker(
+            "ja-JP",
+            "session-01",
+            recordingFileService,
+            UiLanguage.English,
+            audioInputSource: AudioInputSource.MicrophoneAndSystemAudio);
+        var translations = new List<TranslationLogItem>();
+
+        worker.TranslationLogged += (_, e) => translations.Add(e);
+
+        worker.HandleTranslatedSpeech("hello", "こんにちは", AudioSourceKind.Microphone);
+
+        translations.Should().ContainSingle().Subject.DisplaySourceText.Should().Be("Me: hello");
+        recordingFileService.LastSpeakerLabel.Should().Be("Me");
+    }
+
+    [Fact]
     public void TranslationLogItem_AutomationText_IncludesTranslationWhenPresent()
     {
         var item = new TranslationLogItem("hello", "こんにちは");
@@ -122,6 +187,28 @@ public class DesktopTranslationWorkerTests
     }
 
     [Fact]
+    public void HandleTranscribedSpeech_WhenCombinedMicrophoneInput_LabelsAsSelf()
+    {
+        var recordingFileService = new RecordingSpyFileService();
+        var worker = new DesktopTranslationWorker(
+            "ja-JP",
+            "session-01",
+            recordingFileService,
+            recognitionMode: RecognitionMode.TranscriptionOnly,
+            audioInputSource: AudioInputSource.MicrophoneAndSystemAudio);
+        var translations = new List<TranslationLogItem>();
+
+        worker.TranslationLogged += (_, e) => translations.Add(e);
+
+        worker.HandleTranscribedSpeech("hello transcript", AudioSourceKind.Microphone);
+
+        var transcript = translations.Should().ContainSingle().Subject;
+        transcript.DisplaySourceText.Should().Be("自分: hello transcript");
+        transcript.AutomationText.Should().Be("自分: hello transcript");
+        recordingFileService.LastSpeakerLabel.Should().Be("自分");
+    }
+
+    [Fact]
     public void HandleTranscribedSpeech_WhenSourceIsEmpty_DoesNotLogOrSave()
     {
         var recordingFileService = new RecordingSpyFileService();
@@ -147,12 +234,12 @@ public class DesktopTranslationWorkerTests
 
         public string? NormalizeFileName(string? fileName) => fileName;
 
-        public void AppendTranslation(string? fileName, string sourceText, string translatedText)
+        public void AppendTranslation(string? fileName, string sourceText, string translatedText, string? speakerLabel = null)
         {
             throw _exception;
         }
 
-        public void AppendTranscription(string? fileName, string sourceText)
+        public void AppendTranscription(string? fileName, string sourceText, string? speakerLabel = null)
         {
             throw _exception;
         }
@@ -174,20 +261,23 @@ public class DesktopTranslationWorkerTests
         public string? LastSourceText { get; private set; }
         public string? LastTranslatedText { get; private set; }
         public string? LastTranscriptionText { get; private set; }
+        public string? LastSpeakerLabel { get; private set; }
 
         public string? NormalizeFileName(string? fileName) => fileName;
 
-        public void AppendTranslation(string? fileName, string sourceText, string translatedText)
+        public void AppendTranslation(string? fileName, string sourceText, string translatedText, string? speakerLabel = null)
         {
             AppendCallCount++;
             LastSourceText = sourceText;
             LastTranslatedText = translatedText;
+            LastSpeakerLabel = speakerLabel;
         }
 
-        public void AppendTranscription(string? fileName, string sourceText)
+        public void AppendTranscription(string? fileName, string sourceText, string? speakerLabel = null)
         {
             AppendTranscriptionCallCount++;
             LastTranscriptionText = sourceText;
+            LastSpeakerLabel = speakerLabel;
         }
 
         public string OpenRecordingsFolder() => RecordingsDirectory;

@@ -150,9 +150,12 @@ public sealed class DesktopTranslationController : ITranslationController
             return await translator.StartTranslationAsync(worker.RecognizerWorker).ConfigureAwait(false);
         }
 
-        var systemAudioInput = audioInputSource == AudioInputSource.MicrophoneAndSystemAudio
-            ? SystemAudioInput.StartMicrophoneAndSystemAudio()
-            : SystemAudioInput.StartSystemAudio();
+        if (audioInputSource == AudioInputSource.MicrophoneAndSystemAudio)
+        {
+            return await StartCombinedTranslationSessionAsync(translator, worker).ConfigureAwait(false);
+        }
+
+        var systemAudioInput = SystemAudioInput.StartSystemAudio();
         try
         {
             return await translator.StartTranslationAsync(worker.RecognizerWorker, systemAudioInput.AudioConfig, systemAudioInput).ConfigureAwait(false);
@@ -199,9 +202,12 @@ public sealed class DesktopTranslationController : ITranslationController
             }
         }
 
-        var systemAudioInput = audioInputSource == AudioInputSource.MicrophoneAndSystemAudio
-            ? SystemAudioInput.StartMicrophoneAndSystemAudio()
-            : SystemAudioInput.StartSystemAudio();
+        if (audioInputSource == AudioInputSource.MicrophoneAndSystemAudio)
+        {
+            return await StartCombinedTranscriptionSessionAsync(speechConfig, worker).ConfigureAwait(false);
+        }
+
+        var systemAudioInput = SystemAudioInput.StartSystemAudio();
         SpeechRecognitionSession? session = null;
         try
         {
@@ -222,6 +228,120 @@ public sealed class DesktopTranslationController : ITranslationController
             }
 
             throw;
+        }
+    }
+
+    internal static async Task<ITranslationSession> StartCombinedTranslationSessionAsync(Translator translator, IDesktopTranslationWorker worker)
+    {
+        ArgumentNullException.ThrowIfNull(translator);
+        ArgumentNullException.ThrowIfNull(worker);
+
+        var sessions = new List<ITranslationSession>();
+        try
+        {
+            sessions.Add(await translator.StartTranslationAsync(worker.MicrophoneRecognizerWorker).ConfigureAwait(false));
+
+            var systemAudioInput = SystemAudioInput.StartSystemAudio();
+            try
+            {
+                sessions.Add(await translator.StartTranslationAsync(worker.SystemAudioRecognizerWorker, systemAudioInput.AudioConfig, systemAudioInput).ConfigureAwait(false));
+            }
+            catch
+            {
+                systemAudioInput.Dispose();
+                throw;
+            }
+
+            return CreateCompositeSession(sessions, worker);
+        }
+        catch
+        {
+            await DisposeStartedSessionsAsync(sessions).ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    internal static async Task<ITranslationSession> StartCombinedTranscriptionSessionAsync(SpeechConfig speechConfig, IDesktopTranslationWorker worker)
+    {
+        ArgumentNullException.ThrowIfNull(speechConfig);
+        ArgumentNullException.ThrowIfNull(worker);
+
+        var sessions = new List<ITranslationSession>();
+        try
+        {
+            var microphoneAudioInput = AudioConfig.FromDefaultMicrophoneInput();
+            SpeechRecognizer? microphoneRecognizer = null;
+            SpeechRecognitionSession? microphoneSession = null;
+            try
+            {
+                microphoneRecognizer = new SpeechRecognizer(speechConfig, microphoneAudioInput);
+                microphoneSession = new SpeechRecognitionSession(microphoneAudioInput, microphoneRecognizer, worker.MicrophoneSpeechRecognizerWorker);
+                await microphoneSession.StartAsync().ConfigureAwait(false);
+                sessions.Add(microphoneSession);
+            }
+            catch
+            {
+                if (microphoneSession is not null)
+                {
+                    await microphoneSession.DisposeAsync().ConfigureAwait(false);
+                }
+                else
+                {
+                    microphoneRecognizer?.Dispose();
+                    microphoneAudioInput.Dispose();
+                }
+
+                throw;
+            }
+
+            var systemAudioInput = SystemAudioInput.StartSystemAudio();
+            SpeechRecognitionSession? systemAudioSession = null;
+            try
+            {
+                var systemAudioRecognizer = new SpeechRecognizer(speechConfig, systemAudioInput.AudioConfig);
+                systemAudioSession = new SpeechRecognitionSession(systemAudioInput.AudioConfig, systemAudioRecognizer, worker.SystemAudioSpeechRecognizerWorker, systemAudioInput);
+                await systemAudioSession.StartAsync().ConfigureAwait(false);
+                sessions.Add(systemAudioSession);
+            }
+            catch
+            {
+                if (systemAudioSession is not null)
+                {
+                    await systemAudioSession.DisposeAsync().ConfigureAwait(false);
+                }
+                else
+                {
+                    systemAudioInput.Dispose();
+                }
+
+                throw;
+            }
+
+            return CreateCompositeSession(sessions, worker);
+        }
+        catch
+        {
+            await DisposeStartedSessionsAsync(sessions).ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    private static CompositeTranslationSession CreateCompositeSession(IEnumerable<ITranslationSession> sessions, IDesktopTranslationWorker worker)
+    {
+        return new CompositeTranslationSession(sessions, () =>
+        {
+            if (worker is DesktopTranslationWorker desktopWorker)
+            {
+                desktopWorker.NotifyCombinedSessionStopped();
+            }
+        });
+    }
+
+    private static async Task DisposeStartedSessionsAsync(IEnumerable<ITranslationSession> sessions)
+    {
+        foreach (var session in sessions)
+        {
+            await session.DisposeAsync().ConfigureAwait(false);
         }
     }
 }

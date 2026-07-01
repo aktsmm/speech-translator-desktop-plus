@@ -20,6 +20,17 @@ public class RecordingFileServiceTests : IDisposable
     }
 
     [Fact]
+    public void AppendTranslation_WhenSpeakerLabelProvided_WritesLabeledSourceLine()
+    {
+        var service = new RecordingFileService(_rootDirectory);
+
+        service.AppendTranslation("session-01", "hello", "こんにちは", "自分");
+
+        var filePath = Path.Combine(_rootDirectory, "recordings", "session-01.txt");
+        File.ReadAllText(filePath, Encoding.UTF8).Should().Contain("自分: hello");
+    }
+
+    [Fact]
     public void AppendTranslation_EmptyFileName_DoesNotCreateRecording()
     {
         var service = new RecordingFileService(_rootDirectory);
@@ -39,6 +50,29 @@ public class RecordingFileServiceTests : IDisposable
         var filePath = Path.Combine(_rootDirectory, "recordings", "session-01.txt");
         File.Exists(filePath).Should().BeTrue();
         File.ReadAllText(filePath, Encoding.UTF8).Should().Contain("hello transcript");
+    }
+
+    [Fact]
+    public void AppendTranscription_WhenSpeakerLabelProvided_WritesLabeledLine()
+    {
+        var service = new RecordingFileService(_rootDirectory);
+
+        service.AppendTranscription("session-01", "hello transcript", "自分");
+
+        var filePath = Path.Combine(_rootDirectory, "recordings", "session-01.txt");
+        File.ReadAllText(filePath, Encoding.UTF8).Should().Contain("自分: hello transcript");
+    }
+
+    [Fact]
+    public void AppendTranscription_WhenCalledConcurrently_SerializesWrites()
+    {
+        var service = new RecordingFileService(_rootDirectory);
+
+        Parallel.For(0, 20, index => service.AppendTranscription("session-01", $"line-{index}", index % 2 == 0 ? "自分" : null));
+
+        var filePath = Path.Combine(_rootDirectory, "recordings", "session-01.txt");
+        var text = File.ReadAllText(filePath, Encoding.UTF8);
+        text.Should().Contain("line-0").And.Contain("line-19");
     }
 
     [Theory]

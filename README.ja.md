@@ -6,7 +6,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 
 このプロジェクトは [tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator) をベースにしています。元プロジェクトは MIT License です。元の著作権表示とライセンス文は [LICENSE](./LICENSE) に残しています。
 
-> この README は version 1.8.5 を対象にしています。
+> この README は version 1.8.6 を対象にしています。
 
 ## スクリーンショット
 
@@ -28,6 +28,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 - マイク入力
 - WASAPI loopback による PC 音声入力
   - YouTube、ライブ配信、PC で再生中の音声を VB-CABLE なしで翻訳できます
+- `マイク + PC音声` では、マイク由来の発話だけを `自分` と表示します。PC音声は複数人を含む可能性があるため、話者分類しません
 - 翻訳ログは新しいものが上に表示されるため、最新テキストをスクロールせず確認できます
 - 翻訳ログと状態ログは、必要に応じて折りたためます
 - メイン操作カードでは、状態表示と保存プレビューを関連する操作の横に置き、縦方向の余白を抑えています
@@ -56,6 +57,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 - WASAPI loopback による PC 音声キャプチャ
 - `マイク + PC音声` 入力モード
 - ライブ配信やメモ取りに使いやすいよう、既定の入力は `マイク + PC音声`
+- `マイク + PC音声` ではマイクとPC音声を別ストリームで認識し、マイク発話だけを `自分` として表示
 - 翻訳不要時に Azure Speech 認識だけを使う `書き起こしのみ` モード
 - 前回利用した言語・入力・モード・保存設定・ファイル名prefixの即時保存と復元
 - `記録を保存する` のON/OFF切り替えと `{prefix}_yyyyMMdd_HHmmss.txt` 形式の自動命名
@@ -84,7 +86,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 ### 方法1: Release zip をダウンロード
 
 1. 最新の GitHub Release を開きます。
-2. `SpeechTranslatorDesktopPlus-win-x64.zip` をダウンロードします。保管用に `SpeechTranslatorDesktopPlus-win-x64-1.8.5.zip` のような version 付きコピーも公開されます。
+2. `SpeechTranslatorDesktopPlus-win-x64.zip` をダウンロードします。保管用に `SpeechTranslatorDesktopPlus-win-x64-1.8.6.zip` のような version 付きコピーも公開されます。
 3. 任意の書き込み可能なフォルダーへ展開します。
 4. `SpeechTranslatorDesktopPlus.exe` を実行します。
 
@@ -159,6 +161,8 @@ scripts\run-dev.cmd
 13. `別ウィンドウでライブノートを開く` を押すと、原文・書き起こし/翻訳文の最新3件だけを別ウィンドウで確認できます。
 
 `記録を保存する` がOFFの場合、翻訳/書き起こしは画面に表示されますがテキストファイルには保存されません。
+
+`マイク + PC音声` を選ぶと、マイク由来のテキストだけ `自分` と表示します。PC音声側は `相手` などに分類しません。正確に分けたい場合はヘッドセット利用を推奨します。スピーカー音がマイクへ回り込むと、PC音声がマイク発話として認識されることがあります。
 
 前回利用した UI言語、利用モード、話者言語、翻訳先言語、音声入力、保存設定、ファイル名prefixはローカルに保存され、次回起動時に復元されます。
 
