@@ -6,7 +6,7 @@ Speech Translator Desktop Plus is a Windows desktop speech translator and record
 
 This project is based on [tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator). The original project is licensed under the MIT License. The original copyright and license text are preserved in [LICENSE](./LICENSE).
 
-> Documentation target: version 1.8.7.
+> Documentation target: version 1.8.8.
 
 ## Screenshots
 
@@ -37,7 +37,7 @@ This project is based on [tsubakimoto/speech-translator](https://github.com/tsub
 - Last-used UI language, source language, target language, input source, mode, save setting, and file name prefix are saved as soon as they change and restored on the next launch.
 - Recording folder selection, persistence, and "open folder" UI.
 - Dedicated settings window for UI language, Azure Speech credentials, and recording folder controls.
-- Provider clarity in Settings: Azure AI Speech is the current live provider, with Azure OpenAI Realtime / Whisper and other providers tracked as planned future work.
+- Speech provider selection in Settings: Azure AI Speech is the default live provider, and Google Cloud Speech-to-Text + Cloud Translation is available as an additional experimental provider.
 - Japanese and English UI language switching.
 - Major speech translation languages are available from the source/target language selectors.
 - Azure AI Speech region/API key persistence in SQLite with the API key protected by Windows DPAPI.
@@ -71,7 +71,7 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 - Optional live-notes pop-out window with card-style monitoring for the three newest source/transcript or source/translation pairs.
 - Configurable and persisted recording folder.
 - Dedicated settings window for UI language, credentials, and recording folders to keep the main translation screen focused.
-- Settings explains why Azure AI Speech remains the default provider for low-latency real-time translation and why Azure OpenAI Realtime / Whisper are future provider work instead of selectable broken options.
+- Settings can switch between Azure AI Speech and Google Cloud Speech + Translate. Google uses Speech-to-Text streaming and translates final transcripts with Cloud Translation, so latency and credentials differ from Azure AI Speech.
 - `Open folder` and `Choose folder` controls.
 - Japanese/English UI switching from `Settings`.
 - Additional source/target language choices.
@@ -84,7 +84,7 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 ### Option 1: Download the release zip
 
 1. Open the latest GitHub release.
-2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`. A versioned copy such as `SpeechTranslatorDesktopPlus-win-x64-1.8.7.zip` is also published for archiving.
+2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`. A versioned copy such as `SpeechTranslatorDesktopPlus-win-x64-1.8.8.zip` is also published for archiving.
 3. Extract it to any writable folder.
 4. Run `SpeechTranslatorDesktopPlus.exe`.
 
@@ -138,24 +138,27 @@ scripts\run-dev.cmd
 
 1. Open `Settings`.
 2. Select UI language: `日本語` or `English`. The choice is saved immediately.
-3. Save the Azure AI Speech `Region` and `API Key`.
-4. Select mode:
+3. Select a speech provider.
+   - `Azure AI Speech` is the default and uses `Region` + `API Key`.
+   - `Google Cloud Speech + Translate` is experimental and uses Google Project ID plus Application Default Credentials (ADC) or a service account JSON path.
+4. Save the provider settings.
+5. Select mode:
    - `Translate + transcript`
    - `Transcript only`
-5. Select source language and, when translation is enabled, target language.
-6. Select audio input:
+6. Select source language and, when translation is enabled, target language.
+7. Select audio input:
    - `Microphone`
    - `PC audio (default playback device)`
    - `Microphone + PC audio` (default)
-7. Choose whether to save recordings. Saving is on by default.
-8. Optionally enter a file name prefix, using letters/numbers/`-`/`_` only.
+8. Choose whether to save recordings. Saving is on by default.
+9. Optionally enter a file name prefix, using letters/numbers/`-`/`_` only.
    - Empty prefix uses `session`.
    - Each start creates a new `{prefix}_yyyyMMdd_HHmmss.txt` file, for example `build2026_20260603_080250.txt`.
-9. Click `Start`.
-10. Click `Clear logs` to clear the visible translation/status logs. Recording files are already created fresh on each start.
-11. Collapse `Translation log` or `Status log` when you want to reduce the visible log area.
-12. Use `Copy all`, `Copy all source`, or `Copy all translations` to copy the full live log in different formats. Use `Copy`, `Copy source`, or `Copy translation` on a card to copy only that block. For keyboard shortcuts, first click the live log list or press `Tab` until the list is focused, select a card, then use `Ctrl+C` for the selected block, `Ctrl+Shift+C` for source text, and `Ctrl+T` for translation text.
-13. Click `Open live notes window` to open a separate window that shows only the three newest source/transcript or source/translation pairs.
+10. Click `Start`.
+11. Click `Clear logs` to clear the visible translation/status logs. Recording files are already created fresh on each start.
+12. Collapse `Translation log` or `Status log` when you want to reduce the visible log area.
+13. Use `Copy all`, `Copy all source`, or `Copy all translations` to copy the full live log in different formats. Use `Copy`, `Copy source`, or `Copy translation` on a card to copy only that block. For keyboard shortcuts, first click the live log list or press `Tab` until the list is focused, select a card, then use `Ctrl+C` for the selected block, `Ctrl+Shift+C` for source text, and `Ctrl+T` for translation text.
+14. Click `Open live notes window` to open a separate window that shows only the three newest source/transcript or source/translation pairs.
 
 If `Save recording` is off, translation/transcription is shown in the UI but not saved to a text file.
 
@@ -165,11 +168,20 @@ Your last-used UI language, mode, source language, target language, audio input,
 
 Rows with no source text are ignored. In translation mode, rows with no translated text are also ignored to avoid blank lines in the UI and recording files.
 
-## Speech provider roadmap
+## Speech providers
 
-The current live provider is **Azure AI Speech**. It remains the default because it provides first-class C# Speech SDK support for low-latency real-time speech translation, transcription, and microphone/PC audio separation.
+The default live provider is **Azure AI Speech**. It provides first-class C# Speech SDK support for low-latency real-time speech translation, transcription, and microphone/PC audio separation.
 
-Azure OpenAI Realtime / Whisper, OpenAI, Google Speech-to-Text, and AWS Transcribe are tracked as future provider candidates. They are not selectable yet because they require different audio pipelines, credentials, and translation behavior.
+**Google Cloud Speech + Translate** is also available as an experimental provider. It uses Google Cloud Speech-to-Text streaming for source transcripts and Cloud Translation for final translated text. To use it, configure:
+
+- Google Project ID.
+- Location, default `us` for the `chirp_3` model.
+- Speech model, default `chirp_3`.
+- Application Default Credentials (ADC), or a service account JSON path.
+
+The Google provider code path builds and is covered by settings/routing tests, but live Google API connectivity wasn't verified in this environment because no Google Cloud credentials/project were available.
+
+Azure OpenAI Realtime / Whisper, OpenAI direct, and AWS Transcribe remain future provider candidates.
 
 ## Troubleshooting
 
@@ -178,6 +190,7 @@ Azure OpenAI Realtime / Whisper, OpenAI, Google Speech-to-Text, and AWS Transcri
 | Setup fails before publishing | Confirm Windows 10 or later. If .NET download fails, check internet/proxy settings or install .NET 10 SDK manually, then run `.\scripts\setup.ps1 -SkipDotNetInstall`. |
 | PowerShell blocks scripts | Use `scripts\setup.cmd`, or allow local scripts with `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`. |
 | App says Azure credentials are missing | Open `Settings` and save the Azure AI Speech `Region` and `API Key`, or set `SPEECH_REGION` and `SPEECH_KEY` as user environment variables before launching the app. |
+| Google Cloud provider says credentials or project are missing | Set `Google Project ID`, then sign in with Application Default Credentials (`gcloud auth application-default login`) or provide a service account JSON path. |
 | No microphone or PC audio is recognized | Check Windows privacy permissions for microphone access and confirm the playback device you want is the Windows default device. |
 | Settings or recording folder changes do not persist | Use a writable install folder and confirm `%LOCALAPPDATA%\SpeechTranslatorDesktop` can be written. |
 | Release zip integrity check is needed | Download `SHA256SUMS.txt` from the release and compare it with `Get-FileHash -Algorithm SHA256 .\SpeechTranslatorDesktopPlus-win-x64.zip`. |

@@ -12,6 +12,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Google.Cloud.Speech.V2" Version="1.8.0" />
+    <PackageReference Include="Google.Cloud.Translate.V3" Version="3.11.0" />
     <Resource Include="Assets\AppIcon.ico" />
     <Resource Include="Assets\AppIcon.png" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.7" />

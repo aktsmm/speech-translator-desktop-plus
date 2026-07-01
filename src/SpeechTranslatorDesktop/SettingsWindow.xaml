@@ -4,9 +4,9 @@
         xmlns:local="clr-namespace:SpeechTranslatorDesktop.Behaviors"
         Title="{Binding SettingsWindowTitle}"
         Icon="Assets/AppIcon.ico"
-        Height="520"
+        Height="660"
         Width="760"
-        MinHeight="480"
+        MinHeight="560"
         MinWidth="620"
         WindowStartupLocation="CenterOwner"
         Background="#F5F7FB">
@@ -49,6 +49,7 @@
             CornerRadius="14">
         <Grid>
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -101,7 +102,24 @@
                     CornerRadius="10">
                 <StackPanel>
                     <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding SpeechProviderLabel}" />
-                    <DockPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="260" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox Grid.Column="0"
+                                  ItemsSource="{Binding AvailableSpeechProviders}"
+                                  SelectedItem="{Binding SelectedSpeechProvider}"
+                                  AutomationProperties.Name="{Binding SpeechProviderLabel}"
+                                  ToolTip="{Binding SpeechProviderCurrentDescription}" />
+                        <TextBlock Grid.Column="1"
+                                   Margin="12,0,0,0"
+                                   VerticalAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Foreground="#334155"
+                                   Text="{Binding SpeechProviderCurrentDescription}" />
+                    </Grid>
+                    <DockPanel Margin="0,8,0,0">
                         <Border DockPanel.Dock="Left"
                                 Margin="0,0,12,0"
                                 Padding="10,6"
@@ -127,14 +145,51 @@
                 </StackPanel>
             </Border>
 
-            <StackPanel Grid.Row="3" Grid.Column="0" Margin="0,0,12,12">
+            <StackPanel Grid.Row="3"
+                        Grid.Column="0"
+                        Grid.ColumnSpan="2"
+                        Margin="0,0,0,12"
+                        Visibility="{Binding GoogleProviderSettingsVisibility}">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding GoogleProjectIdLabel}" />
+                <TextBox AutomationProperties.Name="{Binding GoogleProjectIdLabel}"
+                         ToolTip="{Binding GoogleProjectIdLabel}"
+                         Text="{Binding GoogleProjectId, UpdateSourceTrigger=PropertyChanged}" />
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding GoogleLocationLabel}" />
+                        <TextBox AutomationProperties.Name="{Binding GoogleLocationLabel}"
+                                 ToolTip="{Binding GoogleLocationLabel}"
+                                 Text="{Binding GoogleLocation, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding GoogleSpeechModelLabel}" />
+                        <TextBox AutomationProperties.Name="{Binding GoogleSpeechModelLabel}"
+                                 ToolTip="{Binding GoogleSpeechModelLabel}"
+                                 Text="{Binding GoogleSpeechModel, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                </Grid>
+                <TextBlock Margin="0,8,0,0" Style="{StaticResource FieldLabel}" Text="{Binding GoogleCredentialsPathLabel}" />
+                <TextBox AutomationProperties.Name="{Binding GoogleCredentialsPathLabel}"
+                         ToolTip="{Binding GoogleCredentialsHint}"
+                         Text="{Binding GoogleCredentialsPath, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Margin="0,6,0,0"
+                           Foreground="#64748B"
+                           TextWrapping="Wrap"
+                           Text="{Binding GoogleCredentialsHint}" />
+            </StackPanel>
+
+            <StackPanel Grid.Row="4" Grid.Column="0" Margin="0,0,12,12">
                 <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding RecordingsFolderLabel}" />
                 <TextBox IsReadOnly="True"
                          AutomationProperties.Name="{Binding RecordingsFolderLabel}"
                          ToolTip="{Binding RecordingsFolderPath}"
                          Text="{Binding RecordingsFolderPath, Mode=OneWay}" />
             </StackPanel>
-            <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Margin="0,20,0,12">
+            <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="0,20,0,12">
                 <Button Width="90"
                         Style="{StaticResource ActionButton}"
                         Command="{Binding ChooseRecordingsFolderCommand}"
@@ -150,14 +205,14 @@
                         Content="{Binding OpenButtonText}" />
             </StackPanel>
 
-            <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,12">
+            <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,12" Visibility="{Binding AzureProviderSettingsVisibility}">
                 <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding AzureRegionLabel}" />
                 <TextBox AutomationProperties.Name="{Binding AzureRegionLabel}"
                          ToolTip="{Binding AzureRegionLabel}"
                          Text="{Binding AzureRegion, UpdateSourceTrigger=PropertyChanged}" />
             </StackPanel>
 
-            <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,12">
+            <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,12" Visibility="{Binding AzureProviderSettingsVisibility}">
                 <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding ApiKeyLabel}" />
                 <PasswordBox AutomationProperties.Name="{Binding ApiKeyLabel}"
                              ToolTip="{Binding ApiKeyLabel}"
@@ -165,7 +220,7 @@
                              local:PasswordBoxBindingBehavior.BoundPassword="{Binding AzureApiKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
             </StackPanel>
 
-            <DockPanel Grid.Row="6" Grid.ColumnSpan="2">
+            <DockPanel Grid.Row="7" Grid.ColumnSpan="2">
                 <TextBlock VerticalAlignment="Center"
                            TextWrapping="Wrap"
                            Text="{Binding SettingsStatusMessage}" />

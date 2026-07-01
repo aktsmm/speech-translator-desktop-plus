@@ -22,12 +22,17 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private IDesktopTranslationWorker? _currentWorker;
     private AudioInputSourceOption? _selectedAudioInputSource;
     private RecognitionModeOption? _selectedRecognitionMode;
+    private SpeechProviderOption? _selectedSpeechProvider;
     private LanguageOption? _selectedSourceLanguage;
     private LanguageOption? _selectedTargetLanguage;
     private TranslationLogItem? _selectedTranslationLog;
     private UiLanguageOption? _selectedUiLanguage;
     private string _azureApiKey = string.Empty;
     private string _azureRegion = string.Empty;
+    private string _googleCredentialsPath = string.Empty;
+    private string _googleLocation = GoogleCloudServiceSettings.DefaultLocation;
+    private string _googleProjectId = string.Empty;
+    private string _googleSpeechModel = GoogleCloudServiceSettings.DefaultSpeechModel;
     private string _recordingFileNamePrefix = string.Empty;
     private string _recordingsFolderPath = string.Empty;
     private string _settingsStatusMessage = string.Empty;
@@ -85,6 +90,18 @@ public sealed class MainViewModel : INotifyPropertyChanged
             new UiLanguageOption(UiLanguage.English, "English")
         ];
 
+        AvailableSpeechProviders =
+        [
+            new SpeechProviderOption(
+                SpeechProviderKind.AzureAiSpeech,
+                "Azure AI Speech",
+                "Low-latency real-time translation and transcription via Microsoft Speech SDK."),
+            new SpeechProviderOption(
+                SpeechProviderKind.GoogleCloud,
+                "Google Cloud Speech + Translate (experimental)",
+                "Streaming Speech-to-Text via Google Cloud and final text translation via Cloud Translation.")
+        ];
+
         var defaultUiLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.Equals("ja", StringComparison.OrdinalIgnoreCase)
             ? UiLanguage.Japanese
             : UiLanguage.English;
@@ -95,6 +112,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             CreateRecognitionModeOptions(defaultUiLanguage);
 
         _selectedUiLanguage = AvailableUiLanguages.First(option => option.Language == defaultUiLanguage);
+        _selectedSpeechProvider = AvailableSpeechProviders.First(option => option.Provider == SpeechProviderKind.AzureAiSpeech);
         _selectedAudioInputSource = AvailableAudioInputSources.First(option => option.Source == AudioInputSource.MicrophoneAndSystemAudio);
         _selectedRecognitionMode = AvailableRecognitionModes.First(option => option.Mode == RecognitionMode.Translation);
         _selectedSourceLanguage = AvailableLanguages[0];
@@ -129,6 +147,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public ObservableCollection<RecognitionModeOption> AvailableRecognitionModes { get; }
 
+    public ObservableCollection<SpeechProviderOption> AvailableSpeechProviders { get; }
+
     public ObservableCollection<UiLanguageOption> AvailableUiLanguages { get; }
 
     public string AzureApiKey
@@ -158,6 +178,71 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
             _azureRegion = value;
             OnPropertyChanged();
+        }
+    }
+
+    public string GoogleCredentialsPath
+    {
+        get => _googleCredentialsPath;
+        set
+        {
+            if (_googleCredentialsPath == value)
+            {
+                return;
+            }
+
+            _googleCredentialsPath = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(GoogleCredentialsHint));
+            QueueAppPreferencesSave();
+        }
+    }
+
+    public string GoogleLocation
+    {
+        get => _googleLocation;
+        set
+        {
+            if (_googleLocation == value)
+            {
+                return;
+            }
+
+            _googleLocation = value;
+            OnPropertyChanged();
+            QueueAppPreferencesSave();
+        }
+    }
+
+    public string GoogleProjectId
+    {
+        get => _googleProjectId;
+        set
+        {
+            if (_googleProjectId == value)
+            {
+                return;
+            }
+
+            _googleProjectId = value;
+            OnPropertyChanged();
+            QueueAppPreferencesSave();
+        }
+    }
+
+    public string GoogleSpeechModel
+    {
+        get => _googleSpeechModel;
+        set
+        {
+            if (_googleSpeechModel == value)
+            {
+                return;
+            }
+
+            _googleSpeechModel = value;
+            OnPropertyChanged();
+            QueueAppPreferencesSave();
         }
     }
 
@@ -289,6 +374,28 @@ public sealed class MainViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(IsTranslationMode));
             OnPropertyChanged(nameof(TranslationColumnVisibility));
             RaiseUiTextChanged();
+            QueueAppPreferencesSave();
+        }
+    }
+
+    public SpeechProviderOption? SelectedSpeechProvider
+    {
+        get => _selectedSpeechProvider;
+        set
+        {
+            if (_selectedSpeechProvider == value)
+            {
+                return;
+            }
+
+            _selectedSpeechProvider = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsGoogleProviderSelected));
+            OnPropertyChanged(nameof(IsAzureProviderSelected));
+            OnPropertyChanged(nameof(AzureProviderSettingsVisibility));
+            OnPropertyChanged(nameof(GoogleProviderSettingsVisibility));
+            OnPropertyChanged(nameof(SpeechProviderCurrentDescription));
+            OnPropertyChanged(nameof(SpeechProviderCurrentName));
             QueueAppPreferencesSave();
         }
     }
@@ -430,7 +537,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string AzureRegionLabel => Text("リージョン", "Region");
 
-    public string AzureSettingsHeader => Text("保存先 / Azure AI Speech 設定", "Recordings / Azure AI Speech settings");
+    public string AzureSettingsHeader => Text("保存先 / Provider 設定", "Recordings / provider settings");
 
     public string ChooseButtonText => Text("選択", "Choose");
 
@@ -477,19 +584,39 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string RecordingFolderPickerTitle => Text("翻訳ログの保存先フォルダーを選択", "Choose recordings folder");
 
-    public string SpeechProviderCurrentDescription => Text(
-        "低遅延のリアルタイム翻訳、書き起こし、マイク/PC音声分離を安定して扱えるため、現在の既定Providerです。",
-        "Current default provider because it supports low-latency real-time translation, transcription, and separated microphone/PC audio.");
+    public string GoogleCredentialsHint => Text(
+        string.IsNullOrWhiteSpace(GoogleCredentialsPath)
+            ? "空欄の場合は Google Application Default Credentials (ADC) を使用します。"
+            : "指定したサービスアカウントJSONを使用します。",
+        string.IsNullOrWhiteSpace(GoogleCredentialsPath)
+            ? "Blank uses Google Application Default Credentials (ADC)."
+            : "Uses the specified service account JSON file.");
 
-    public string SpeechProviderCurrentName => "Azure AI Speech";
+    public string GoogleCredentialsPathLabel => Text("Google認証JSONパス（任意）", "Google credentials JSON path (optional)");
+
+    public string GoogleLocationLabel => Text("Google Location", "Google location");
+
+    public string GoogleProjectIdLabel => Text("Google Project ID", "Google Project ID");
+
+    public string GoogleSpeechModelLabel => Text("Google Speech model", "Google Speech model");
+
+    public string SpeechProviderCurrentDescription => SelectedSpeechProvider?.Provider == SpeechProviderKind.GoogleCloud
+        ? Text(
+            "Google Cloud Speech-to-Text のストリーミング認識と Cloud Translation の2段構成です。ADCまたはサービスアカウントJSONが必要です。この環境ではGoogle実APIの疎通は未検証です。",
+            "Uses Google Cloud Speech-to-Text streaming plus Cloud Translation. Requires ADC or a service account JSON file. Live Google API connectivity is not verified in this environment.")
+        : Text(
+            "低遅延のリアルタイム翻訳、書き起こし、マイク/PC音声分離を安定して扱える既定Providerです。",
+            "Default provider for low-latency real-time translation, transcription, and separated microphone/PC audio.");
+
+    public string SpeechProviderCurrentName => SelectedSpeechProvider?.DisplayName ?? "Azure AI Speech";
 
     public string SpeechProviderLabel => Text("音声Provider", "Speech provider");
 
     public string SpeechProviderRoadmap => Text(
-        "Azure OpenAI Realtime / Whisper、OpenAI、Google、AWSなどは対応候補です。Azure OpenAI RealtimeはWebSocket/PCM音声パイプラインが必要なため、今後のProvider実装として追加します。",
-        "Azure OpenAI Realtime / Whisper, OpenAI, Google, and AWS are candidates. Azure OpenAI Realtime requires a WebSocket/PCM audio pipeline, so it will be added as a future provider implementation.");
+        "Azure OpenAI Realtime / Whisper、OpenAI、AWSなどは今後のProvider候補です。Google Cloudはこの画面から設定して利用できます。",
+        "Azure OpenAI Realtime / Whisper, OpenAI, and AWS are future provider candidates. Google Cloud can be configured from this screen.");
 
-    public string SpeechProviderRoadmapLabel => Text("対応予定（現在は利用できません）", "Planned (not yet available)");
+    public string SpeechProviderRoadmapLabel => Text("Providerロードマップ", "Provider roadmap");
 
     public string SaveButtonText => Text("保存", "Save");
 
@@ -526,6 +653,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public string UiLanguageSettingsHint => Text("選択するとすぐ保存され、次回起動時にも復元されます。", "Applies immediately and is restored on the next launch.");
 
     public bool IsTranslationMode => SelectedRecognitionMode?.Mode != RecognitionMode.TranscriptionOnly;
+
+    public bool IsAzureProviderSelected => SelectedSpeechProvider?.Provider != SpeechProviderKind.GoogleCloud;
+
+    public bool IsGoogleProviderSelected => SelectedSpeechProvider?.Provider == SpeechProviderKind.GoogleCloud;
+
+    public Visibility AzureProviderSettingsVisibility => IsAzureProviderSelected ? Visibility.Visible : Visibility.Collapsed;
+
+    public Visibility GoogleProviderSettingsVisibility => IsGoogleProviderSelected ? Visibility.Visible : Visibility.Collapsed;
 
     public Visibility TranslationColumnVisibility => IsTranslationMode ? Visibility.Visible : Visibility.Collapsed;
 
@@ -605,8 +740,17 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 SelectedRecognitionMode = AvailableRecognitionModes.FirstOrDefault(option => option.Mode == recognitionMode) ?? SelectedRecognitionMode;
             }
 
+            if (Enum.TryParse<SpeechProviderKind>(preferences.SpeechProvider, out var speechProvider))
+            {
+                SelectedSpeechProvider = AvailableSpeechProviders.FirstOrDefault(option => option.Provider == speechProvider) ?? SelectedSpeechProvider;
+            }
+
             IsRecordingSaveEnabled = preferences.IsRecordingSaveEnabled ?? true;
             RecordingFileName = preferences.RecordingFileNamePrefix ?? string.Empty;
+            GoogleProjectId = preferences.GoogleProjectId ?? string.Empty;
+            GoogleLocation = string.IsNullOrWhiteSpace(preferences.GoogleLocation) ? GoogleCloudServiceSettings.DefaultLocation : preferences.GoogleLocation;
+            GoogleSpeechModel = string.IsNullOrWhiteSpace(preferences.GoogleSpeechModel) ? GoogleCloudServiceSettings.DefaultSpeechModel : preferences.GoogleSpeechModel;
+            GoogleCredentialsPath = preferences.GoogleCredentialsPath ?? string.Empty;
         }
         catch (Exception ex)
         {
@@ -644,14 +788,31 @@ public sealed class MainViewModel : INotifyPropertyChanged
             return;
         }
 
-        var credentialsResult = _credentialsProvider.GetCredentials(AzureRegion, AzureApiKey);
-        if (!credentialsResult.IsValid || credentialsResult.Credentials is null)
+        SpeechCredentials? azureCredentials = null;
+        GoogleCloudServiceSettings? googleSettings = null;
+        if (SelectedSpeechProvider?.Provider == SpeechProviderKind.GoogleCloud)
         {
-            StatusMessage = Text(
-                $"Azure AI Speech の認証情報が未設定です。設定画面で保存するか、環境変数を設定してください: SPEECH_REGION, SPEECH_KEY",
-                "Azure AI Speech credentials are not configured. Save them in the settings area or set environment variables: SPEECH_REGION, SPEECH_KEY");
-            AddActivityLog(credentialsResult.ErrorMessage);
-            return;
+            googleSettings = CreateGoogleCloudSettings();
+            if (string.IsNullOrWhiteSpace(googleSettings.ProjectId))
+            {
+                StatusMessage = Text("Google Project ID を設定してください。", "Set the Google Project ID.");
+                AddActivityLog(StatusMessage);
+                return;
+            }
+        }
+        else
+        {
+            var credentialsResult = _credentialsProvider.GetCredentials(AzureRegion, AzureApiKey);
+            if (!credentialsResult.IsValid || credentialsResult.Credentials is null)
+            {
+                StatusMessage = Text(
+                    $"Azure AI Speech の認証情報が未設定です。設定画面で保存するか、環境変数を設定してください: SPEECH_REGION, SPEECH_KEY",
+                    "Azure AI Speech credentials are not configured. Save them in the settings area or set environment variables: SPEECH_REGION, SPEECH_KEY");
+                AddActivityLog(credentialsResult.ErrorMessage);
+                return;
+            }
+
+            azureCredentials = credentialsResult.Credentials;
         }
 
         var targetLanguage = SelectedTargetLanguage?.Code ?? SelectedSourceLanguage.Code;
@@ -663,7 +824,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             await SaveAppPreferencesAsync();
             await _translationController.StartAsync(
-                credentialsResult.Credentials,
+                SelectedSpeechProvider?.Provider ?? SpeechProviderKind.AzureAiSpeech,
+                azureCredentials,
+                googleSettings,
                 SelectedSourceLanguage.Code,
                 targetLanguage,
                 SelectedAudioInputSource.Source,
@@ -689,6 +852,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private async Task SaveSettingsAsync()
     {
+        await SaveAppPreferencesAsync();
+        if (SelectedSpeechProvider?.Provider == SpeechProviderKind.GoogleCloud)
+        {
+            SettingsStatusMessage = Text("Google Cloud Provider 設定を保存しました。", "Saved Google Cloud provider settings.");
+            AddActivityLog(SettingsStatusMessage);
+            return;
+        }
+
         var normalizedRegion = AzureRegion.Trim();
         var normalizedApiKey = AzureApiKey.Trim();
 
@@ -1025,7 +1196,21 @@ public sealed class MainViewModel : INotifyPropertyChanged
             SelectedAudioInputSource?.Source.ToString(),
             SelectedRecognitionMode?.Mode.ToString(),
             IsRecordingSaveEnabled,
-            RecordingFileName));
+            RecordingFileName,
+            SelectedSpeechProvider?.Provider.ToString(),
+            GoogleProjectId,
+            GoogleLocation,
+            GoogleSpeechModel,
+            GoogleCredentialsPath));
+    }
+
+    private GoogleCloudServiceSettings CreateGoogleCloudSettings()
+    {
+        return new GoogleCloudServiceSettings(
+            GoogleProjectId.Trim(),
+            string.IsNullOrWhiteSpace(GoogleLocation) ? GoogleCloudServiceSettings.DefaultLocation : GoogleLocation.Trim(),
+            string.IsNullOrWhiteSpace(GoogleSpeechModel) ? GoogleCloudServiceSettings.DefaultSpeechModel : GoogleSpeechModel.Trim(),
+            string.IsNullOrWhiteSpace(GoogleCredentialsPath) ? null : GoogleCredentialsPath.Trim());
     }
 
     public Task FlushPendingAppPreferencesSaveAsync()
@@ -1124,7 +1309,16 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CopyBlockButtonText));
         OnPropertyChanged(nameof(CopySourceButtonText));
         OnPropertyChanged(nameof(CopyTranslationButtonText));
+        OnPropertyChanged(nameof(GoogleCredentialsHint));
+        OnPropertyChanged(nameof(GoogleCredentialsPathLabel));
+        OnPropertyChanged(nameof(GoogleLocationLabel));
+        OnPropertyChanged(nameof(GoogleProjectIdLabel));
+        OnPropertyChanged(nameof(GoogleSpeechModelLabel));
+        OnPropertyChanged(nameof(GoogleProviderSettingsVisibility));
         OnPropertyChanged(nameof(HeroSubtitle));
+        OnPropertyChanged(nameof(AzureProviderSettingsVisibility));
+        OnPropertyChanged(nameof(IsAzureProviderSelected));
+        OnPropertyChanged(nameof(IsGoogleProviderSelected));
         OnPropertyChanged(nameof(OpenButtonText));
         OnPropertyChanged(nameof(RecognitionModeLabel));
         OnPropertyChanged(nameof(RecordingFileNameLabel));

@@ -1,4 +1,5 @@
 using Microsoft.Data.Sqlite;
+using SpeechTranslatorDesktop.Models;
 using SpeechTranslatorDesktop.Services;
 
 namespace SpeechTranslator.Desktop.Tests;
@@ -25,7 +26,12 @@ public class SqliteAppPreferencesStoreTests : IDisposable
             "SystemAudio",
             "TranscriptionOnly",
             false,
-            "build2026"));
+            "build2026",
+            nameof(SpeechProviderKind.GoogleCloud),
+            "my-project",
+            "global",
+            "chirp_3",
+            @"C:\keys\google.json"));
 
         var preferences = await store.LoadAsync();
 
@@ -36,7 +42,12 @@ public class SqliteAppPreferencesStoreTests : IDisposable
             "SystemAudio",
             "TranscriptionOnly",
             false,
-            "build2026"));
+            "build2026",
+            nameof(SpeechProviderKind.GoogleCloud),
+            "my-project",
+            "global",
+            "chirp_3",
+            @"C:\keys\google.json"));
     }
 
     [Fact]
@@ -78,6 +89,11 @@ public class SqliteAppPreferencesStoreTests : IDisposable
             "MicrophoneAndSystemAudio",
             "Translation",
             true,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            string.Empty,
             string.Empty));
     }
 

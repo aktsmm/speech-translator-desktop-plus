@@ -61,6 +61,27 @@ public sealed class DesktopTranslationWorker : TranslationRecognizerWorkerBase, 
 
     public event EventHandler<TranslationLogItem>? TranslationLogged;
 
+    public void ReportError(string message)
+    {
+        RaiseStatusChanged(DesktopTranslationStatus.Error, message);
+        MessageLogged?.Invoke(this, message);
+    }
+
+    public void ReportRecognizing()
+    {
+        RaiseStatusChanged(DesktopTranslationStatus.Recognizing, Text("認識中", "Recognizing"));
+    }
+
+    public void ReportTranscribedSpeech(string sourceText, AudioSourceKind audioSource = AudioSourceKind.Unspecified)
+    {
+        HandleTranscribedSpeech(sourceText, audioSource);
+    }
+
+    public void ReportTranslatedSpeech(string sourceText, string translatedText, AudioSourceKind audioSource = AudioSourceKind.Unspecified)
+    {
+        HandleTranslatedSpeech(sourceText, translatedText, audioSource);
+    }
+
     public override void OnRecognizing(TranslationRecognitionEventArgs e)
     {
         RaiseStatusChanged(DesktopTranslationStatus.Recognizing, Text("認識中", "Recognizing"));

@@ -7,7 +7,7 @@ public interface ITranslationController
 {
     bool IsRunning { get; }
 
-    Task StartAsync(SpeechCredentials credentials, string sourceLanguage, string targetLanguage, AudioInputSource audioInputSource, RecognitionMode recognitionMode, IDesktopTranslationWorker worker, CancellationToken cancellationToken = default);
+    Task StartAsync(SpeechProviderKind speechProvider, SpeechCredentials? credentials, GoogleCloudServiceSettings? googleSettings, string sourceLanguage, string targetLanguage, AudioInputSource audioInputSource, RecognitionMode recognitionMode, IDesktopTranslationWorker worker, CancellationToken cancellationToken = default);
 
     Task StopAsync(CancellationToken cancellationToken = default);
 }

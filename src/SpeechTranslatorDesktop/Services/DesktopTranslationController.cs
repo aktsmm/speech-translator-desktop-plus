@@ -6,7 +6,7 @@ namespace SpeechTranslatorDesktop.Services;
 public sealed class DesktopTranslationController : ITranslationController
 {
     private readonly object _syncRoot = new();
-    private readonly Func<SpeechCredentials, string, string, AudioInputSource, RecognitionMode, IDesktopTranslationWorker, CancellationToken, Task<ITranslationSession>> _startSessionAsync;
+    private readonly Func<SpeechProviderKind, SpeechCredentials?, GoogleCloudServiceSettings?, string, string, AudioInputSource, RecognitionMode, IDesktopTranslationWorker, CancellationToken, Task<ITranslationSession>> _startSessionAsync;
     private ITranslationSession? _session;
     private ITranslationSession? _sessionBeingStopped;
 
@@ -15,7 +15,7 @@ public sealed class DesktopTranslationController : ITranslationController
     {
     }
 
-    internal DesktopTranslationController(Func<SpeechCredentials, string, string, AudioInputSource, RecognitionMode, IDesktopTranslationWorker, CancellationToken, Task<ITranslationSession>> startSessionAsync)
+    internal DesktopTranslationController(Func<SpeechProviderKind, SpeechCredentials?, GoogleCloudServiceSettings?, string, string, AudioInputSource, RecognitionMode, IDesktopTranslationWorker, CancellationToken, Task<ITranslationSession>> startSessionAsync)
     {
         _startSessionAsync = startSessionAsync ?? throw new ArgumentNullException(nameof(startSessionAsync));
     }
@@ -31,9 +31,8 @@ public sealed class DesktopTranslationController : ITranslationController
         }
     }
 
-    public async Task StartAsync(SpeechCredentials credentials, string sourceLanguage, string targetLanguage, AudioInputSource audioInputSource, RecognitionMode recognitionMode, IDesktopTranslationWorker worker, CancellationToken cancellationToken = default)
+    public async Task StartAsync(SpeechProviderKind speechProvider, SpeechCredentials? credentials, GoogleCloudServiceSettings? googleSettings, string sourceLanguage, string targetLanguage, AudioInputSource audioInputSource, RecognitionMode recognitionMode, IDesktopTranslationWorker worker, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(credentials);
         ArgumentNullException.ThrowIfNull(worker);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceLanguage);
         ArgumentException.ThrowIfNullOrWhiteSpace(targetLanguage);
@@ -47,7 +46,7 @@ public sealed class DesktopTranslationController : ITranslationController
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        var session = await _startSessionAsync(credentials, sourceLanguage, targetLanguage, audioInputSource, recognitionMode, worker, cancellationToken).ConfigureAwait(false);
+        var session = await _startSessionAsync(speechProvider, credentials, googleSettings, sourceLanguage, targetLanguage, audioInputSource, recognitionMode, worker, cancellationToken).ConfigureAwait(false);
 
         lock (_syncRoot)
         {
@@ -134,9 +133,19 @@ public sealed class DesktopTranslationController : ITranslationController
         }
     }
 
-    private static async Task<ITranslationSession> StartSessionAsync(SpeechCredentials credentials, string sourceLanguage, string targetLanguage, AudioInputSource audioInputSource, RecognitionMode recognitionMode, IDesktopTranslationWorker worker, CancellationToken cancellationToken)
+    private static async Task<ITranslationSession> StartSessionAsync(SpeechProviderKind speechProvider, SpeechCredentials? credentials, GoogleCloudServiceSettings? googleSettings, string sourceLanguage, string targetLanguage, AudioInputSource audioInputSource, RecognitionMode recognitionMode, IDesktopTranslationWorker worker, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        if (speechProvider == SpeechProviderKind.GoogleCloud)
+        {
+            return await StartGoogleSessionAsync(googleSettings, sourceLanguage, targetLanguage, audioInputSource, recognitionMode, worker, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (credentials is null)
+        {
+            throw new InvalidOperationException("Azure AI Speech credentials are required.");
+        }
 
         if (recognitionMode == RecognitionMode.TranscriptionOnly)
         {
@@ -343,5 +352,34 @@ public sealed class DesktopTranslationController : ITranslationController
         {
             await session.DisposeAsync().ConfigureAwait(false);
         }
+    }
+
+    private static async Task<ITranslationSession> StartGoogleSessionAsync(GoogleCloudServiceSettings? settings, string sourceLanguage, string targetLanguage, AudioInputSource audioInputSource, RecognitionMode recognitionMode, IDesktopTranslationWorker worker, CancellationToken cancellationToken)
+    {
+        if (settings is null || string.IsNullOrWhiteSpace(settings.ProjectId))
+        {
+            throw new InvalidOperationException("Google Cloud project ID is required. Set it in Settings or GOOGLE_CLOUD_PROJECT.");
+        }
+
+        if (audioInputSource == AudioInputSource.MicrophoneAndSystemAudio)
+        {
+            var sessions = new List<ITranslationSession>();
+            try
+            {
+                sessions.Add(await GoogleCloudTranslationSession.StartAsync(settings, sourceLanguage, targetLanguage, AudioInputSource.Microphone, recognitionMode, worker, AudioSourceKind.Microphone, cancellationToken).ConfigureAwait(false));
+                sessions.Add(await GoogleCloudTranslationSession.StartAsync(settings, sourceLanguage, targetLanguage, AudioInputSource.SystemAudio, recognitionMode, worker, AudioSourceKind.SystemAudio, cancellationToken).ConfigureAwait(false));
+                return CreateCompositeSession(sessions, worker);
+            }
+            catch
+            {
+                await DisposeStartedSessionsAsync(sessions).ConfigureAwait(false);
+                throw;
+            }
+        }
+
+        var audioSource = audioInputSource == AudioInputSource.SystemAudio
+            ? AudioSourceKind.SystemAudio
+            : AudioSourceKind.Unspecified;
+        return await GoogleCloudTranslationSession.StartAsync(settings, sourceLanguage, targetLanguage, audioInputSource, recognitionMode, worker, audioSource, cancellationToken).ConfigureAwait(false);
     }
 }

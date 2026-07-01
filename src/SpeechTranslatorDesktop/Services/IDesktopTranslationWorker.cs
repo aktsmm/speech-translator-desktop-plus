@@ -17,6 +17,14 @@ public interface IDesktopTranslationWorker
 
     SpeechRecognizerWorkerBase SystemAudioSpeechRecognizerWorker { get; }
 
+    void ReportError(string message);
+
+    void ReportRecognizing();
+
+    void ReportTranscribedSpeech(string sourceText, AudioSourceKind audioSource = AudioSourceKind.Unspecified);
+
+    void ReportTranslatedSpeech(string sourceText, string translatedText, AudioSourceKind audioSource = AudioSourceKind.Unspecified);
+
     event EventHandler<string>? MessageLogged;
 
     event EventHandler<WorkerStatusChangedEventArgs>? StatusChanged;

@@ -410,7 +410,12 @@ public class MainViewModelTests
             nameof(AudioInputSource.SystemAudio),
             nameof(RecognitionMode.TranscriptionOnly),
             false,
-            "build2026"));
+            "build2026",
+            nameof(SpeechProviderKind.AzureAiSpeech),
+            string.Empty,
+            GoogleCloudServiceSettings.DefaultLocation,
+            GoogleCloudServiceSettings.DefaultSpeechModel,
+            string.Empty));
     }
 
     [Fact]
@@ -425,7 +430,12 @@ public class MainViewModelTests
                 nameof(AudioInputSource.SystemAudio),
                 nameof(RecognitionMode.TranscriptionOnly),
                 false,
-                "build2026")
+                "build2026",
+                nameof(SpeechProviderKind.GoogleCloud),
+                "my-project",
+                "us-central1",
+                "chirp_3",
+                @"C:\keys\google.json")
         });
 
         await viewModel.InitializeAsync();
@@ -437,6 +447,11 @@ public class MainViewModelTests
         viewModel.SelectedRecognitionMode!.Mode.Should().Be(RecognitionMode.TranscriptionOnly);
         viewModel.IsRecordingSaveEnabled.Should().BeFalse();
         viewModel.RecordingFileName.Should().Be("build2026");
+        viewModel.SelectedSpeechProvider!.Provider.Should().Be(SpeechProviderKind.GoogleCloud);
+        viewModel.GoogleProjectId.Should().Be("my-project");
+        viewModel.GoogleLocation.Should().Be("us-central1");
+        viewModel.GoogleSpeechModel.Should().Be("chirp_3");
+        viewModel.GoogleCredentialsPath.Should().Be(@"C:\keys\google.json");
         viewModel.SourceTextHeader.Should().Be("Transcript");
     }
 
@@ -462,7 +477,12 @@ public class MainViewModelTests
             nameof(AudioInputSource.SystemAudio),
             nameof(RecognitionMode.TranscriptionOnly),
             false,
-            "build2026"));
+            "build2026",
+            nameof(SpeechProviderKind.AzureAiSpeech),
+            string.Empty,
+            GoogleCloudServiceSettings.DefaultLocation,
+            GoogleCloudServiceSettings.DefaultSpeechModel,
+            string.Empty));
     }
 
     [Fact]
@@ -477,7 +497,12 @@ public class MainViewModelTests
                 nameof(AudioInputSource.SystemAudio),
                 nameof(RecognitionMode.TranscriptionOnly),
                 false,
-                "build2026")
+                "build2026",
+                nameof(SpeechProviderKind.GoogleCloud),
+                "my-project",
+                "global",
+                "chirp_3",
+                string.Empty)
         };
         var viewModel = CreateViewModel(appPreferencesStore: preferencesStore);
         preferencesStore.ResetSavedPreferences();
@@ -835,12 +860,12 @@ public class MainViewModelTests
         viewModel.TargetLanguageLabel.Should().Be("Target language");
         viewModel.HeroSubtitle.Should().Be("Azure AI Speech realtime captions, translation, and local notes.");
         viewModel.AzureRegionLabel.Should().Be("Region");
-        viewModel.AzureSettingsHeader.Should().Be("Recordings / Azure AI Speech settings");
+        viewModel.AzureSettingsHeader.Should().Be("Recordings / provider settings");
         viewModel.SpeechProviderLabel.Should().Be("Speech provider");
         viewModel.SpeechProviderCurrentName.Should().Be("Azure AI Speech");
         viewModel.SpeechProviderCurrentDescription.Should().Contain("real-time translation");
-        viewModel.SpeechProviderRoadmapLabel.Should().Be("Planned (not yet available)");
-        viewModel.SpeechProviderRoadmap.Should().Contain("Azure OpenAI Realtime").And.Contain("future provider");
+        viewModel.SpeechProviderRoadmapLabel.Should().Be("Provider roadmap");
+        viewModel.SpeechProviderRoadmap.Should().Contain("Azure OpenAI Realtime").And.Contain("Google Cloud");
         viewModel.StartButtonText.Should().Be("Start");
         viewModel.StopButtonText.Should().Be("Stop");
         viewModel.SettingsButtonText.Should().Be("Settings");
@@ -862,12 +887,30 @@ public class MainViewModelTests
 
         viewModel.SelectedUiLanguage = viewModel.AvailableUiLanguages.Single(option => option.Language == UiLanguage.Japanese);
 
-        viewModel.AzureSettingsHeader.Should().Be("保存先 / Azure AI Speech 設定");
+        viewModel.AzureSettingsHeader.Should().Be("保存先 / Provider 設定");
         viewModel.SpeechProviderLabel.Should().Be("音声Provider");
         viewModel.SpeechProviderCurrentName.Should().Be("Azure AI Speech");
         viewModel.SpeechProviderCurrentDescription.Should().Contain("低遅延").And.Contain("リアルタイム翻訳");
-        viewModel.SpeechProviderRoadmapLabel.Should().Be("対応予定（現在は利用できません）");
-        viewModel.SpeechProviderRoadmap.Should().Contain("Azure OpenAI Realtime").And.Contain("今後のProvider実装");
+        viewModel.SpeechProviderRoadmapLabel.Should().Be("Providerロードマップ");
+        viewModel.SpeechProviderRoadmap.Should().Contain("Azure OpenAI Realtime").And.Contain("Google Cloud");
+    }
+
+    [Fact]
+    public async Task Start_WhenGoogleProviderSelected_PassesGoogleSettingsToController()
+    {
+        var translationController = new FakeTranslationController();
+        var viewModel = CreateViewModel(translationController: translationController);
+        viewModel.SelectedSpeechProvider = viewModel.AvailableSpeechProviders.Single(provider => provider.Provider == SpeechProviderKind.GoogleCloud);
+        viewModel.GoogleProjectId = "my-project";
+        viewModel.GoogleLocation = "global";
+        viewModel.GoogleSpeechModel = "chirp_3";
+        viewModel.GoogleCredentialsPath = @"C:\keys\google.json";
+
+        await ExecuteAsync(viewModel.StartCommand);
+
+        translationController.LastSpeechProvider.Should().Be(SpeechProviderKind.GoogleCloud);
+        translationController.LastStartCredentials.Should().BeNull();
+        translationController.LastGoogleSettings.Should().BeEquivalentTo(new GoogleCloudServiceSettings("my-project", "global", "chirp_3", @"C:\keys\google.json"));
     }
 
     [Fact]
@@ -1045,10 +1088,12 @@ public class MainViewModelTests
         public Exception? StopException { get; init; }
         public bool KeepRunningOnStopFailure { get; init; }
         public SpeechCredentials? LastStartCredentials { get; private set; }
+        public GoogleCloudServiceSettings? LastGoogleSettings { get; private set; }
+        public SpeechProviderKind? LastSpeechProvider { get; private set; }
         public AudioInputSource? LastAudioInputSource { get; private set; }
         public RecognitionMode? LastRecognitionMode { get; private set; }
 
-        public Task StartAsync(SpeechCredentials credentials, string sourceLanguage, string targetLanguage, AudioInputSource audioInputSource, RecognitionMode recognitionMode, IDesktopTranslationWorker worker, CancellationToken cancellationToken = default)
+        public Task StartAsync(SpeechProviderKind speechProvider, SpeechCredentials? credentials, GoogleCloudServiceSettings? googleSettings, string sourceLanguage, string targetLanguage, AudioInputSource audioInputSource, RecognitionMode recognitionMode, IDesktopTranslationWorker worker, CancellationToken cancellationToken = default)
         {
             return StartAsyncCore();
 
@@ -1060,7 +1105,9 @@ public class MainViewModelTests
                 }
 
                 StartCallCount++;
+                LastSpeechProvider = speechProvider;
                 LastStartCredentials = credentials;
+                LastGoogleSettings = googleSettings;
                 LastAudioInputSource = audioInputSource;
                 LastRecognitionMode = recognitionMode;
                 IsRunning = true;
@@ -1262,6 +1309,22 @@ public class MainViewModelTests
         public event EventHandler<WorkerStatusChangedEventArgs>? StatusChanged;
 
         public event EventHandler<TranslationLogItem>? TranslationLogged;
+
+        public void ReportError(string message)
+        {
+        }
+
+        public void ReportRecognizing()
+        {
+        }
+
+        public void ReportTranscribedSpeech(string sourceText, AudioSourceKind audioSource = AudioSourceKind.Unspecified)
+        {
+        }
+
+        public void ReportTranslatedSpeech(string sourceText, string translatedText, AudioSourceKind audioSource = AudioSourceKind.Unspecified)
+        {
+        }
 
         public void RaiseMessageLogged(string message) => MessageLogged?.Invoke(this, message);
 

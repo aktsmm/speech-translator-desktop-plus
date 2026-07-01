@@ -6,7 +6,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 
 このプロジェクトは [tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator) をベースにしています。元プロジェクトは MIT License です。元の著作権表示とライセンス文は [LICENSE](./LICENSE) に残しています。
 
-> この README は version 1.8.7 を対象にしています。
+> この README は version 1.8.8 を対象にしています。
 
 ## スクリーンショット
 
@@ -39,7 +39,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 - 前回利用した UI言語、話者言語、翻訳先言語、入力、利用モード、保存設定、ファイル名prefixを変更時に保存し、次回起動時に復元
 - 保存先フォルダーの選択、永続化、フォルダーを開く UI
 - UI言語、Azure Speech 認証情報、保存先をメイン画面から分離した設定ウィンドウ
-- 設定画面で現在のライブProviderが Azure AI Speech であること、Azure OpenAI Realtime / Whisper などは今後の対応候補であることを明示
+- 設定画面で音声Providerを選択可能。既定は Azure AI Speech、追加Providerとして Google Cloud Speech-to-Text + Cloud Translation に実験的対応
 - 日本語 / 英語 UI の切り替え
 - 主要な音声翻訳言語を話者言語・翻訳先言語として選択可能
 - Azure AI Speech のリージョン/APIキーを SQLite に保存
@@ -75,7 +75,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 - 最新3件だけをカード形式の別ウィンドウで表示する `別ウィンドウでライブノートを開く` 機能
 - 保存先フォルダーの選択・永続化
 - 翻訳に集中できるよう、UI言語、Azure設定、保存先設定を専用の設定ウィンドウへ移動
-- 低遅延リアルタイム翻訳の既定Providerは Azure AI Speech のまま維持し、Azure OpenAI Realtime / Whisper は未実装の選択肢として誤表示しないProviderロードマップを追加
+- 低遅延リアルタイム翻訳の既定Providerは Azure AI Speech のまま維持しつつ、Google Cloud Speech + Translate を追加Providerとして実装
 - `開く` / `選択` UI
 - `設定` からの日本語 / 英語 UI 切り替え
 - 主要言語の選択肢追加
@@ -88,7 +88,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 ### 方法1: Release zip をダウンロード
 
 1. 最新の GitHub Release を開きます。
-2. `SpeechTranslatorDesktopPlus-win-x64.zip` をダウンロードします。保管用に `SpeechTranslatorDesktopPlus-win-x64-1.8.7.zip` のような version 付きコピーも公開されます。
+2. `SpeechTranslatorDesktopPlus-win-x64.zip` をダウンロードします。保管用に `SpeechTranslatorDesktopPlus-win-x64-1.8.8.zip` のような version 付きコピーも公開されます。
 3. 任意の書き込み可能なフォルダーへ展開します。
 4. `SpeechTranslatorDesktopPlus.exe` を実行します。
 
@@ -142,25 +142,28 @@ scripts\run-dev.cmd
 
 1. `設定` を開きます。
 2. UI言語として `日本語` または `English` を選択します。選択はすぐ保存されます。
-3. Azure AI Speech の `Region` と `API Key` を保存します。
-4. 利用モードを選択します。
+3. 音声Providerを選択します。
+   - `Azure AI Speech` は既定Providerで、`Region` と `API Key` を使います。
+   - `Google Cloud Speech + Translate` は実験的Providerで、Google Project ID と Application Default Credentials (ADC) またはサービスアカウントJSONパスを使います。
+4. Provider設定を保存します。
+5. 利用モードを選択します。
    - `翻訳 + 書き起こし`
    - `書き起こしのみ`
-5. 話者言語を選択し、翻訳する場合は翻訳先言語も選択します。
-6. 音声入力を選択します。
+6. 話者言語を選択し、翻訳する場合は翻訳先言語も選択します。
+7. 音声入力を選択します。
    - `マイク`
    - `PC音声（既定の再生デバイス）`
    - `マイク + PC音声`（既定）
-7. 記録を保存するか選択します。既定では保存ONです。
-8. 必要に応じてファイル名 prefix を入力します。
+8. 記録を保存するか選択します。既定では保存ONです。
+9. 必要に応じてファイル名 prefix を入力します。
    - 英数字、`-`、`_` のみ使用できます
    - 空欄の場合は `session` を使います
    - 開始するたびに `{prefix}_yyyyMMdd_HHmmss.txt` 形式の新しいファイルを作成します。例: `build2026_20260603_080250.txt`
-9. `開始` を押します。
-10. `ログクリア` を押すと、画面上の翻訳ログ・状態ログをクリアします。記録ファイルは開始ごとに新規作成されます。
-11. 表示領域を減らしたいときは、`翻訳ログ` または `状態ログ` を折りたためます。
-12. `すべてコピー`、`原文をすべてコピー`、`訳文をすべてコピー` でライブログ全体を形式別にコピーできます。カード内の `コピー`、`原文コピー`、`訳文コピー` でそのブロックだけコピーできます。キーボードショートカットを使う場合は、ライブログ一覧をクリックするか `Tab` で一覧へフォーカスし、カードを選択してから `Ctrl+C` で選択中ブロック、`Ctrl+Shift+C` で原文、`Ctrl+T` で訳文をコピーできます。
-13. `別ウィンドウでライブノートを開く` を押すと、原文・書き起こし/翻訳文の最新3件だけを別ウィンドウで確認できます。
+10. `開始` を押します。
+11. `ログクリア` を押すと、画面上の翻訳ログ・状態ログをクリアします。記録ファイルは開始ごとに新規作成されます。
+12. 表示領域を減らしたいときは、`翻訳ログ` または `状態ログ` を折りたためます。
+13. `すべてコピー`、`原文をすべてコピー`、`訳文をすべてコピー` でライブログ全体を形式別にコピーできます。カード内の `コピー`、`原文コピー`、`訳文コピー` でそのブロックだけコピーできます。キーボードショートカットを使う場合は、ライブログ一覧をクリックするか `Tab` で一覧へフォーカスし、カードを選択してから `Ctrl+C` で選択中ブロック、`Ctrl+Shift+C` で原文、`Ctrl+T` で訳文をコピーできます。
+14. `別ウィンドウでライブノートを開く` を押すと、原文・書き起こし/翻訳文の最新3件だけを別ウィンドウで確認できます。
 
 `記録を保存する` がOFFの場合、翻訳/書き起こしは画面に表示されますがテキストファイルには保存されません。
 
@@ -170,11 +173,20 @@ scripts\run-dev.cmd
 
 原文が空の行は、UIにも記録ファイルにも出さないようにしています。翻訳モードでは、翻訳文が空の行も空行防止のため抑止します。
 
-## 音声Providerロードマップ
+## 音声Provider
 
-現在のライブProviderは **Azure AI Speech** です。低遅延のリアルタイム音声翻訳、書き起こし、マイク/PC音声分離を C# Speech SDK で安定して扱えるため、既定Providerとして維持しています。
+既定のライブProviderは **Azure AI Speech** です。低遅延のリアルタイム音声翻訳、書き起こし、マイク/PC音声分離を C# Speech SDK で安定して扱えます。
 
-Azure OpenAI Realtime / Whisper、OpenAI、Google Speech-to-Text、AWS Transcribe などは今後のProvider候補です。音声パイプライン、認証情報、翻訳方式が異なるため、まだ選択可能なProviderとしては表示していません。
+**Google Cloud Speech + Translate** も実験的Providerとして利用できます。Google Cloud Speech-to-Text のストリーミング認識で原文を取得し、最終結果を Cloud Translation で翻訳します。利用には次を設定してください。
+
+- Google Project ID
+- Location（`chirp_3` の既定は `us`）
+- Speech model（既定は `chirp_3`）
+- Application Default Credentials (ADC)、またはサービスアカウントJSONパス
+
+Google Provider のコードパスはビルドと設定/ルーティングテストで確認済みですが、この環境にはGoogle Cloud認証情報/Projectがないため、Google実APIへの疎通は未検証です。
+
+Azure OpenAI Realtime / Whisper、OpenAI direct、AWS Transcribe は今後のProvider候補です。
 
 ## トラブルシュート
 
@@ -183,6 +195,7 @@ Azure OpenAI Realtime / Whisper、OpenAI、Google Speech-to-Text、AWS Transcrib
 | セットアップが publish 前に失敗する | Windows 10 以降か確認してください。.NET のダウンロードに失敗する場合は、インターネット/プロキシ設定を確認するか、.NET 10 SDK を手動インストールしてから `.\scripts\setup.ps1 -SkipDotNetInstall` を実行してください。 |
 | PowerShell がスクリプト実行をブロックする | `scripts\setup.cmd` を使うか、`Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser` でローカルスクリプトを許可してください。 |
 | Azure 認証情報が未設定と表示される | `設定` を開き、Azure AI Speech の `Region` と `API Key` を保存してください。または、起動前にユーザー環境変数 `SPEECH_REGION` / `SPEECH_KEY` を設定してください。 |
+| Google Cloud Provider で認証情報やProject IDが必要と表示される | `Google Project ID` を設定し、`gcloud auth application-default login` でADCにサインインするか、サービスアカウントJSONパスを指定してください。 |
 | マイクまたは PC 音声が認識されない | Windows のマイクプライバシー設定と、翻訳したい再生デバイスが Windows の既定デバイスになっているか確認してください。 |
 | 設定や保存先フォルダーが保持されない | 書き込み可能なフォルダーにインストールし、`%LOCALAPPDATA%\SpeechTranslatorDesktop` に書き込めることを確認してください。 |
 | Release zip の整合性を確認したい | Release の `SHA256SUMS.txt` をダウンロードし、`Get-FileHash -Algorithm SHA256 .\SpeechTranslatorDesktopPlus-win-x64.zip` の結果と比較してください。 |

@@ -18,7 +18,7 @@ public class DesktopTranslationControllerTests
         });
         var controller = CreateController(session);
 
-        await controller.StartAsync(new SpeechCredentials("japaneast", "test-key"), "en-US", "ja-JP", AudioInputSource.Microphone, RecognitionMode.Translation, new FakeDesktopTranslationWorker());
+        await controller.StartAsync(SpeechProviderKind.AzureAiSpeech, new SpeechCredentials("japaneast", "test-key"), null, "en-US", "ja-JP", AudioInputSource.Microphone, RecognitionMode.Translation, new FakeDesktopTranslationWorker());
         await FluentActions.Awaiting(() => controller.StopAsync())
             .Should()
             .ThrowAsync<InvalidOperationException>()
@@ -45,10 +45,10 @@ public class DesktopTranslationControllerTests
         });
         var controller = CreateController(session);
 
-        await controller.StartAsync(new SpeechCredentials("japaneast", "test-key"), "en-US", "ja-JP", AudioInputSource.Microphone, RecognitionMode.Translation, new FakeDesktopTranslationWorker());
+        await controller.StartAsync(SpeechProviderKind.AzureAiSpeech, new SpeechCredentials("japaneast", "test-key"), null, "en-US", "ja-JP", AudioInputSource.Microphone, RecognitionMode.Translation, new FakeDesktopTranslationWorker());
         await FluentActions.Awaiting(() => controller.StopAsync()).Should().ThrowAsync<InvalidOperationException>();
 
-        await FluentActions.Awaiting(() => controller.StartAsync(new SpeechCredentials("japaneast", "test-key"), "en-US", "ja-JP", AudioInputSource.Microphone, RecognitionMode.Translation, new FakeDesktopTranslationWorker()))
+        await FluentActions.Awaiting(() => controller.StartAsync(SpeechProviderKind.AzureAiSpeech, new SpeechCredentials("japaneast", "test-key"), null, "en-US", "ja-JP", AudioInputSource.Microphone, RecognitionMode.Translation, new FakeDesktopTranslationWorker()))
             .Should()
             .ThrowAsync<InvalidOperationException>()
             .WithMessage("Translation is already running.");
@@ -71,7 +71,7 @@ public class DesktopTranslationControllerTests
         session.EnqueueDisposeBehavior(() => ValueTask.CompletedTask);
         var controller = CreateController(session);
 
-        await controller.StartAsync(new SpeechCredentials("japaneast", "test-key"), "en-US", "ja-JP", AudioInputSource.Microphone, RecognitionMode.Translation, new FakeDesktopTranslationWorker());
+        await controller.StartAsync(SpeechProviderKind.AzureAiSpeech, new SpeechCredentials("japaneast", "test-key"), null, "en-US", "ja-JP", AudioInputSource.Microphone, RecognitionMode.Translation, new FakeDesktopTranslationWorker());
         await FluentActions.Awaiting(() => controller.StopAsync())
             .Should()
             .ThrowAsync<InvalidOperationException>()
@@ -130,7 +130,7 @@ public class DesktopTranslationControllerTests
 
     private static DesktopTranslationController CreateController(ITranslationSession session)
     {
-        return new DesktopTranslationController((credentials, sourceLanguage, targetLanguage, audioInputSource, recognitionMode, worker, cancellationToken) =>
+        return new DesktopTranslationController((speechProvider, credentials, googleSettings, sourceLanguage, targetLanguage, audioInputSource, recognitionMode, worker, cancellationToken) =>
         {
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult(session);
@@ -225,6 +225,22 @@ public class DesktopTranslationControllerTests
         public event EventHandler<WorkerStatusChangedEventArgs>? StatusChanged;
 
         public event EventHandler<TranslationLogItem>? TranslationLogged;
+
+        public void ReportError(string message)
+        {
+        }
+
+        public void ReportRecognizing()
+        {
+        }
+
+        public void ReportTranscribedSpeech(string sourceText, AudioSourceKind audioSource = AudioSourceKind.Unspecified)
+        {
+        }
+
+        public void ReportTranslatedSpeech(string sourceText, string translatedText, AudioSourceKind audioSource = AudioSourceKind.Unspecified)
+        {
+        }
     }
 
     private sealed class NoOpSpeechRecognizerWorker : SpeechRecognizerWorkerBase
