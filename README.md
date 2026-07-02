@@ -6,7 +6,7 @@ Speech Translator Desktop Plus is a Windows desktop speech translator and record
 
 This project is based on [tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator). The original project is licensed under the MIT License. The original copyright and license text are preserved in [LICENSE](./LICENSE).
 
-> Documentation target: version 1.8.8.
+> Documentation target: version 1.8.9.
 
 ## Screenshots
 
@@ -37,7 +37,7 @@ This project is based on [tsubakimoto/speech-translator](https://github.com/tsub
 - Last-used UI language, source language, target language, input source, mode, save setting, and file name prefix are saved as soon as they change and restored on the next launch.
 - Recording folder selection, persistence, and "open folder" UI.
 - Dedicated settings window for UI language, Azure Speech credentials, and recording folder controls.
-- Speech provider selection in Settings: Azure AI Speech is the default live provider, and Google Cloud Speech-to-Text + Cloud Translation is available as an additional experimental provider.
+- Speech provider selection in Settings: Azure AI Speech is the default live provider, Google Cloud Speech-to-Text + Cloud Translation is available as an additional experimental live provider, and Azure OpenAI/OpenAI/AWS/Deepgram/AssemblyAI experimental settings can be saved for staged implementation.
 - Japanese and English UI language switching.
 - Major speech translation languages are available from the source/target language selectors.
 - Azure AI Speech region/API key persistence in SQLite with the API key protected by Windows DPAPI.
@@ -71,7 +71,7 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 - Optional live-notes pop-out window with card-style monitoring for the three newest source/transcript or source/translation pairs.
 - Configurable and persisted recording folder.
 - Dedicated settings window for UI language, credentials, and recording folders to keep the main translation screen focused.
-- Settings can switch between Azure AI Speech and Google Cloud Speech + Translate. Google uses Speech-to-Text streaming and translates final transcripts with Cloud Translation, so latency and credentials differ from Azure AI Speech.
+- Settings can switch between Azure AI Speech and Google Cloud Speech + Translate. It can also save experimental settings for Azure OpenAI Realtime, Azure OpenAI Whisper, OpenAI direct, AWS Transcribe + Translate, Deepgram, and AssemblyAI without storing API keys in plaintext.
 - `Open folder` and `Choose folder` controls.
 - Japanese/English UI switching from `Settings`.
 - Additional source/target language choices.
@@ -84,7 +84,7 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 ### Option 1: Download the release zip
 
 1. Open the latest GitHub release.
-2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`. A versioned copy such as `SpeechTranslatorDesktopPlus-win-x64-1.8.8.zip` is also published for archiving.
+2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`. A versioned copy such as `SpeechTranslatorDesktopPlus-win-x64-1.8.9.zip` is also published for archiving.
 3. Extract it to any writable folder.
 4. Run `SpeechTranslatorDesktopPlus.exe`.
 
@@ -141,6 +141,7 @@ scripts\run-dev.cmd
 3. Select a speech provider.
    - `Azure AI Speech` is the default and uses `Region` + `API Key`.
    - `Google Cloud Speech + Translate` is experimental and uses Google Project ID plus Application Default Credentials (ADC) or a service account JSON path.
+   - Azure OpenAI Realtime / Whisper, OpenAI direct, AWS, Deepgram, and AssemblyAI can save experimental settings now; live execution is intentionally blocked until their runtime sessions are implemented.
 4. Save the provider settings.
 5. Select mode:
    - `Translate + transcript`
@@ -182,6 +183,17 @@ The default live provider is **Azure AI Speech**. It provides first-class C# Spe
 The Google provider code path builds and is covered by settings/routing tests, but live Google API connectivity wasn't verified in this environment because no Google Cloud credentials/project were available.
 
 Azure OpenAI Realtime / Whisper, OpenAI direct, and AWS Transcribe remain future provider candidates.
+
+Additional experimental provider settings are available for:
+
+- Azure OpenAI Realtime: endpoint, realtime deployment, model/API version. API key should come from `AZURE_OPENAI_API_KEY`.
+- Azure OpenAI Whisper: endpoint, Whisper deployment, API version. API key should come from `AZURE_OPENAI_API_KEY`.
+- OpenAI direct: optional base URL, realtime/audio model. API key should come from `OPENAI_API_KEY`.
+- AWS Transcribe + Translate: region/profile and model/options. Credentials should come from the AWS SDK credential chain (`AWS_PROFILE`, environment variables, SSO, or shared credentials).
+- Deepgram: endpoint/model/options. API key should come from `DEEPGRAM_API_KEY`.
+- AssemblyAI: endpoint/model/options. API key should come from `ASSEMBLYAI_API_KEY`.
+
+These providers are selectable so their settings can be prepared and persisted, but live execution currently returns an explicit "not implemented yet" message instead of silently failing.
 
 ## Troubleshooting
 

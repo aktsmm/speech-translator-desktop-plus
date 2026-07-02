@@ -31,7 +31,12 @@ public class SqliteAppPreferencesStoreTests : IDisposable
             "my-project",
             "global",
             "chirp_3",
-            @"C:\keys\google.json"));
+            @"C:\keys\google.json",
+            "endpoint",
+            "region",
+            "model",
+            "deployment",
+            "profile"));
 
         var preferences = await store.LoadAsync();
 
@@ -47,7 +52,12 @@ public class SqliteAppPreferencesStoreTests : IDisposable
             "my-project",
             "global",
             "chirp_3",
-            @"C:\keys\google.json"));
+            @"C:\keys\google.json",
+            "endpoint",
+            "region",
+            "model",
+            "deployment",
+            "profile"));
     }
 
     [Fact]
@@ -89,6 +99,11 @@ public class SqliteAppPreferencesStoreTests : IDisposable
             "MicrophoneAndSystemAudio",
             "Translation",
             true,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            string.Empty,
             string.Empty,
             string.Empty,
             string.Empty,

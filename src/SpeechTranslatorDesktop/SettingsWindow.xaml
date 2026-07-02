@@ -182,6 +182,57 @@
                            Text="{Binding GoogleCredentialsHint}" />
             </StackPanel>
 
+            <StackPanel Grid.Row="3"
+                        Grid.Column="0"
+                        Grid.ColumnSpan="2"
+                        Margin="0,0,0,12"
+                        Visibility="{Binding ExperimentalProviderSettingsVisibility}">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding ExperimentalProviderEndpointLabel}" />
+                <TextBox AutomationProperties.Name="{Binding ExperimentalProviderEndpointLabel}"
+                         ToolTip="{Binding ExperimentalProviderEndpointLabel}"
+                         Text="{Binding ExperimentalProviderEndpoint, UpdateSourceTrigger=PropertyChanged}" />
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding ExperimentalProviderRegionLabel}" />
+                        <TextBox AutomationProperties.Name="{Binding ExperimentalProviderRegionLabel}"
+                                 ToolTip="{Binding ExperimentalProviderRegionLabel}"
+                                 Text="{Binding ExperimentalProviderRegion, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding ExperimentalProviderModelLabel}" />
+                        <TextBox AutomationProperties.Name="{Binding ExperimentalProviderModelLabel}"
+                                 ToolTip="{Binding ExperimentalProviderModelLabel}"
+                                 Text="{Binding ExperimentalProviderModel, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                </Grid>
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding ExperimentalProviderDeploymentLabel}" />
+                        <TextBox AutomationProperties.Name="{Binding ExperimentalProviderDeploymentLabel}"
+                                 ToolTip="{Binding ExperimentalProviderDeploymentLabel}"
+                                 Text="{Binding ExperimentalProviderDeployment, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding ExperimentalProviderProfileLabel}" />
+                        <TextBox AutomationProperties.Name="{Binding ExperimentalProviderProfileLabel}"
+                                 ToolTip="{Binding ExperimentalProviderProfileLabel}"
+                                 Text="{Binding ExperimentalProviderProfile, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                </Grid>
+                <TextBlock Margin="0,8,0,0"
+                           Foreground="#64748B"
+                           TextWrapping="Wrap"
+                           Text="{Binding ExperimentalProviderAuthHint}" />
+            </StackPanel>
+
             <StackPanel Grid.Row="4" Grid.Column="0" Margin="0,0,12,12">
                 <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding RecordingsFolderLabel}" />
                 <TextBox IsReadOnly="True"

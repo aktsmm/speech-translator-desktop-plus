@@ -29,6 +29,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private UiLanguageOption? _selectedUiLanguage;
     private string _azureApiKey = string.Empty;
     private string _azureRegion = string.Empty;
+    private string _experimentalProviderDeployment = string.Empty;
+    private string _experimentalProviderEndpoint = string.Empty;
+    private string _experimentalProviderModel = string.Empty;
+    private string _experimentalProviderProfile = string.Empty;
+    private string _experimentalProviderRegion = string.Empty;
     private string _googleCredentialsPath = string.Empty;
     private string _googleLocation = GoogleCloudServiceSettings.DefaultLocation;
     private string _googleProjectId = string.Empty;
@@ -99,7 +104,31 @@ public sealed class MainViewModel : INotifyPropertyChanged
             new SpeechProviderOption(
                 SpeechProviderKind.GoogleCloud,
                 "Google Cloud Speech + Translate (experimental)",
-                "Streaming Speech-to-Text via Google Cloud and final text translation via Cloud Translation.")
+                "Streaming Speech-to-Text via Google Cloud and final text translation via Cloud Translation."),
+            new SpeechProviderOption(
+                SpeechProviderKind.AzureOpenAIRealtime,
+                "Azure OpenAI Realtime (experimental settings)",
+                "Settings for future Azure OpenAI Realtime WebSocket provider."),
+            new SpeechProviderOption(
+                SpeechProviderKind.AzureOpenAIWhisper,
+                "Azure OpenAI Whisper (experimental settings)",
+                "Settings for future Azure OpenAI batch audio transcription provider."),
+            new SpeechProviderOption(
+                SpeechProviderKind.OpenAIDirect,
+                "OpenAI direct audio (experimental settings)",
+                "Settings for future OpenAI Realtime/Audio provider."),
+            new SpeechProviderOption(
+                SpeechProviderKind.AwsTranscribe,
+                "AWS Transcribe + Translate (experimental settings)",
+                "Settings for future AWS Transcribe Streaming plus AWS Translate provider."),
+            new SpeechProviderOption(
+                SpeechProviderKind.Deepgram,
+                "Deepgram (experimental settings)",
+                "Settings for future Deepgram realtime transcription provider."),
+            new SpeechProviderOption(
+                SpeechProviderKind.AssemblyAI,
+                "AssemblyAI (experimental settings)",
+                "Settings for future AssemblyAI realtime transcription provider.")
         ];
 
         var defaultUiLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.Equals("ja", StringComparison.OrdinalIgnoreCase)
@@ -241,6 +270,86 @@ public sealed class MainViewModel : INotifyPropertyChanged
             }
 
             _googleSpeechModel = value;
+            OnPropertyChanged();
+            QueueAppPreferencesSave();
+        }
+    }
+
+    public string ExperimentalProviderDeployment
+    {
+        get => _experimentalProviderDeployment;
+        set
+        {
+            if (_experimentalProviderDeployment == value)
+            {
+                return;
+            }
+
+            _experimentalProviderDeployment = value;
+            OnPropertyChanged();
+            QueueAppPreferencesSave();
+        }
+    }
+
+    public string ExperimentalProviderEndpoint
+    {
+        get => _experimentalProviderEndpoint;
+        set
+        {
+            if (_experimentalProviderEndpoint == value)
+            {
+                return;
+            }
+
+            _experimentalProviderEndpoint = value;
+            OnPropertyChanged();
+            QueueAppPreferencesSave();
+        }
+    }
+
+    public string ExperimentalProviderModel
+    {
+        get => _experimentalProviderModel;
+        set
+        {
+            if (_experimentalProviderModel == value)
+            {
+                return;
+            }
+
+            _experimentalProviderModel = value;
+            OnPropertyChanged();
+            QueueAppPreferencesSave();
+        }
+    }
+
+    public string ExperimentalProviderProfile
+    {
+        get => _experimentalProviderProfile;
+        set
+        {
+            if (_experimentalProviderProfile == value)
+            {
+                return;
+            }
+
+            _experimentalProviderProfile = value;
+            OnPropertyChanged();
+            QueueAppPreferencesSave();
+        }
+    }
+
+    public string ExperimentalProviderRegion
+    {
+        get => _experimentalProviderRegion;
+        set
+        {
+            if (_experimentalProviderRegion == value)
+            {
+                return;
+            }
+
+            _experimentalProviderRegion = value;
             OnPropertyChanged();
             QueueAppPreferencesSave();
         }
@@ -392,8 +501,16 @@ public sealed class MainViewModel : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsGoogleProviderSelected));
             OnPropertyChanged(nameof(IsAzureProviderSelected));
+            OnPropertyChanged(nameof(IsExperimentalProviderSelected));
             OnPropertyChanged(nameof(AzureProviderSettingsVisibility));
             OnPropertyChanged(nameof(GoogleProviderSettingsVisibility));
+            OnPropertyChanged(nameof(ExperimentalProviderSettingsVisibility));
+            OnPropertyChanged(nameof(ExperimentalProviderEndpointLabel));
+            OnPropertyChanged(nameof(ExperimentalProviderRegionLabel));
+            OnPropertyChanged(nameof(ExperimentalProviderModelLabel));
+            OnPropertyChanged(nameof(ExperimentalProviderDeploymentLabel));
+            OnPropertyChanged(nameof(ExperimentalProviderProfileLabel));
+            OnPropertyChanged(nameof(ExperimentalProviderAuthHint));
             OnPropertyChanged(nameof(SpeechProviderCurrentDescription));
             OnPropertyChanged(nameof(SpeechProviderCurrentName));
             QueueAppPreferencesSave();
@@ -600,21 +717,100 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string GoogleSpeechModelLabel => Text("Google Speech model", "Google Speech model");
 
-    public string SpeechProviderCurrentDescription => SelectedSpeechProvider?.Provider == SpeechProviderKind.GoogleCloud
-        ? Text(
+    public string ExperimentalProviderAuthHint => SelectedSpeechProvider?.Provider switch
+    {
+        SpeechProviderKind.AzureOpenAIRealtime or SpeechProviderKind.AzureOpenAIWhisper => Text(
+            "APIキーは保存しません。AZURE_OPENAI_API_KEY または今後の安全な資格情報ストアを使用します。",
+            "API keys are not stored here. Use AZURE_OPENAI_API_KEY or a future secure credential store."),
+        SpeechProviderKind.OpenAIDirect => Text(
+            "APIキーは保存しません。OPENAI_API_KEY を使用します。",
+            "API keys are not stored here. Use OPENAI_API_KEY."),
+        SpeechProviderKind.AwsTranscribe => Text(
+            "アクセスキーは保存しません。AWS_PROFILE、環境変数、SSO、または共有credentialsを使用します。",
+            "AWS keys are not stored here. Use AWS_PROFILE, environment variables, SSO, or shared credentials."),
+        SpeechProviderKind.Deepgram => Text(
+            "APIキーは保存しません。DEEPGRAM_API_KEY を使用します。",
+            "API keys are not stored here. Use DEEPGRAM_API_KEY."),
+        SpeechProviderKind.AssemblyAI => Text(
+            "APIキーは保存しません。ASSEMBLYAI_API_KEY を使用します。",
+            "API keys are not stored here. Use ASSEMBLYAI_API_KEY."),
+        _ => string.Empty
+    };
+
+    public string ExperimentalProviderDeploymentLabel => SelectedSpeechProvider?.Provider switch
+    {
+        SpeechProviderKind.AzureOpenAIRealtime => Text("Realtime deployment", "Realtime deployment"),
+        SpeechProviderKind.AzureOpenAIWhisper => Text("Whisper deployment", "Whisper deployment"),
+        _ => Text("Deployment / option", "Deployment / option")
+    };
+
+    public string ExperimentalProviderEndpointLabel => SelectedSpeechProvider?.Provider switch
+    {
+        SpeechProviderKind.AzureOpenAIRealtime or SpeechProviderKind.AzureOpenAIWhisper => Text("Azure OpenAI endpoint", "Azure OpenAI endpoint"),
+        SpeechProviderKind.OpenAIDirect => Text("OpenAI base URL（任意）", "OpenAI base URL (optional)"),
+        SpeechProviderKind.Deepgram => Text("Deepgram endpoint", "Deepgram endpoint"),
+        SpeechProviderKind.AssemblyAI => Text("AssemblyAI endpoint", "AssemblyAI endpoint"),
+        _ => Text("Endpoint（任意）", "Endpoint (optional)")
+    };
+
+    public string ExperimentalProviderModelLabel => SelectedSpeechProvider?.Provider switch
+    {
+        SpeechProviderKind.AzureOpenAIRealtime => Text("Realtime model / API version", "Realtime model / API version"),
+        SpeechProviderKind.AzureOpenAIWhisper => Text("Transcription model", "Transcription model"),
+        SpeechProviderKind.OpenAIDirect => Text("Model", "Model"),
+        SpeechProviderKind.AwsTranscribe => Text("Translate option", "Translate option"),
+        SpeechProviderKind.Deepgram => Text("Deepgram model", "Deepgram model"),
+        SpeechProviderKind.AssemblyAI => Text("AssemblyAI model", "AssemblyAI model"),
+        _ => Text("Model / option", "Model / option")
+    };
+
+    public string ExperimentalProviderProfileLabel => SelectedSpeechProvider?.Provider switch
+    {
+        SpeechProviderKind.AwsTranscribe => Text("AWS profile（任意）", "AWS profile (optional)"),
+        _ => Text("Profile / option（任意）", "Profile / option (optional)")
+    };
+
+    public string ExperimentalProviderRegionLabel => SelectedSpeechProvider?.Provider switch
+    {
+        SpeechProviderKind.AwsTranscribe => Text("AWS Region", "AWS region"),
+        _ => Text("Region / language hint（任意）", "Region / language hint (optional)")
+    };
+
+    public string SpeechProviderCurrentDescription => SelectedSpeechProvider?.Provider switch
+    {
+        SpeechProviderKind.GoogleCloud => Text(
             "Google Cloud Speech-to-Text のストリーミング認識と Cloud Translation の2段構成です。ADCまたはサービスアカウントJSONが必要です。この環境ではGoogle実APIの疎通は未検証です。",
-            "Uses Google Cloud Speech-to-Text streaming plus Cloud Translation. Requires ADC or a service account JSON file. Live Google API connectivity is not verified in this environment.")
-        : Text(
+            "Uses Google Cloud Speech-to-Text streaming plus Cloud Translation. Requires ADC or a service account JSON file. Live Google API connectivity is not verified in this environment."),
+        SpeechProviderKind.AzureOpenAIRealtime => Text(
+            "Azure OpenAI Realtime の設定を保存できます。ライブ実行は今後のWebSocket実装対象です。",
+            "Azure OpenAI Realtime settings can be saved. Live execution requires a future WebSocket implementation."),
+        SpeechProviderKind.AzureOpenAIWhisper => Text(
+            "Azure OpenAI Whisper の設定を保存できます。バッチ音声文字起こし向けの今後の実装対象です。",
+            "Azure OpenAI Whisper settings can be saved for a future batch transcription implementation."),
+        SpeechProviderKind.OpenAIDirect => Text(
+            "OpenAI direct の設定を保存できます。Realtime Translation / Audio API の今後の実装対象です。",
+            "OpenAI direct settings can be saved for a future Realtime Translation / Audio API implementation."),
+        SpeechProviderKind.AwsTranscribe => Text(
+            "AWS Transcribe Streaming + AWS Translate の設定を保存できます。ライブ実行は今後の実装対象です。",
+            "AWS Transcribe Streaming + AWS Translate settings can be saved for future live execution."),
+        SpeechProviderKind.Deepgram => Text(
+            "Deepgram の設定を保存できます。リアルタイムSTT + 翻訳ブリッジは今後の実装対象です。",
+            "Deepgram settings can be saved for a future realtime STT + translation bridge implementation."),
+        SpeechProviderKind.AssemblyAI => Text(
+            "AssemblyAI の設定を保存できます。リアルタイムSTT + 翻訳ブリッジは今後の実装対象です。",
+            "AssemblyAI settings can be saved for a future realtime STT + translation bridge implementation."),
+        _ => Text(
             "低遅延のリアルタイム翻訳、書き起こし、マイク/PC音声分離を安定して扱える既定Providerです。",
-            "Default provider for low-latency real-time translation, transcription, and separated microphone/PC audio.");
+            "Default provider for low-latency real-time translation, transcription, and separated microphone/PC audio.")
+    };
 
     public string SpeechProviderCurrentName => SelectedSpeechProvider?.DisplayName ?? "Azure AI Speech";
 
     public string SpeechProviderLabel => Text("音声Provider", "Speech provider");
 
     public string SpeechProviderRoadmap => Text(
-        "Azure OpenAI Realtime / Whisper、OpenAI、AWSなどは今後のProvider候補です。Google Cloudはこの画面から設定して利用できます。",
-        "Azure OpenAI Realtime / Whisper, OpenAI, and AWS are future provider candidates. Google Cloud can be configured from this screen.");
+        "Azure OpenAI Realtime / Whisper、OpenAI direct、AWS、Deepgram、AssemblyAI は実験的Providerとして設定保存できます。Google Cloudのみライブ実装済みです。",
+        "Azure OpenAI Realtime / Whisper, OpenAI direct, AWS, Deepgram, and AssemblyAI settings can be saved as experimental providers. Only Google Cloud has a live implementation today.");
 
     public string SpeechProviderRoadmapLabel => Text("Providerロードマップ", "Provider roadmap");
 
@@ -658,9 +854,19 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public bool IsGoogleProviderSelected => SelectedSpeechProvider?.Provider == SpeechProviderKind.GoogleCloud;
 
+    public bool IsExperimentalProviderSelected => SelectedSpeechProvider?.Provider is
+        SpeechProviderKind.AzureOpenAIRealtime or
+        SpeechProviderKind.AzureOpenAIWhisper or
+        SpeechProviderKind.OpenAIDirect or
+        SpeechProviderKind.AwsTranscribe or
+        SpeechProviderKind.Deepgram or
+        SpeechProviderKind.AssemblyAI;
+
     public Visibility AzureProviderSettingsVisibility => IsAzureProviderSelected ? Visibility.Visible : Visibility.Collapsed;
 
     public Visibility GoogleProviderSettingsVisibility => IsGoogleProviderSelected ? Visibility.Visible : Visibility.Collapsed;
+
+    public Visibility ExperimentalProviderSettingsVisibility => IsExperimentalProviderSelected ? Visibility.Visible : Visibility.Collapsed;
 
     public Visibility TranslationColumnVisibility => IsTranslationMode ? Visibility.Visible : Visibility.Collapsed;
 
@@ -751,6 +957,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
             GoogleLocation = string.IsNullOrWhiteSpace(preferences.GoogleLocation) ? GoogleCloudServiceSettings.DefaultLocation : preferences.GoogleLocation;
             GoogleSpeechModel = string.IsNullOrWhiteSpace(preferences.GoogleSpeechModel) ? GoogleCloudServiceSettings.DefaultSpeechModel : preferences.GoogleSpeechModel;
             GoogleCredentialsPath = preferences.GoogleCredentialsPath ?? string.Empty;
+            ExperimentalProviderEndpoint = preferences.ExperimentalProviderEndpoint ?? string.Empty;
+            ExperimentalProviderRegion = preferences.ExperimentalProviderRegion ?? string.Empty;
+            ExperimentalProviderModel = preferences.ExperimentalProviderModel ?? string.Empty;
+            ExperimentalProviderDeployment = preferences.ExperimentalProviderDeployment ?? string.Empty;
+            ExperimentalProviderProfile = preferences.ExperimentalProviderProfile ?? string.Empty;
         }
         catch (Exception ex)
         {
@@ -784,6 +995,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
         catch (ArgumentException ex)
         {
             StatusMessage = Text($"ファイル名 prefix が不正です: {ex.Message}", $"Invalid file name prefix: {ex.Message}");
+            AddActivityLog(StatusMessage);
+            return;
+        }
+
+        if (IsExperimentalProviderSelected)
+        {
+            StatusMessage = Text(
+                $"{SelectedSpeechProvider?.DisplayName} は設定保存のみ対応です。ライブ実行は未実装です。",
+                $"{SelectedSpeechProvider?.DisplayName} supports settings only. Live execution is not implemented yet.");
             AddActivityLog(StatusMessage);
             return;
         }
@@ -1201,7 +1421,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
             GoogleProjectId,
             GoogleLocation,
             GoogleSpeechModel,
-            GoogleCredentialsPath));
+            GoogleCredentialsPath,
+            ExperimentalProviderEndpoint,
+            ExperimentalProviderRegion,
+            ExperimentalProviderModel,
+            ExperimentalProviderDeployment,
+            ExperimentalProviderProfile));
     }
 
     private GoogleCloudServiceSettings CreateGoogleCloudSettings()
@@ -1309,6 +1534,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CopyBlockButtonText));
         OnPropertyChanged(nameof(CopySourceButtonText));
         OnPropertyChanged(nameof(CopyTranslationButtonText));
+        OnPropertyChanged(nameof(ExperimentalProviderAuthHint));
+        OnPropertyChanged(nameof(ExperimentalProviderDeploymentLabel));
+        OnPropertyChanged(nameof(ExperimentalProviderEndpointLabel));
+        OnPropertyChanged(nameof(ExperimentalProviderModelLabel));
+        OnPropertyChanged(nameof(ExperimentalProviderProfileLabel));
+        OnPropertyChanged(nameof(ExperimentalProviderRegionLabel));
+        OnPropertyChanged(nameof(ExperimentalProviderSettingsVisibility));
         OnPropertyChanged(nameof(GoogleCredentialsHint));
         OnPropertyChanged(nameof(GoogleCredentialsPathLabel));
         OnPropertyChanged(nameof(GoogleLocationLabel));
@@ -1318,6 +1550,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(HeroSubtitle));
         OnPropertyChanged(nameof(AzureProviderSettingsVisibility));
         OnPropertyChanged(nameof(IsAzureProviderSelected));
+        OnPropertyChanged(nameof(IsExperimentalProviderSelected));
         OnPropertyChanged(nameof(IsGoogleProviderSelected));
         OnPropertyChanged(nameof(OpenButtonText));
         OnPropertyChanged(nameof(RecognitionModeLabel));

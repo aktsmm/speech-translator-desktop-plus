@@ -415,6 +415,11 @@ public class MainViewModelTests
             string.Empty,
             GoogleCloudServiceSettings.DefaultLocation,
             GoogleCloudServiceSettings.DefaultSpeechModel,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            string.Empty,
             string.Empty));
     }
 
@@ -435,7 +440,12 @@ public class MainViewModelTests
                 "my-project",
                 "us-central1",
                 "chirp_3",
-                @"C:\keys\google.json")
+                @"C:\keys\google.json",
+                "endpoint",
+                "region",
+                "model",
+                "deployment",
+                "profile")
         });
 
         await viewModel.InitializeAsync();
@@ -452,6 +462,11 @@ public class MainViewModelTests
         viewModel.GoogleLocation.Should().Be("us-central1");
         viewModel.GoogleSpeechModel.Should().Be("chirp_3");
         viewModel.GoogleCredentialsPath.Should().Be(@"C:\keys\google.json");
+        viewModel.ExperimentalProviderEndpoint.Should().Be("endpoint");
+        viewModel.ExperimentalProviderRegion.Should().Be("region");
+        viewModel.ExperimentalProviderModel.Should().Be("model");
+        viewModel.ExperimentalProviderDeployment.Should().Be("deployment");
+        viewModel.ExperimentalProviderProfile.Should().Be("profile");
         viewModel.SourceTextHeader.Should().Be("Transcript");
     }
 
@@ -482,6 +497,11 @@ public class MainViewModelTests
             string.Empty,
             GoogleCloudServiceSettings.DefaultLocation,
             GoogleCloudServiceSettings.DefaultSpeechModel,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            string.Empty,
             string.Empty));
     }
 
@@ -502,6 +522,11 @@ public class MainViewModelTests
                 "my-project",
                 "global",
                 "chirp_3",
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                string.Empty,
                 string.Empty)
         };
         var viewModel = CreateViewModel(appPreferencesStore: preferencesStore);

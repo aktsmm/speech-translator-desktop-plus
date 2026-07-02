@@ -3,7 +3,13 @@ namespace SpeechTranslatorDesktop.Models;
 public enum SpeechProviderKind
 {
     AzureAiSpeech,
-    GoogleCloud
+    GoogleCloud,
+    AzureOpenAIRealtime,
+    AzureOpenAIWhisper,
+    OpenAIDirect,
+    AwsTranscribe,
+    Deepgram,
+    AssemblyAI
 }
 
 public sealed record SpeechProviderOption(SpeechProviderKind Provider, string DisplayName, string Description)

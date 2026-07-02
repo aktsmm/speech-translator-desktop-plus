@@ -12,4 +12,9 @@ public sealed record AppPreferences(
     string? GoogleProjectId = null,
     string? GoogleLocation = null,
     string? GoogleSpeechModel = null,
-    string? GoogleCredentialsPath = null);
+    string? GoogleCredentialsPath = null,
+    string? ExperimentalProviderEndpoint = null,
+    string? ExperimentalProviderRegion = null,
+    string? ExperimentalProviderModel = null,
+    string? ExperimentalProviderDeployment = null,
+    string? ExperimentalProviderProfile = null);

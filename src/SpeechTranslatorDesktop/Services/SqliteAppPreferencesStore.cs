@@ -29,7 +29,7 @@ public sealed class SqliteAppPreferencesStore : IAppPreferencesStore
 
         await using var command = connection.CreateCommand();
         command.CommandText = $"""
-            SELECT ui_language, source_language, target_language, audio_input_source, recognition_mode, is_recording_save_enabled, recording_file_name_prefix, speech_provider, google_project_id, google_location, google_speech_model, google_credentials_path
+            SELECT ui_language, source_language, target_language, audio_input_source, recognition_mode, is_recording_save_enabled, recording_file_name_prefix, speech_provider, google_project_id, google_location, google_speech_model, google_credentials_path, experimental_provider_endpoint, experimental_provider_region, experimental_provider_model, experimental_provider_deployment, experimental_provider_profile
             FROM {TableName}
             WHERE id = 1;
             """;
@@ -52,7 +52,12 @@ public sealed class SqliteAppPreferencesStore : IAppPreferencesStore
             reader.IsDBNull(8) ? null : reader.GetString(8),
             reader.IsDBNull(9) ? null : reader.GetString(9),
             reader.IsDBNull(10) ? null : reader.GetString(10),
-            reader.IsDBNull(11) ? null : reader.GetString(11));
+            reader.IsDBNull(11) ? null : reader.GetString(11),
+            reader.IsDBNull(12) ? null : reader.GetString(12),
+            reader.IsDBNull(13) ? null : reader.GetString(13),
+            reader.IsDBNull(14) ? null : reader.GetString(14),
+            reader.IsDBNull(15) ? null : reader.GetString(15),
+            reader.IsDBNull(16) ? null : reader.GetString(16));
     }
 
     public async Task SaveAsync(AppPreferences preferences, CancellationToken cancellationToken = default)
@@ -64,8 +69,8 @@ public sealed class SqliteAppPreferencesStore : IAppPreferencesStore
 
         await using var command = connection.CreateCommand();
         command.CommandText = $"""
-            INSERT INTO {TableName} (id, ui_language, source_language, target_language, audio_input_source, recognition_mode, is_recording_save_enabled, recording_file_name_prefix, speech_provider, google_project_id, google_location, google_speech_model, google_credentials_path)
-            VALUES (1, $uiLanguage, $sourceLanguage, $targetLanguage, $audioInputSource, $recognitionMode, $isRecordingSaveEnabled, $recordingFileNamePrefix, $speechProvider, $googleProjectId, $googleLocation, $googleSpeechModel, $googleCredentialsPath)
+            INSERT INTO {TableName} (id, ui_language, source_language, target_language, audio_input_source, recognition_mode, is_recording_save_enabled, recording_file_name_prefix, speech_provider, google_project_id, google_location, google_speech_model, google_credentials_path, experimental_provider_endpoint, experimental_provider_region, experimental_provider_model, experimental_provider_deployment, experimental_provider_profile)
+            VALUES (1, $uiLanguage, $sourceLanguage, $targetLanguage, $audioInputSource, $recognitionMode, $isRecordingSaveEnabled, $recordingFileNamePrefix, $speechProvider, $googleProjectId, $googleLocation, $googleSpeechModel, $googleCredentialsPath, $experimentalProviderEndpoint, $experimentalProviderRegion, $experimentalProviderModel, $experimentalProviderDeployment, $experimentalProviderProfile)
             ON CONFLICT(id) DO UPDATE SET
                 ui_language = excluded.ui_language,
                 source_language = excluded.source_language,
@@ -78,7 +83,12 @@ public sealed class SqliteAppPreferencesStore : IAppPreferencesStore
                 google_project_id = excluded.google_project_id,
                 google_location = excluded.google_location,
                 google_speech_model = excluded.google_speech_model,
-                google_credentials_path = excluded.google_credentials_path;
+                google_credentials_path = excluded.google_credentials_path,
+                experimental_provider_endpoint = excluded.experimental_provider_endpoint,
+                experimental_provider_region = excluded.experimental_provider_region,
+                experimental_provider_model = excluded.experimental_provider_model,
+                experimental_provider_deployment = excluded.experimental_provider_deployment,
+                experimental_provider_profile = excluded.experimental_provider_profile;
             """;
         command.Parameters.AddWithValue("$uiLanguage", preferences.UiLanguage ?? string.Empty);
         command.Parameters.AddWithValue("$sourceLanguage", preferences.SourceLanguage ?? string.Empty);
@@ -92,6 +102,11 @@ public sealed class SqliteAppPreferencesStore : IAppPreferencesStore
         command.Parameters.AddWithValue("$googleLocation", preferences.GoogleLocation ?? string.Empty);
         command.Parameters.AddWithValue("$googleSpeechModel", preferences.GoogleSpeechModel ?? string.Empty);
         command.Parameters.AddWithValue("$googleCredentialsPath", preferences.GoogleCredentialsPath ?? string.Empty);
+        command.Parameters.AddWithValue("$experimentalProviderEndpoint", preferences.ExperimentalProviderEndpoint ?? string.Empty);
+        command.Parameters.AddWithValue("$experimentalProviderRegion", preferences.ExperimentalProviderRegion ?? string.Empty);
+        command.Parameters.AddWithValue("$experimentalProviderModel", preferences.ExperimentalProviderModel ?? string.Empty);
+        command.Parameters.AddWithValue("$experimentalProviderDeployment", preferences.ExperimentalProviderDeployment ?? string.Empty);
+        command.Parameters.AddWithValue("$experimentalProviderProfile", preferences.ExperimentalProviderProfile ?? string.Empty);
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
@@ -133,7 +148,12 @@ public sealed class SqliteAppPreferencesStore : IAppPreferencesStore
                 google_project_id TEXT NOT NULL DEFAULT '',
                 google_location TEXT NOT NULL DEFAULT '',
                 google_speech_model TEXT NOT NULL DEFAULT '',
-                google_credentials_path TEXT NOT NULL DEFAULT ''
+                google_credentials_path TEXT NOT NULL DEFAULT '',
+                experimental_provider_endpoint TEXT NOT NULL DEFAULT '',
+                experimental_provider_region TEXT NOT NULL DEFAULT '',
+                experimental_provider_model TEXT NOT NULL DEFAULT '',
+                experimental_provider_deployment TEXT NOT NULL DEFAULT '',
+                experimental_provider_profile TEXT NOT NULL DEFAULT ''
             );
             """;
 
@@ -146,6 +166,11 @@ public sealed class SqliteAppPreferencesStore : IAppPreferencesStore
         await AddColumnIfMissingAsync(connection, "google_location", "TEXT NOT NULL DEFAULT ''", cancellationToken);
         await AddColumnIfMissingAsync(connection, "google_speech_model", "TEXT NOT NULL DEFAULT ''", cancellationToken);
         await AddColumnIfMissingAsync(connection, "google_credentials_path", "TEXT NOT NULL DEFAULT ''", cancellationToken);
+        await AddColumnIfMissingAsync(connection, "experimental_provider_endpoint", "TEXT NOT NULL DEFAULT ''", cancellationToken);
+        await AddColumnIfMissingAsync(connection, "experimental_provider_region", "TEXT NOT NULL DEFAULT ''", cancellationToken);
+        await AddColumnIfMissingAsync(connection, "experimental_provider_model", "TEXT NOT NULL DEFAULT ''", cancellationToken);
+        await AddColumnIfMissingAsync(connection, "experimental_provider_deployment", "TEXT NOT NULL DEFAULT ''", cancellationToken);
+        await AddColumnIfMissingAsync(connection, "experimental_provider_profile", "TEXT NOT NULL DEFAULT ''", cancellationToken);
     }
 
     private static async Task AddColumnIfMissingAsync(SqliteConnection connection, string columnName, string columnDefinition, CancellationToken cancellationToken)

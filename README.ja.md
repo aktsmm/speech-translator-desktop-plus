@@ -6,7 +6,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 
 このプロジェクトは [tsubakimoto/speech-translator](https://github.com/tsubakimoto/speech-translator) をベースにしています。元プロジェクトは MIT License です。元の著作権表示とライセンス文は [LICENSE](./LICENSE) に残しています。
 
-> この README は version 1.8.8 を対象にしています。
+> この README は version 1.8.9 を対象にしています。
 
 ## スクリーンショット
 
@@ -39,7 +39,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 - 前回利用した UI言語、話者言語、翻訳先言語、入力、利用モード、保存設定、ファイル名prefixを変更時に保存し、次回起動時に復元
 - 保存先フォルダーの選択、永続化、フォルダーを開く UI
 - UI言語、Azure Speech 認証情報、保存先をメイン画面から分離した設定ウィンドウ
-- 設定画面で音声Providerを選択可能。既定は Azure AI Speech、追加Providerとして Google Cloud Speech-to-Text + Cloud Translation に実験的対応
+- 設定画面で音声Providerを選択可能。既定は Azure AI Speech、追加ライブProviderとして Google Cloud Speech-to-Text + Cloud Translation に実験的対応。Azure OpenAI / OpenAI / AWS / Deepgram / AssemblyAI のexperimental設定保存にも対応
 - 日本語 / 英語 UI の切り替え
 - 主要な音声翻訳言語を話者言語・翻訳先言語として選択可能
 - Azure AI Speech のリージョン/APIキーを SQLite に保存
@@ -75,7 +75,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 - 最新3件だけをカード形式の別ウィンドウで表示する `別ウィンドウでライブノートを開く` 機能
 - 保存先フォルダーの選択・永続化
 - 翻訳に集中できるよう、UI言語、Azure設定、保存先設定を専用の設定ウィンドウへ移動
-- 低遅延リアルタイム翻訳の既定Providerは Azure AI Speech のまま維持しつつ、Google Cloud Speech + Translate を追加Providerとして実装
+- 低遅延リアルタイム翻訳の既定Providerは Azure AI Speech のまま維持しつつ、Google Cloud Speech + Translate を追加Providerとして実装。Azure OpenAI Realtime / Whisper、OpenAI direct、AWS Transcribe + Translate、Deepgram、AssemblyAI は設定保存まで対応
 - `開く` / `選択` UI
 - `設定` からの日本語 / 英語 UI 切り替え
 - 主要言語の選択肢追加
@@ -88,7 +88,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 ### 方法1: Release zip をダウンロード
 
 1. 最新の GitHub Release を開きます。
-2. `SpeechTranslatorDesktopPlus-win-x64.zip` をダウンロードします。保管用に `SpeechTranslatorDesktopPlus-win-x64-1.8.8.zip` のような version 付きコピーも公開されます。
+2. `SpeechTranslatorDesktopPlus-win-x64.zip` をダウンロードします。保管用に `SpeechTranslatorDesktopPlus-win-x64-1.8.9.zip` のような version 付きコピーも公開されます。
 3. 任意の書き込み可能なフォルダーへ展開します。
 4. `SpeechTranslatorDesktopPlus.exe` を実行します。
 
@@ -145,6 +145,7 @@ scripts\run-dev.cmd
 3. 音声Providerを選択します。
    - `Azure AI Speech` は既定Providerで、`Region` と `API Key` を使います。
    - `Google Cloud Speech + Translate` は実験的Providerで、Google Project ID と Application Default Credentials (ADC) またはサービスアカウントJSONパスを使います。
+   - Azure OpenAI Realtime / Whisper、OpenAI direct、AWS、Deepgram、AssemblyAI はexperimental設定を保存できます。ライブ実行はランタイム実装まで明示エラーになります。
 4. Provider設定を保存します。
 5. 利用モードを選択します。
    - `翻訳 + 書き起こし`
@@ -186,7 +187,16 @@ scripts\run-dev.cmd
 
 Google Provider のコードパスはビルドと設定/ルーティングテストで確認済みですが、この環境にはGoogle Cloud認証情報/Projectがないため、Google実APIへの疎通は未検証です。
 
-Azure OpenAI Realtime / Whisper、OpenAI direct、AWS Transcribe は今後のProvider候補です。
+追加のexperimental設定に対応しているProvider:
+
+- Azure OpenAI Realtime: endpoint、realtime deployment、model/API version。APIキーは `AZURE_OPENAI_API_KEY` を使います。
+- Azure OpenAI Whisper: endpoint、Whisper deployment、API version。APIキーは `AZURE_OPENAI_API_KEY` を使います。
+- OpenAI direct: base URL（任意）、realtime/audio model。APIキーは `OPENAI_API_KEY` を使います。
+- AWS Transcribe + Translate: region/profile、model/options。認証は `AWS_PROFILE`、環境変数、SSO、共有credentialsなどAWS SDK標準チェーンを使います。
+- Deepgram: endpoint/model/options。APIキーは `DEEPGRAM_API_KEY` を使います。
+- AssemblyAI: endpoint/model/options。APIキーは `ASSEMBLYAI_API_KEY` を使います。
+
+これらは設定を準備・保存できるようにするため選択可能ですが、ライブ実行は未実装Providerとして明示メッセージを返します。
 
 ## トラブルシュート
 
