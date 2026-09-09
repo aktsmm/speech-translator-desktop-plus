@@ -223,6 +223,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,12,12">
@@ -284,6 +285,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <WrapPanel Grid.Row="0"
@@ -311,30 +313,79 @@
                                 Content="{Binding ClearLogsButtonText}" />
                     </WrapPanel>
 
-                    <DockPanel Grid.Row="1"
-                               Margin="0,8,0,0"
-                               HorizontalAlignment="Right">
-                        <Border Margin="0,0,8,0"
+                    <Grid Grid.Row="1"
+                          Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0"
+                                Margin="0,0,8,0"
                                 Padding="10,6"
                                 Background="#EFF6FF"
                                 CornerRadius="10"
                                 AutomationProperties.Name="{Binding StatusLabel}">
-                            <StackPanel Orientation="Horizontal">
+                            <StackPanel>
                                 <TextBlock FontWeight="SemiBold"
                                            Foreground="#1D4ED8"
                                            Text="{Binding StatusLabel}" />
-                                <TextBlock Margin="8,0,0,0"
+                                <TextBlock Margin="0,4,0,0"
                                            Foreground="#1E3A8A"
+                                           TextWrapping="Wrap"
                                            Text="{Binding StatusMessage}" />
                             </StackPanel>
                         </Border>
-                        <Button MinWidth="190"
-                                Style="{StaticResource ActionButton}"
-                                Click="ShowRecentTranslationsWindow"
-                                AutomationProperties.Name="{Binding ShowRecentTranslationsButtonText}"
-                                ToolTip="{Binding ShowRecentTranslationsButtonText}"
-                                Content="{Binding ShowRecentTranslationsButtonText}" />
-                    </DockPanel>
+                        <WrapPanel Grid.Column="1"
+                                   HorizontalAlignment="Right">
+                            <Button MinWidth="150"
+                                    Margin="0,0,8,0"
+                                    Style="{StaticResource ActionButton}"
+                                    Visibility="{Binding OpenLatestRecordingFolderButtonVisibility}"
+                                    Command="{Binding OpenLatestRecordingFolderCommand}"
+                                    AutomationProperties.Name="{Binding OpenLatestRecordingFolderButtonText}"
+                                    ToolTip="{Binding OpenLatestRecordingFolderButtonText}"
+                                    Content="{Binding OpenLatestRecordingFolderButtonText}" />
+                            <Button MinWidth="190"
+                                    Style="{StaticResource ActionButton}"
+                                    Click="ShowRecentTranslationsWindow"
+                                    AutomationProperties.Name="{Binding ShowRecentTranslationsButtonText}"
+                                    ToolTip="{Binding ShowRecentTranslationsButtonText}"
+                                    Content="{Binding ShowRecentTranslationsButtonText}" />
+                        </WrapPanel>
+                    </Grid>
+
+                    <Border Grid.Row="2"
+                            Grid.ColumnSpan="4"
+                            Margin="0,10,0,0"
+                            Padding="10,8"
+                            Background="#ECFDF5"
+                            BorderBrush="#A7F3D0"
+                            BorderThickness="1"
+                            CornerRadius="10"
+                            Visibility="{Binding UpdateBannerVisibility}">
+                        <DockPanel>
+                            <WrapPanel DockPanel.Dock="Right">
+                                <Button MinWidth="120"
+                                        Margin="0,0,8,0"
+                                        Style="{StaticResource ActionButton}"
+                                        Command="{Binding CheckForUpdatesCommand}"
+                                        AutomationProperties.Name="{Binding CheckForUpdatesButtonText}"
+                                        ToolTip="{Binding CheckForUpdatesButtonText}"
+                                        Content="{Binding CheckForUpdatesButtonText}" />
+                                <Button MinWidth="130"
+                                        Style="{StaticResource PrimaryButton}"
+                                        Command="{Binding ApplyUpdateCommand}"
+                                        AutomationProperties.Name="{Binding UpdateActionButtonText}"
+                                        ToolTip="{Binding UpdateActionButtonText}"
+                                        Content="{Binding UpdateActionButtonText}" />
+                            </WrapPanel>
+                            <TextBlock VerticalAlignment="Center"
+                                       Margin="0,0,8,0"
+                                       TextWrapping="Wrap"
+                                       Foreground="#065F46"
+                                       Text="{Binding UpdateStatusMessage}" />
+                        </DockPanel>
+                    </Border>
                 </Grid>
             </Grid>
         </Border>

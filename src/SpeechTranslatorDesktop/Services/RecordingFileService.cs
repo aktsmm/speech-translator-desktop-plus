@@ -75,9 +75,11 @@ public sealed class RecordingFileService : IRecordingFileService
         }
     }
 
-    public string OpenRecordingsFolder()
+    public string OpenRecordingsFolder(string? directoryPath = null)
     {
-        var recordingsDirectory = RecordingsDirectory;
+        var recordingsDirectory = string.IsNullOrWhiteSpace(directoryPath)
+            ? RecordingsDirectory
+            : Path.GetFullPath(directoryPath.Trim());
         Directory.CreateDirectory(recordingsDirectory);
 
         using var process = Process.Start(new ProcessStartInfo
@@ -135,47 +137,53 @@ public sealed class RecordingFileService : IRecordingFileService
     private static string ValidateFileName(string fileName)
     {
         var trimmedFileName = fileName.Trim();
+        var normalizedFileName = trimmedFileName.Normalize(NormalizationForm.FormC);
 
-        if (Path.IsPathRooted(trimmedFileName))
-        {
-            throw new ArgumentException("絶対パスは指定できません。", nameof(fileName));
-        }
-
-        if (trimmedFileName.Contains(Path.DirectorySeparatorChar) || trimmedFileName.Contains(Path.AltDirectorySeparatorChar))
-        {
-            throw new ArgumentException("ディレクトリ区切り文字は指定できません。", nameof(fileName));
-        }
-
-        if (trimmedFileName is "." or ".." || trimmedFileName.Contains("..", StringComparison.Ordinal))
-        {
-            throw new ArgumentException("親ディレクトリ参照は指定できません。", nameof(fileName));
-        }
-
-        if (trimmedFileName.Contains('.', StringComparison.Ordinal))
-        {
-            throw new ArgumentException("拡張子を含まない単純なファイル名を指定してください。", nameof(fileName));
-        }
-
-        if (trimmedFileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
-        {
-            throw new ArgumentException("無効なファイル名です。", nameof(fileName));
-        }
-
-        if (!trimmedFileName.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_'))
-        {
-            throw new ArgumentException("ファイル名には英数字、ハイフン、アンダースコアのみ使用できます。", nameof(fileName));
-        }
-
-        if (ReservedFileNames.Contains(trimmedFileName))
-        {
-            throw new ArgumentException("予約済みのファイル名は指定できません。", nameof(fileName));
-        }
-
-        if (trimmedFileName.Length == 0)
+        if (normalizedFileName.Length == 0)
         {
             throw new ArgumentException("ファイル名を指定してください。", nameof(fileName));
         }
 
-        return trimmedFileName;
+        if (Path.IsPathRooted(normalizedFileName))
+        {
+            throw new ArgumentException("絶対パスは指定できません。", nameof(fileName));
+        }
+
+        if (normalizedFileName.Contains(Path.DirectorySeparatorChar) || normalizedFileName.Contains(Path.AltDirectorySeparatorChar))
+        {
+            throw new ArgumentException("ディレクトリ区切り文字は指定できません。", nameof(fileName));
+        }
+
+        if (normalizedFileName is "." or ".." || normalizedFileName.Contains("..", StringComparison.Ordinal))
+        {
+            throw new ArgumentException("親ディレクトリ参照は指定できません。", nameof(fileName));
+        }
+
+        if (normalizedFileName.Contains('.', StringComparison.Ordinal))
+        {
+            throw new ArgumentException("拡張子を含まない単純なファイル名を指定してください。", nameof(fileName));
+        }
+
+        if (normalizedFileName.EndsWith('.'))
+        {
+            throw new ArgumentException("末尾にドットは指定できません。", nameof(fileName));
+        }
+
+        if (normalizedFileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || normalizedFileName.Any(char.IsControl))
+        {
+            throw new ArgumentException("無効なファイル名です。", nameof(fileName));
+        }
+
+        if (!normalizedFileName.All(c => char.IsLetterOrDigit(c) || c is '-' or '_' or ' '))
+        {
+            throw new ArgumentException("ファイル名には文字、数字、スペース、ハイフン、アンダースコアのみ使用できます。", nameof(fileName));
+        }
+
+        if (ReservedFileNames.Contains(normalizedFileName))
+        {
+            throw new ArgumentException("予約済みのファイル名は指定できません。", nameof(fileName));
+        }
+
+        return normalizedFileName;
     }
 }

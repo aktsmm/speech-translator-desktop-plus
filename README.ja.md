@@ -44,6 +44,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 - 主要な音声翻訳言語を話者言語・翻訳先言語として選択可能
 - Azure AI Speech のリージョン/APIキーを SQLite に保存
   - APIキーは Windows DPAPI で保護されます
+- Velopack ベースのインストーラー配布とアプリ内更新確認（GitHub Releases）に対応
 - 自己完結型 Windows publish と zip パッケージ作成スクリプトに対応
 
 ## fork元からの主な変更点
@@ -85,12 +86,21 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 
 ## おすすめセットアップ
 
-### 方法1: Release zip をダウンロード
+### 方法1（推奨）: Release インストーラーを利用
 
 1. 最新の GitHub Release を開きます。
-2. `SpeechTranslatorDesktopPlus-win-x64.zip` をダウンロードします。保管用に `SpeechTranslatorDesktopPlus-win-x64-1.8.9.zip` のような version 付きコピーも公開されます。
+2. `SpeechTranslatorDesktopPlus-win-Setup.exe` をダウンロードして実行します。
+3. インストール版を起動します（Velopack によるアプリ内更新に対応）。
+
+### 方法2: Release zip をダウンロード（ポータブル）
+
+1. 最新の GitHub Release を開きます。
+2. `SpeechTranslatorDesktopPlus-win-x64.zip` をダウンロードします。保管用に `SpeechTranslatorDesktopPlus-win-x64-1.9.0.zip` のような version 付きコピーも公開されます。
 3. 任意の書き込み可能なフォルダーへ展開します。
 4. `SpeechTranslatorDesktopPlus.exe` を実行します。
+5. zip 配布版はその場で自己置換しません。更新検出時は公式 Release / installer を開きます。
+
+旧仕様の保存データ（例: exe 横の `recordings/`）がアプリフォルダー配下に残っている場合は、データ保護のため更新適用をブロックし、安全なユーザーフォルダーへコピー後に更新する案内を表示します。
 
 ### 方法2: ソースからワンコマンドセットアップ
 
@@ -157,7 +167,8 @@ scripts\run-dev.cmd
    - `マイク + PC音声`（既定）
 8. 記録を保存するか選択します。既定では保存ONです。
 9. 必要に応じてファイル名 prefix を入力します。
-   - 英数字、`-`、`_` のみ使用できます
+   - Unicode の文字/数字、スペース、`-`、`_` を使用できます
+   - 先頭/末尾空白は互換のため trim されます。パス指定、Windows 予約名、制御文字、末尾ドットは使用できません
    - 空欄の場合は `session` を使います
    - 開始するたびに `{prefix}_yyyyMMdd_HHmmss.txt` 形式の新しいファイルを作成します。例: `build2026_20260603_080250.txt`
 10. `開始` を押します。
@@ -165,6 +176,7 @@ scripts\run-dev.cmd
 12. 表示領域を減らしたいときは、`翻訳ログ` または `状態ログ` を折りたためます。
 13. `すべてコピー`、`原文をすべてコピー`、`訳文をすべてコピー` でライブログ全体を形式別にコピーできます。カード内の `コピー`、`原文コピー`、`訳文コピー` でそのブロックだけコピーできます。キーボードショートカットを使う場合は、ライブログ一覧をクリックするか `Tab` で一覧へフォーカスし、カードを選択してから `Ctrl+C` で選択中ブロック、`Ctrl+Shift+C` で原文、`Ctrl+T` で訳文をコピーできます。
 14. `別ウィンドウでライブノートを開く` を押すと、原文・書き起こし/翻訳文の最新3件だけを別ウィンドウで確認できます。
+15. 停止後に保存成功した場合は、状態の横に出る `保存フォルダーを開く` から直近セッションの実保存先を開けます。
 
 `記録を保存する` がOFFの場合、翻訳/書き起こしは画面に表示されますがテキストファイルには保存されません。
 
@@ -229,7 +241,7 @@ Google Provider のコードパスはビルドと設定/ルーティングテス
 
 `設定` から、翻訳ログを保存するフォルダーを選択・開くことができます。
 
-選択した保存先はローカル設定DBに保存されます。保存先を選択していない場合は、アプリ実行ファイルから見た `recordings/` 配下に保存されます。
+選択した保存先はローカル設定DBに保存されます。保存先を選択していない場合は、`%LocalAppData%\SpeechTranslatorDesktop\recordings`（ユーザーデータ領域）に保存されます。
 
 ## publish と zip 作成
 

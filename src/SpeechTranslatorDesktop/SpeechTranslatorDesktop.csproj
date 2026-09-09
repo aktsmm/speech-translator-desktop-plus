@@ -7,6 +7,7 @@
     <Product>Speech Translator Desktop Plus</Product>
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
+    <StartupObject>SpeechTranslatorDesktop.App</StartupObject>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -18,7 +19,13 @@
     <Resource Include="Assets\AppIcon.png" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.7" />
     <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="Velopack" Version="1.2.0" />
     <ProjectReference Include="..\Shared\SpeechTranslatorShared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ApplicationDefinition Remove="App.xaml" />
+    <Page Include="App.xaml" />
   </ItemGroup>
 
 </Project>

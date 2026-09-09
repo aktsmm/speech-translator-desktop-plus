@@ -82,8 +82,9 @@ public class RecordingFileServiceTests : IDisposable
     [InlineData("nested/file")]
     [InlineData("nested\\file")]
     [InlineData("session.txt")]
-    [InlineData("session 01")]
+    [InlineData("session🙂01")]
     [InlineData("..")]
+    [InlineData("CON")]
     public void AppendTranscription_InvalidFileName_ThrowsArgumentException(string fileName)
     {
         var service = new RecordingFileService(_rootDirectory);
@@ -101,8 +102,9 @@ public class RecordingFileServiceTests : IDisposable
     [InlineData("nested/file")]
     [InlineData("nested\\file")]
     [InlineData("session.txt")]
-    [InlineData("session 01")]
+    [InlineData("session🙂01")]
     [InlineData("..")]
+    [InlineData("NUL")]
     public void AppendTranslation_InvalidFileName_ThrowsArgumentException(string fileName)
     {
         var service = new RecordingFileService(_rootDirectory);
@@ -118,9 +120,29 @@ public class RecordingFileServiceTests : IDisposable
     {
         var service = new RecordingFileService(_rootDirectory);
 
-        var normalized = service.NormalizeFileName(" session-01 ");
+        var normalized = service.NormalizeFileName(" 会議メモ 01_A-2 ");
+
+        normalized.Should().Be("会議メモ 01_A-2");
+    }
+
+    [Fact]
+    public void NormalizeFileName_TrailingWhitespace_IsTrimmedForCompatibility()
+    {
+        var service = new RecordingFileService(_rootDirectory);
+
+        var normalized = service.NormalizeFileName("session-01   ");
 
         normalized.Should().Be("session-01");
+    }
+
+    [Fact]
+    public void NormalizeFileName_TrailingDot_ThrowsArgumentException()
+    {
+        var service = new RecordingFileService(_rootDirectory);
+
+        var act = () => service.NormalizeFileName("session.");
+
+        act.Should().Throw<ArgumentException>();
     }
 
     [Fact]
@@ -131,6 +153,16 @@ public class RecordingFileServiceTests : IDisposable
         var normalized = service.NormalizeFileName("   ");
 
         normalized.Should().BeNull();
+    }
+
+    [Fact]
+    public void NormalizeFileName_CombiningCharacter_NormalizesToFormC()
+    {
+        var service = new RecordingFileService(_rootDirectory);
+
+        var normalized = service.NormalizeFileName("Cafe\u0301");
+
+        normalized.Should().Be("Café");
     }
 
     public void Dispose()

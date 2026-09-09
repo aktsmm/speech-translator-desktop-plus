@@ -41,6 +41,7 @@ This project is based on [tsubakimoto/speech-translator](https://github.com/tsub
 - Japanese and English UI language switching.
 - Major speech translation languages are available from the source/target language selectors.
 - Azure AI Speech region/API key persistence in SQLite with the API key protected by Windows DPAPI.
+- Velopack-based installer + in-app update checks (GitHub Releases), with safe fallback guidance for portable zip users.
 - Self-contained Windows publish and zip packaging scripts for easy setup.
 
 ## Changes from the upstream fork
@@ -81,12 +82,21 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 
 ## Recommended setup
 
-### Option 1: Download the release zip
+### Option 1 (recommended): Install from the release installer
 
 1. Open the latest GitHub release.
-2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`. A versioned copy such as `SpeechTranslatorDesktopPlus-win-x64-1.8.9.zip` is also published for archiving.
+2. Download and run `SpeechTranslatorDesktopPlus-win-Setup.exe`.
+3. Launch the installed app (in-app updates are supported through Velopack).
+
+### Option 2: Download the release zip (portable)
+
+1. Open the latest GitHub release.
+2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`. A versioned copy such as `SpeechTranslatorDesktopPlus-win-x64-1.9.0.zip` is also published for archiving.
 3. Extract it to any writable folder.
 4. Run `SpeechTranslatorDesktopPlus.exe`.
+5. Portable zip mode does not self-replace in place. When updates are detected, the app opens the official installer/release page.
+
+If legacy data still exists under the old app-install folder (for example `recordings/` beside the exe), in-place update apply is blocked until you copy that data to a safe user folder.
 
 ### Option 2: One-command setup from source
 
@@ -152,14 +162,16 @@ scripts\run-dev.cmd
    - `PC audio (default playback device)`
    - `Microphone + PC audio` (default)
 8. Choose whether to save recordings. Saving is on by default.
-9. Optionally enter a file name prefix, using letters/numbers/`-`/`_` only.
+9. Optionally enter a file name prefix, using Unicode letters/numbers, spaces, `-`, and `_`.
    - Empty prefix uses `session`.
+   - Leading/trailing spaces are trimmed for compatibility. Paths, reserved Windows names, control characters, and trailing dot are rejected.
    - Each start creates a new `{prefix}_yyyyMMdd_HHmmss.txt` file, for example `build2026_20260603_080250.txt`.
 10. Click `Start`.
 11. Click `Clear logs` to clear the visible translation/status logs. Recording files are already created fresh on each start.
 12. Collapse `Translation log` or `Status log` when you want to reduce the visible log area.
 13. Use `Copy all`, `Copy all source`, or `Copy all translations` to copy the full live log in different formats. Use `Copy`, `Copy source`, or `Copy translation` on a card to copy only that block. For keyboard shortcuts, first click the live log list or press `Tab` until the list is focused, select a card, then use `Ctrl+C` for the selected block, `Ctrl+Shift+C` for source text, and `Ctrl+T` for translation text.
 14. Click `Open live notes window` to open a separate window that shows only the three newest source/transcript or source/translation pairs.
+15. After a successful stop with saved text, use `Open saved folder` beside status to open the actual folder used for that recording session.
 
 If `Save recording` is off, translation/transcription is shown in the UI but not saved to a text file.
 
@@ -226,7 +238,7 @@ Free tier availability, quotas, and included amounts can change. Check the offic
 
 Use `Settings` to choose and open the folder where translation logs are saved.
 
-The selected folder is persisted in the local settings database. If no custom folder is selected, logs are saved under `recordings/` relative to the app executable directory.
+The selected folder is persisted in the local settings database. If no custom folder is selected, logs are saved under `%LocalAppData%\SpeechTranslatorDesktop\recordings` (user data area, update-safe).
 
 ## Publish and package
 
