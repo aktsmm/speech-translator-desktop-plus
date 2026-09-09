@@ -288,7 +288,7 @@ public class DesktopTranslationControllerTests
         {
         }
 
-        public string OpenRecordingsFolder() => RecordingsDirectory;
+        public string OpenRecordingsFolder(string? directoryPath = null) => directoryPath ?? RecordingsDirectory;
 
         public void SetRecordingsDirectory(string directoryPath)
         {

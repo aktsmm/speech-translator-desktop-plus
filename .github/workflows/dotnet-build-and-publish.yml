@@ -34,6 +34,9 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore speech-translator.sln
 
+    - name: Restore Desktop RID dependencies
+      run: dotnet restore src/SpeechTranslatorDesktop/SpeechTranslatorDesktop.csproj -r win-x64
+
     - name: Build solution
       run: dotnet build speech-translator.sln --configuration Release --no-restore
 
@@ -44,15 +47,28 @@ jobs:
       run: dotnet publish src/SpeechTranslatorConsole/SpeechTranslatorConsole.csproj --configuration Release --no-build --output artifacts/publish/console
 
     - name: Publish Desktop
-      run: dotnet publish src/SpeechTranslatorDesktop/SpeechTranslatorDesktop.csproj --configuration Release --no-build --output artifacts/publish/desktop
+      run: dotnet publish src/SpeechTranslatorDesktop/SpeechTranslatorDesktop.csproj --configuration Release -r win-x64 --self-contained true --no-restore --output artifacts/publish/desktop-win-x64
+
+    - name: Install vpk tool
+      shell: pwsh
+      run: |
+        dotnet tool install --global vpk
+        "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+    - name: Build Velopack packages
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Path artifacts/velopack -Force | Out-Null
+        vpk pack -u SpeechTranslatorDesktopPlus -v ${{ steps.version.outputs.version }} -o artifacts/velopack -p artifacts/publish/desktop-win-x64 -f net10-x64-desktop
 
     - name: Package publish outputs
       shell: pwsh
       run: |
         New-Item -ItemType Directory -Path artifacts/release -Force | Out-Null
         Compress-Archive -Path artifacts/publish/console/* -DestinationPath "artifacts/release/SpeechTranslatorConsole-win-x64-${{ steps.version.outputs.version }}.zip" -Force
-        Compress-Archive -Path artifacts/publish/desktop/* -DestinationPath "artifacts/release/SpeechTranslatorDesktopPlus-win-x64.zip" -Force
+        Compress-Archive -Path artifacts/publish/desktop-win-x64/* -DestinationPath "artifacts/release/SpeechTranslatorDesktopPlus-win-x64.zip" -Force
         Copy-Item "artifacts/release/SpeechTranslatorDesktopPlus-win-x64.zip" "artifacts/release/SpeechTranslatorDesktopPlus-win-x64-${{ steps.version.outputs.version }}.zip" -Force
+        Copy-Item artifacts/velopack/* artifacts/release/ -Force
         Get-ChildItem artifacts/release/*.zip |
           ForEach-Object { "{0}  {1}" -f (Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName).Hash.ToLowerInvariant(), $_.Name } |
           Set-Content artifacts/release/SHA256SUMS.txt -Encoding ascii
@@ -75,6 +91,49 @@ jobs:
       with:
         name: publish-${{ needs.build.outputs.version }}
         path: artifacts/release
+
+    - name: Ensure release version is new
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        set -euo pipefail
+        REPO="${{ github.repository }}"
+        VERSION="${{ needs.build.outputs.version }}"
+        TARGET_SHA="${{ github.sha }}"
+
+        if gh api "repos/$REPO/releases/tags/$VERSION" > /dev/null 2>&1; then
+          echo "Release $VERSION already exists. Refusing overwrite."
+          exit 1
+        else
+          set +e
+          RELEASE_ERR="$(gh api "repos/$REPO/releases/tags/$VERSION" 2>&1 >/dev/null)"
+          RELEASE_CODE=$?
+          set -e
+          if [ "$RELEASE_CODE" -ne 1 ] || [[ "$RELEASE_ERR" != *"HTTP 404"* ]]; then
+            echo "Failed to check existing release for $VERSION: $RELEASE_ERR"
+            exit 1
+          fi
+        fi
+
+        set +e
+        TAG_JSON="$(gh api "repos/$REPO/git/ref/tags/$VERSION" 2>&1)"
+        TAG_CODE=$?
+        set -e
+        if [ "$TAG_CODE" -eq 0 ]; then
+          TAG_TYPE="$(echo "$TAG_JSON" | jq -r '.object.type')"
+          TAG_SHA="$(echo "$TAG_JSON" | jq -r '.object.sha')"
+          if [ "$TAG_TYPE" = "tag" ]; then
+            TAG_SHA="$(gh api "repos/$REPO/git/tags/$TAG_SHA" --jq '.object.sha')"
+          fi
+
+          if [ "$TAG_SHA" != "$TARGET_SHA" ]; then
+            echo "Tag $VERSION already points to $TAG_SHA (current commit: $TARGET_SHA). Refusing overwrite."
+            exit 1
+          fi
+        elif [[ "$TAG_JSON" != *"HTTP 404"* ]]; then
+          echo "Failed to check tag $VERSION: $TAG_JSON"
+          exit 1
+        fi
 
     - name: Create tag and release
       uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda #v3.0.0

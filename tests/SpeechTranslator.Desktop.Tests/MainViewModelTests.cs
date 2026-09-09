@@ -109,6 +109,18 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public async Task InitializeAsync_WhenSavedSettingsDoNotExist_StillChecksAutoUpdate()
+    {
+        var appUpdateService = new FakeAppUpdateService();
+        var viewModel = CreateViewModel(appUpdateService: appUpdateService);
+
+        await viewModel.InitializeAsync();
+        await Task.Delay(50);
+
+        appUpdateService.CheckCallCount.Should().BeGreaterThan(0);
+    }
+
+    [Fact]
     public async Task InitializeAsync_OnFirstLaunchWithMissingSettingsDatabase_ShowsGuidanceInsteadOfFailure()
     {
         var testDirectory = Path.Combine(
@@ -181,6 +193,28 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public async Task OpenLatestRecordingFolder_UsesLastSavedPathWithoutChangingCurrentSetting()
+    {
+        var recordingFileService = new FakeRecordingFileService();
+        var worker = new FakeDesktopTranslationWorker();
+        var recordingFolderPicker = new FakeRecordingFolderPicker(@"C:\new-recordings");
+        var viewModel = CreateViewModel(
+            recordingFileService: recordingFileService,
+            recordingFolderPicker: recordingFolderPicker,
+            workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+
+        await ExecuteAsync(viewModel.StartCommand);
+        worker.RaiseStatusChanged(DesktopTranslationStatus.TranslatedSpeech, "翻訳成功");
+        await ExecuteAsync(viewModel.StopCommand);
+        await ExecuteAsync(viewModel.ChooseRecordingsFolderCommand);
+
+        await ExecuteAsync(viewModel.OpenLatestRecordingFolderCommand);
+
+        recordingFileService.LastOpenedDirectoryPath.Should().Be(@"C:\recordings");
+        viewModel.RecordingsFolderPath.Should().Be(@"C:\new-recordings");
+    }
+
+    [Fact]
     public async Task ChooseRecordingsFolder_WhenFolderSelected_SavesAndUpdatesPath()
     {
         var recordingFileService = new FakeRecordingFileService();
@@ -213,6 +247,18 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public async Task ChooseRecordingsFolder_WhenRunning_IsDisabled()
+    {
+        var recordingFileService = new FakeRecordingFileService();
+        var viewModel = CreateViewModel(recordingFileService: recordingFileService);
+
+        await ExecuteAsync(viewModel.StartCommand);
+
+        viewModel.ChooseRecordingsFolderCommand.CanExecute(null).Should().BeFalse();
+        recordingFileService.RecordingsDirectory.Should().Be(@"C:\recordings");
+    }
+
+    [Fact]
     public async Task InitializeAsync_WhenSavedRecordingsFolderExists_LoadsIt()
     {
         var recordingFileService = new FakeRecordingFileService();
@@ -237,7 +283,7 @@ public class MainViewModelTests
 
         await ExecuteAsync(viewModel.OpenRecordingsFolderCommand);
 
-        viewModel.StatusMessage.Should().Be("open failed");
+        viewModel.StatusMessage.Should().Contain("open failed");
         viewModel.ActivityLogs.Should().Contain("open failed");
     }
 
@@ -411,6 +457,7 @@ public class MainViewModelTests
             nameof(RecognitionMode.TranscriptionOnly),
             false,
             "build2026",
+            true,
             nameof(SpeechProviderKind.AzureAiSpeech),
             string.Empty,
             GoogleCloudServiceSettings.DefaultLocation,
@@ -436,6 +483,7 @@ public class MainViewModelTests
                 nameof(RecognitionMode.TranscriptionOnly),
                 false,
                 "build2026",
+                true,
                 nameof(SpeechProviderKind.GoogleCloud),
                 "my-project",
                 "us-central1",
@@ -493,6 +541,7 @@ public class MainViewModelTests
             nameof(RecognitionMode.TranscriptionOnly),
             false,
             "build2026",
+            true,
             nameof(SpeechProviderKind.AzureAiSpeech),
             string.Empty,
             GoogleCloudServiceSettings.DefaultLocation,
@@ -518,6 +567,7 @@ public class MainViewModelTests
                 nameof(RecognitionMode.TranscriptionOnly),
                 false,
                 "build2026",
+                true,
                 nameof(SpeechProviderKind.GoogleCloud),
                 "my-project",
                 "global",
@@ -581,6 +631,7 @@ public class MainViewModelTests
     {
         var translationController = new FakeTranslationController();
         var viewModel = CreateViewModel(translationController: translationController);
+        viewModel.IsRecordingSaveEnabled = false;
 
         await ExecuteAsync(viewModel.StartCommand);
         await ExecuteAsync(viewModel.StopCommand);
@@ -588,6 +639,82 @@ public class MainViewModelTests
         translationController.StopCallCount.Should().Be(1);
         viewModel.StatusMessage.Should().Be(viewModel.SelectedUiLanguage?.Language == UiLanguage.English ? "Stopped" : "停止");
         viewModel.IsRunning.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Stop_WhenRecordingSaved_ShowsOpenSavedFolderButton()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var viewModel = CreateViewModel(workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+
+        await ExecuteAsync(viewModel.StartCommand);
+        worker.RaiseStatusChanged(DesktopTranslationStatus.TranslatedSpeech, "翻訳成功");
+        await ExecuteAsync(viewModel.StopCommand);
+
+        viewModel.OpenLatestRecordingFolderButtonVisibility.Should().Be(Visibility.Visible);
+        viewModel.StatusMessage.Should().Contain("保存");
+    }
+
+    [Fact]
+    public async Task Stop_WhenNoSpeech_DoesNotClaimSaved()
+    {
+        var viewModel = CreateViewModel();
+
+        await ExecuteAsync(viewModel.StartCommand);
+        await ExecuteAsync(viewModel.StopCommand);
+
+        viewModel.OpenLatestRecordingFolderButtonVisibility.Should().Be(Visibility.Collapsed);
+        viewModel.StatusMessage.Should().NotContain("保存済み");
+    }
+
+    [Fact]
+    public async Task Stop_WhenRecordingSaveFailed_DoesNotClaimSaved()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var viewModel = CreateViewModel(workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+
+        await ExecuteAsync(viewModel.StartCommand);
+        worker.RaiseStatusChanged(DesktopTranslationStatus.Error, "記録ファイルの保存に失敗しました: denied");
+        await ExecuteAsync(viewModel.StopCommand);
+
+        viewModel.OpenLatestRecordingFolderButtonVisibility.Should().Be(Visibility.Collapsed);
+        viewModel.StatusMessage.Should().Contain("保存エラー");
+    }
+
+    [Fact]
+    public async Task Stop_WhenWriteSucceededBeforeStartCompletes_PreservesSavedState()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var viewModel = CreateViewModel(
+            workerFactory: new FakeDesktopTranslationWorkerFactory(worker),
+            translationController: new FakeTranslationController
+            {
+                OnStart = startedWorker => ((FakeDesktopTranslationWorker)startedWorker).RaiseStatusChanged(DesktopTranslationStatus.TranslatedSpeech, "翻訳成功")
+            });
+
+        await ExecuteAsync(viewModel.StartCommand);
+        await ExecuteAsync(viewModel.StopCommand);
+
+        viewModel.OpenLatestRecordingFolderButtonVisibility.Should().Be(Visibility.Visible);
+        viewModel.StatusMessage.Should().Contain("保存");
+    }
+
+    [Fact]
+    public async Task Stop_WhenWriteFailsBeforeStartCompletes_PreservesFailureState()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var viewModel = CreateViewModel(
+            workerFactory: new FakeDesktopTranslationWorkerFactory(worker),
+            translationController: new FakeTranslationController
+            {
+                OnStart = startedWorker => ((FakeDesktopTranslationWorker)startedWorker).RaiseStatusChanged(DesktopTranslationStatus.Error, "記録ファイルの保存に失敗しました: denied")
+            });
+
+        await ExecuteAsync(viewModel.StartCommand);
+        await ExecuteAsync(viewModel.StopCommand);
+
+        viewModel.OpenLatestRecordingFolderButtonVisibility.Should().Be(Visibility.Collapsed);
+        viewModel.StatusMessage.Should().Contain("保存エラー");
     }
 
     [Fact]
@@ -1023,6 +1150,198 @@ public class MainViewModelTests
         });
     }
 
+    [Fact]
+    public async Task ApplyUpdate_WhenReadyAndIdle_StartsInstallFlow()
+    {
+        var appUpdateService = new FakeAppUpdateService
+        {
+            CheckResult = new AppUpdateResult(
+                AppUpdateStatus.UpdateReadyToInstall,
+                "ready",
+                new AppUpdatePackage("1.9.0", false, null, new object()))
+        };
+        var viewModel = CreateViewModel(appUpdateService: appUpdateService);
+
+        await ExecuteAsync(viewModel.CheckForUpdatesCommand);
+        await ExecuteAsync(viewModel.ApplyUpdateCommand);
+
+        appUpdateService.ApplyCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ApplyUpdate_WhenRecordingInProgress_DoesNotInstall()
+    {
+        var appUpdateService = new FakeAppUpdateService
+        {
+            CheckResult = new AppUpdateResult(
+                AppUpdateStatus.UpdateReadyToInstall,
+                "ready",
+                new AppUpdatePackage("1.9.0", false, null, new object()))
+        };
+        var translationController = new FakeTranslationController();
+        var viewModel = CreateViewModel(
+            appUpdateService: appUpdateService,
+            translationController: translationController);
+
+        await ExecuteAsync(viewModel.CheckForUpdatesCommand);
+        await ExecuteAsync(viewModel.StartCommand);
+        await ExecuteAsync(viewModel.ApplyUpdateCommand);
+
+        appUpdateService.ApplyCallCount.Should().Be(0);
+        viewModel.StatusMessage.Should().Contain("停止");
+    }
+
+    [Fact]
+    public async Task ApplyUpdate_WhenLegacyAppBaseDataExists_BlocksInstall()
+    {
+        var appBaseDirectory = Path.Combine(Path.GetTempPath(), nameof(MainViewModelTests), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(appBaseDirectory, "recordings"));
+        File.WriteAllText(Path.Combine(appBaseDirectory, "recordings", "legacy.txt"), "legacy");
+        var appUpdateService = new FakeAppUpdateService
+        {
+            CheckResult = new AppUpdateResult(
+                AppUpdateStatus.UpdateReadyToInstall,
+                "ready",
+                new AppUpdatePackage("1.9.0", false, null, new object()))
+        };
+
+        try
+        {
+            var viewModel = CreateViewModel(appUpdateService: appUpdateService, appBaseDirectory: appBaseDirectory);
+
+            await ExecuteAsync(viewModel.CheckForUpdatesCommand);
+            await ExecuteAsync(viewModel.ApplyUpdateCommand);
+
+            appUpdateService.ApplyCallCount.Should().Be(0);
+            viewModel.UpdateStatusMessage.Should().Contain("更新を一時停止");
+        }
+        finally
+        {
+            if (Directory.Exists(appBaseDirectory))
+            {
+                Directory.Delete(appBaseDirectory, recursive: true);
+            }
+        }
+    }
+
+        [Fact]
+        public async Task ApplyUpdate_WhenCustomRecordingsFolderUnderAppBase_BlocksInstallWithActionableMessage()
+        {
+            var appBaseDirectory = Path.Combine(Path.GetTempPath(), nameof(MainViewModelTests), Guid.NewGuid().ToString("N"));
+            var customFolder = Path.Combine(appBaseDirectory, "notes");
+            Directory.CreateDirectory(customFolder);
+            File.WriteAllText(Path.Combine(customFolder, "legacy.txt"), "legacy");
+            var appUpdateService = new FakeAppUpdateService
+            {
+                CheckResult = new AppUpdateResult(
+                    AppUpdateStatus.UpdateReadyToInstall,
+                    "ready",
+                    new AppUpdatePackage("1.9.0", false, null, new object()))
+            };
+
+            try
+            {
+                var recordingFileService = new FakeRecordingFileService();
+                recordingFileService.SetRecordingsDirectory(customFolder);
+                var viewModel = CreateViewModel(
+                    appUpdateService: appUpdateService,
+                    appBaseDirectory: appBaseDirectory,
+                    recordingFileService: recordingFileService);
+
+                await ExecuteAsync(viewModel.CheckForUpdatesCommand);
+                await ExecuteAsync(viewModel.ApplyUpdateCommand);
+
+                appUpdateService.ApplyCallCount.Should().Be(0);
+                viewModel.UpdateStatusMessage.Should().Contain("更新を一時停止");
+                viewModel.UpdateStatusMessage.Should().Contain("外部へバックアップ");
+                viewModel.UpdateStatusMessage.Should().Contain(customFolder);
+            }
+            finally
+            {
+                if (Directory.Exists(appBaseDirectory))
+                {
+                    Directory.Delete(appBaseDirectory, recursive: true);
+                }
+            }
+        }
+
+        [Fact]
+        public async Task CheckForUpdates_WhenCheckAlreadyRunning_DoesNotStartSecondCheck()
+        {
+            var appUpdateService = new FakeAppUpdateService
+            {
+                CheckResultFactory = _ => Task.FromResult(new AppUpdateResult(
+                    AppUpdateStatus.UpdateAvailable,
+                    "available",
+                    new AppUpdatePackage("1.9.0", false, null, new object())))
+            };
+            var firstCheckGate = new TaskCompletionSource<AppUpdateResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var checkStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            appUpdateService.CheckResultFactory = _ =>
+            {
+                checkStarted.TrySetResult();
+                return firstCheckGate.Task;
+            };
+            var viewModel = CreateViewModel(appUpdateService: appUpdateService);
+
+            var firstCheckTask = ExecuteAsync(viewModel.CheckForUpdatesCommand);
+            await checkStarted.Task;
+
+            viewModel.CheckForUpdatesCommand.CanExecute(null).Should().BeFalse();
+            await ExecuteAsync(viewModel.CheckForUpdatesCommand);
+            appUpdateService.CheckCallCount.Should().Be(1);
+
+            firstCheckGate.SetResult(new AppUpdateResult(AppUpdateStatus.UpToDate, "latest"));
+            await firstCheckTask;
+        }
+
+        [Fact]
+        public async Task ApplyUpdate_WhenDownloading_DisablesUpdateCommandsAndRejectsConcurrentCheck()
+        {
+            var downloadStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var downloadGate = new TaskCompletionSource<AppUpdateResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var appUpdateService = new FakeAppUpdateService
+            {
+                CheckResult = new AppUpdateResult(
+                    AppUpdateStatus.UpdateAvailable,
+                    "available",
+                    new AppUpdatePackage("1.9.0", false, null, new object())),
+                DownloadResultFactory = (_, _) =>
+                {
+                    downloadStarted.TrySetResult();
+                    return downloadGate.Task;
+                }
+            };
+            var viewModel = CreateViewModel(appUpdateService: appUpdateService);
+
+            await ExecuteAsync(viewModel.CheckForUpdatesCommand);
+            var downloadTask = ExecuteAsync(viewModel.ApplyUpdateCommand);
+            await downloadStarted.Task;
+
+            viewModel.CheckForUpdatesCommand.CanExecute(null).Should().BeFalse();
+            viewModel.ApplyUpdateCommand.CanExecute(null).Should().BeFalse();
+
+            await ExecuteAsync(viewModel.CheckForUpdatesCommand);
+            appUpdateService.CheckCallCount.Should().Be(1);
+
+            downloadGate.SetResult(new AppUpdateResult(
+                AppUpdateStatus.UpdateReadyToInstall,
+                "ready",
+                new AppUpdatePackage("1.9.0", false, null, new object())));
+            await downloadTask;
+        }
+
+        [Fact]
+        public void Commands_WhenControllerIsRunningEvenIfViewModelIsNot_DisableStartAndFolderChange()
+        {
+            var translationController = new FakeTranslationController { IsRunning = true };
+            var viewModel = CreateViewModel(translationController: translationController);
+
+            viewModel.IsRunning.Should().BeFalse();
+            viewModel.StartCommand.CanExecute(null).Should().BeFalse();
+            viewModel.ChooseRecordingsFolderCommand.CanExecute(null).Should().BeFalse();
+            viewModel.StopCommand.CanExecute(null).Should().BeTrue();
+        }
     private static MainViewModel CreateViewModel(
         IUiDispatcher? dispatcher = null,
         ISpeechCredentialsProvider? credentialsProvider = null,
@@ -1033,7 +1352,10 @@ public class MainViewModelTests
         IAppPreferencesStore? appPreferencesStore = null,
         IClipboardService? clipboardService = null,
         ITranslationController? translationController = null,
-        IDesktopTranslationWorkerFactory? workerFactory = null)
+        IDesktopTranslationWorkerFactory? workerFactory = null,
+        IAppUpdateService? appUpdateService = null,
+        IUserPromptService? userPromptService = null,
+        string? appBaseDirectory = null)
     {
         var viewModel = new MainViewModel(
             dispatcher ?? new ImmediateDispatcher(),
@@ -1045,7 +1367,10 @@ public class MainViewModelTests
             appPreferencesStore ?? new FakeAppPreferencesStore(),
             clipboardService ?? new FakeClipboardService(),
             translationController ?? new FakeTranslationController(),
-            workerFactory ?? new FakeDesktopTranslationWorkerFactory(new FakeDesktopTranslationWorker()));
+            workerFactory ?? new FakeDesktopTranslationWorkerFactory(new FakeDesktopTranslationWorker()),
+            appUpdateService ?? new FakeAppUpdateService(),
+            userPromptService ?? new FakeUserPromptService(),
+            appBaseDirectory);
 
         viewModel.SelectedUiLanguage = viewModel.AvailableUiLanguages.Single(option => option.Language == UiLanguage.Japanese);
         return viewModel;
@@ -1108,10 +1433,11 @@ public class MainViewModelTests
     {
         public int StartCallCount { get; private set; }
         public int StopCallCount { get; private set; }
-        public bool IsRunning { get; private set; }
+        public bool IsRunning { get; set; }
         public bool StartShouldYield { get; init; }
         public Exception? StopException { get; init; }
         public bool KeepRunningOnStopFailure { get; init; }
+        public Action<IDesktopTranslationWorker>? OnStart { get; init; }
         public SpeechCredentials? LastStartCredentials { get; private set; }
         public GoogleCloudServiceSettings? LastGoogleSettings { get; private set; }
         public SpeechProviderKind? LastSpeechProvider { get; private set; }
@@ -1135,6 +1461,7 @@ public class MainViewModelTests
                 LastGoogleSettings = googleSettings;
                 LastAudioInputSource = audioInputSource;
                 LastRecognitionMode = recognitionMode;
+                OnStart?.Invoke(worker);
                 IsRunning = true;
             }
         }
@@ -1192,6 +1519,7 @@ public class MainViewModelTests
         public Exception? NormalizeFileNameException { get; init; }
         public Exception? OpenRecordingsFolderException { get; init; }
         public int OpenRecordingsFolderCallCount { get; private set; }
+        public string? LastOpenedDirectoryPath { get; private set; }
         public string RecordingsFolderPath => _recordingsFolderPath;
         public string RecordingsDirectory => _recordingsFolderPath;
 
@@ -1213,13 +1541,19 @@ public class MainViewModelTests
         {
         }
 
-        public string OpenRecordingsFolder()
+        public string OpenRecordingsFolder(string? directoryPath = null)
         {
             OpenRecordingsFolderCallCount++;
+            LastOpenedDirectoryPath = directoryPath;
 
             if (OpenRecordingsFolderException is not null)
             {
                 throw OpenRecordingsFolderException;
+            }
+
+            if (!string.IsNullOrWhiteSpace(directoryPath))
+            {
+                return directoryPath;
             }
 
             return RecordingsFolderPath;
@@ -1357,6 +1691,66 @@ public class MainViewModelTests
             StatusChanged?.Invoke(this, new WorkerStatusChangedEventArgs(status, message));
 
         public void RaiseTranslationLogged(TranslationLogItem item) => TranslationLogged?.Invoke(this, item);
+    }
+
+    private sealed class FakeAppUpdateService : IAppUpdateService
+    {
+        public AppUpdateResult CheckResult { get; init; } = new(AppUpdateStatus.UpToDate, "latest");
+        public Func<CancellationToken, Task<AppUpdateResult>>? CheckResultFactory { get; set; }
+        public AppUpdateResult DownloadResult { get; init; } = new(
+            AppUpdateStatus.UpdateReadyToInstall,
+            "ready",
+            new AppUpdatePackage("1.9.0", false, null, new object()));
+        public Func<AppUpdatePackage, CancellationToken, Task<AppUpdateResult>>? DownloadResultFactory { get; set; }
+        public int CheckCallCount { get; private set; }
+        public int DownloadCallCount { get; private set; }
+        public int ApplyCallCount { get; private set; }
+        public int OpenExternalInstallerCallCount { get; private set; }
+
+        public Task<AppUpdateResult> CheckForUpdatesAsync(CancellationToken cancellationToken = default)
+        {
+            CheckCallCount++;
+            if (CheckResultFactory is not null)
+            {
+                return CheckResultFactory(cancellationToken);
+            }
+
+            return Task.FromResult(CheckResult);
+        }
+
+        public Task<AppUpdateResult> DownloadUpdateAsync(AppUpdatePackage package, IProgress<int>? progress = null, CancellationToken cancellationToken = default)
+        {
+            DownloadCallCount++;
+            progress?.Report(100);
+            if (DownloadResultFactory is not null)
+            {
+                return DownloadResultFactory(package, cancellationToken);
+            }
+
+            return Task.FromResult(DownloadResult);
+        }
+
+        public void ApplyUpdateAndRestart(AppUpdatePackage package)
+        {
+            ApplyCallCount++;
+        }
+
+        public void OpenExternalInstaller(AppUpdatePackage package)
+        {
+            OpenExternalInstallerCallCount++;
+        }
+    }
+
+    private sealed class FakeUserPromptService : IUserPromptService
+    {
+        public bool NextResult { get; init; } = true;
+        public int ConfirmCallCount { get; private set; }
+
+        public bool Confirm(string title, string message)
+        {
+            ConfirmCallCount++;
+            return NextResult;
+        }
     }
 
     private sealed class NoOpTranslationRecognizerWorker : TranslationRecognizerWorkerBase

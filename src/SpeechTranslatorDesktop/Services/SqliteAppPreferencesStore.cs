@@ -29,7 +29,7 @@ public sealed class SqliteAppPreferencesStore : IAppPreferencesStore
 
         await using var command = connection.CreateCommand();
         command.CommandText = $"""
-            SELECT ui_language, source_language, target_language, audio_input_source, recognition_mode, is_recording_save_enabled, recording_file_name_prefix, speech_provider, google_project_id, google_location, google_speech_model, google_credentials_path, experimental_provider_endpoint, experimental_provider_region, experimental_provider_model, experimental_provider_deployment, experimental_provider_profile
+            SELECT ui_language, source_language, target_language, audio_input_source, recognition_mode, is_recording_save_enabled, recording_file_name_prefix, is_auto_update_check_enabled, speech_provider, google_project_id, google_location, google_speech_model, google_credentials_path, experimental_provider_endpoint, experimental_provider_region, experimental_provider_model, experimental_provider_deployment, experimental_provider_profile
             FROM {TableName}
             WHERE id = 1;
             """;
@@ -48,7 +48,7 @@ public sealed class SqliteAppPreferencesStore : IAppPreferencesStore
             reader.IsDBNull(4) ? null : reader.GetString(4),
             reader.IsDBNull(5) ? null : reader.GetBoolean(5),
             reader.IsDBNull(6) ? null : reader.GetString(6),
-            reader.IsDBNull(7) ? null : reader.GetString(7),
+            reader.IsDBNull(7) ? null : reader.GetBoolean(7),
             reader.IsDBNull(8) ? null : reader.GetString(8),
             reader.IsDBNull(9) ? null : reader.GetString(9),
             reader.IsDBNull(10) ? null : reader.GetString(10),
@@ -57,7 +57,8 @@ public sealed class SqliteAppPreferencesStore : IAppPreferencesStore
             reader.IsDBNull(13) ? null : reader.GetString(13),
             reader.IsDBNull(14) ? null : reader.GetString(14),
             reader.IsDBNull(15) ? null : reader.GetString(15),
-            reader.IsDBNull(16) ? null : reader.GetString(16));
+            reader.IsDBNull(16) ? null : reader.GetString(16),
+            reader.IsDBNull(17) ? null : reader.GetString(17));
     }
 
     public async Task SaveAsync(AppPreferences preferences, CancellationToken cancellationToken = default)
@@ -69,8 +70,8 @@ public sealed class SqliteAppPreferencesStore : IAppPreferencesStore
 
         await using var command = connection.CreateCommand();
         command.CommandText = $"""
-            INSERT INTO {TableName} (id, ui_language, source_language, target_language, audio_input_source, recognition_mode, is_recording_save_enabled, recording_file_name_prefix, speech_provider, google_project_id, google_location, google_speech_model, google_credentials_path, experimental_provider_endpoint, experimental_provider_region, experimental_provider_model, experimental_provider_deployment, experimental_provider_profile)
-            VALUES (1, $uiLanguage, $sourceLanguage, $targetLanguage, $audioInputSource, $recognitionMode, $isRecordingSaveEnabled, $recordingFileNamePrefix, $speechProvider, $googleProjectId, $googleLocation, $googleSpeechModel, $googleCredentialsPath, $experimentalProviderEndpoint, $experimentalProviderRegion, $experimentalProviderModel, $experimentalProviderDeployment, $experimentalProviderProfile)
+            INSERT INTO {TableName} (id, ui_language, source_language, target_language, audio_input_source, recognition_mode, is_recording_save_enabled, recording_file_name_prefix, is_auto_update_check_enabled, speech_provider, google_project_id, google_location, google_speech_model, google_credentials_path, experimental_provider_endpoint, experimental_provider_region, experimental_provider_model, experimental_provider_deployment, experimental_provider_profile)
+            VALUES (1, $uiLanguage, $sourceLanguage, $targetLanguage, $audioInputSource, $recognitionMode, $isRecordingSaveEnabled, $recordingFileNamePrefix, $isAutoUpdateCheckEnabled, $speechProvider, $googleProjectId, $googleLocation, $googleSpeechModel, $googleCredentialsPath, $experimentalProviderEndpoint, $experimentalProviderRegion, $experimentalProviderModel, $experimentalProviderDeployment, $experimentalProviderProfile)
             ON CONFLICT(id) DO UPDATE SET
                 ui_language = excluded.ui_language,
                 source_language = excluded.source_language,
@@ -79,6 +80,7 @@ public sealed class SqliteAppPreferencesStore : IAppPreferencesStore
                 recognition_mode = excluded.recognition_mode,
                 is_recording_save_enabled = excluded.is_recording_save_enabled,
                 recording_file_name_prefix = excluded.recording_file_name_prefix,
+                is_auto_update_check_enabled = excluded.is_auto_update_check_enabled,
                 speech_provider = excluded.speech_provider,
                 google_project_id = excluded.google_project_id,
                 google_location = excluded.google_location,
@@ -97,6 +99,7 @@ public sealed class SqliteAppPreferencesStore : IAppPreferencesStore
         command.Parameters.AddWithValue("$recognitionMode", preferences.RecognitionMode ?? string.Empty);
         command.Parameters.AddWithValue("$isRecordingSaveEnabled", preferences.IsRecordingSaveEnabled ?? true);
         command.Parameters.AddWithValue("$recordingFileNamePrefix", preferences.RecordingFileNamePrefix ?? string.Empty);
+        command.Parameters.AddWithValue("$isAutoUpdateCheckEnabled", preferences.IsAutoUpdateCheckEnabled ?? true);
         command.Parameters.AddWithValue("$speechProvider", preferences.SpeechProvider ?? string.Empty);
         command.Parameters.AddWithValue("$googleProjectId", preferences.GoogleProjectId ?? string.Empty);
         command.Parameters.AddWithValue("$googleLocation", preferences.GoogleLocation ?? string.Empty);
@@ -144,6 +147,7 @@ public sealed class SqliteAppPreferencesStore : IAppPreferencesStore
                 recognition_mode TEXT NOT NULL,
                 is_recording_save_enabled INTEGER NOT NULL DEFAULT 1,
                 recording_file_name_prefix TEXT NOT NULL DEFAULT '',
+                is_auto_update_check_enabled INTEGER NOT NULL DEFAULT 1,
                 speech_provider TEXT NOT NULL DEFAULT '',
                 google_project_id TEXT NOT NULL DEFAULT '',
                 google_location TEXT NOT NULL DEFAULT '',
@@ -161,6 +165,7 @@ public sealed class SqliteAppPreferencesStore : IAppPreferencesStore
 
         await AddColumnIfMissingAsync(connection, "is_recording_save_enabled", "INTEGER NOT NULL DEFAULT 1", cancellationToken);
         await AddColumnIfMissingAsync(connection, "recording_file_name_prefix", "TEXT NOT NULL DEFAULT ''", cancellationToken);
+        await AddColumnIfMissingAsync(connection, "is_auto_update_check_enabled", "INTEGER NOT NULL DEFAULT 1", cancellationToken);
         await AddColumnIfMissingAsync(connection, "speech_provider", "TEXT NOT NULL DEFAULT ''", cancellationToken);
         await AddColumnIfMissingAsync(connection, "google_project_id", "TEXT NOT NULL DEFAULT ''", cancellationToken);
         await AddColumnIfMissingAsync(connection, "google_location", "TEXT NOT NULL DEFAULT ''", cancellationToken);

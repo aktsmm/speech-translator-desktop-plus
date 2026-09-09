@@ -18,6 +18,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private readonly IClipboardService _clipboardService;
     private readonly ITranslationController _translationController;
     private readonly IDesktopTranslationWorkerFactory _workerFactory;
+    private readonly IAppUpdateService _appUpdateService;
+    private readonly IUserPromptService _userPromptService;
     private readonly SemaphoreSlim _appPreferencesSaveLock = new(1, 1);
     private IDesktopTranslationWorker? _currentWorker;
     private AudioInputSourceOption? _selectedAudioInputSource;
@@ -42,12 +44,24 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private string _recordingsFolderPath = string.Empty;
     private string _settingsStatusMessage = string.Empty;
     private string _statusMessage = string.Empty;
+    private string _updateStatusMessage = string.Empty;
+    private AppUpdatePackage? _pendingUpdatePackage;
+    private bool _isUpdateReadyToInstall;
     private bool _isRecordingSaveEnabled = true;
+    private bool _isAutoUpdateCheckEnabled = true;
     private bool _isRunning;
+    private bool _isSessionTransitionInProgress;
+    private bool _hasSessionRecordingOutput;
+    private bool _activeSessionRecordingSaveFailed;
+    private string? _activeSessionRecordingFolderPath;
+    private string? _lastSavedRecordingFolderPath;
+    private bool _showOpenLatestRecordingFolderButton;
     private bool _isStatusLogExpanded = true;
     private bool _isTranslationLogExpanded = true;
     private bool _isLoadingAppPreferences;
+    private bool _isUpdateOperationInProgress;
     private Task _pendingAppPreferencesSaveTask = Task.CompletedTask;
+    private readonly string _appBaseDirectory;
 
     public MainViewModel(
         IUiDispatcher dispatcher,
@@ -59,7 +73,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
         IAppPreferencesStore appPreferencesStore,
         IClipboardService clipboardService,
         ITranslationController translationController,
-        IDesktopTranslationWorkerFactory workerFactory)
+        IDesktopTranslationWorkerFactory workerFactory,
+        IAppUpdateService appUpdateService,
+        IUserPromptService userPromptService,
+        string? appBaseDirectory = null)
     {
         _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
         _credentialsProvider = credentialsProvider ?? throw new ArgumentNullException(nameof(credentialsProvider));
@@ -71,6 +88,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _clipboardService = clipboardService ?? throw new ArgumentNullException(nameof(clipboardService));
         _translationController = translationController ?? throw new ArgumentNullException(nameof(translationController));
         _workerFactory = workerFactory ?? throw new ArgumentNullException(nameof(workerFactory));
+        _appUpdateService = appUpdateService ?? throw new ArgumentNullException(nameof(appUpdateService));
+        _userPromptService = userPromptService ?? throw new ArgumentNullException(nameof(userPromptService));
+        _appBaseDirectory = Path.GetFullPath(string.IsNullOrWhiteSpace(appBaseDirectory) ? AppContext.BaseDirectory : appBaseDirectory);
 
         AvailableLanguages =
         [
@@ -149,9 +169,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _statusMessage = Text("停止", "Stopped");
         _recordingsFolderPath = _recordingFileService.RecordingsDirectory;
 
-        StartCommand = new AsyncRelayCommand(StartAsync, () => !IsRunning, _dispatcher, HandleCommandException);
-        StopCommand = new AsyncRelayCommand(StopAsync, () => IsRunning, _dispatcher, HandleCommandException);
-        ChooseRecordingsFolderCommand = new AsyncRelayCommand(ChooseRecordingsFolderAsync, dispatcher: _dispatcher, onException: HandleCommandException);
+        StartCommand = new AsyncRelayCommand(StartAsync, CanStartSession, _dispatcher, HandleCommandException);
+        StopCommand = new AsyncRelayCommand(StopAsync, CanStopSession, _dispatcher, HandleCommandException);
+        ChooseRecordingsFolderCommand = new AsyncRelayCommand(
+            ChooseRecordingsFolderAsync,
+            CanChooseRecordingsFolder,
+            _dispatcher,
+            HandleCommandException);
         ClearLogsCommand = new AsyncRelayCommand(ClearLogsAsync, dispatcher: _dispatcher, onException: HandleCommandException);
         CopyAllLogsCommand = new AsyncRelayCommand(CopyAllLogsAsync, dispatcher: _dispatcher, onException: HandleCommandException);
         CopyAllSourceLogsCommand = new AsyncRelayCommand(CopyAllSourceLogsAsync, dispatcher: _dispatcher, onException: HandleCommandException);
@@ -163,6 +187,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         CopySelectedSourceTextCommand = new AsyncRelayCommand(() => CopySourceTextAsync(SelectedTranslationLog), dispatcher: _dispatcher, onException: HandleCommandException);
         CopySelectedTranslatedTextCommand = new AsyncRelayCommand(() => CopyTranslatedTextAsync(SelectedTranslationLog), dispatcher: _dispatcher, onException: HandleCommandException);
         OpenRecordingsFolderCommand = new AsyncRelayCommand(OpenRecordingsFolderAsync, dispatcher: _dispatcher, onException: HandleCommandException);
+        OpenLatestRecordingFolderCommand = new AsyncRelayCommand(OpenLatestRecordingFolderAsync, dispatcher: _dispatcher, onException: HandleCommandException);
+        CheckForUpdatesCommand = new AsyncRelayCommand(CheckForUpdatesAsync, () => !_isUpdateOperationInProgress, _dispatcher, HandleCommandException);
+        ApplyUpdateCommand = new AsyncRelayCommand(ApplyUpdateAsync, () => _pendingUpdatePackage is not null && !_isUpdateOperationInProgress, _dispatcher, HandleCommandException);
         SaveSettingsCommand = new AsyncRelayCommand(SaveSettingsAsync, dispatcher: _dispatcher, onException: HandleSettingsCommandException);
     }
 
@@ -367,8 +394,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
             _isRunning = value;
             OnPropertyChanged();
-            StartCommand.RaiseCanExecuteChanged();
-            StopCommand.RaiseCanExecuteChanged();
+            RaiseSessionCommandStatesChanged();
         }
     }
 
@@ -385,6 +411,23 @@ public sealed class MainViewModel : INotifyPropertyChanged
             _isRecordingSaveEnabled = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(RecordingFileNamePreview));
+            OnPropertyChanged(nameof(OpenLatestRecordingFolderButtonVisibility));
+            QueueAppPreferencesSave();
+        }
+    }
+
+    public bool IsAutoUpdateCheckEnabled
+    {
+        get => _isAutoUpdateCheckEnabled;
+        set
+        {
+            if (_isAutoUpdateCheckEnabled == value)
+            {
+                return;
+            }
+
+            _isAutoUpdateCheckEnabled = value;
+            OnPropertyChanged();
             QueueAppPreferencesSave();
         }
     }
@@ -610,6 +653,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public AsyncRelayCommand OpenRecordingsFolderCommand { get; }
 
+    public AsyncRelayCommand OpenLatestRecordingFolderCommand { get; }
+
+    public AsyncRelayCommand CheckForUpdatesCommand { get; }
+
+    public AsyncRelayCommand ApplyUpdateCommand { get; }
+
     public AsyncRelayCommand SaveSettingsCommand { get; }
 
     public string SettingsStatusMessage
@@ -639,6 +688,22 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
             _statusMessage = value;
             OnPropertyChanged();
+        }
+    }
+
+    public string UpdateStatusMessage
+    {
+        get => _updateStatusMessage;
+        private set
+        {
+            if (_updateStatusMessage == value)
+            {
+                return;
+            }
+
+            _updateStatusMessage = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(UpdateBannerVisibility));
         }
     }
 
@@ -692,8 +757,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
             }
 
             return Text(
-                $"保存例: {GetEffectiveRecordingFileNamePrefix()}_yyyyMMdd_HHmmss.txt",
-                $"Example: {GetEffectiveRecordingFileNamePrefix()}_yyyyMMdd_HHmmss.txt");
+                $"保存例: {GetEffectiveRecordingFileNamePrefix()}_yyyyMMdd_HHmmss.txt（文字/数字/スペース/-/_）",
+                $"Example: {GetEffectiveRecordingFileNamePrefix()}_yyyyMMdd_HHmmss.txt (letters/numbers/spaces/-/_)");
         }
     }
 
@@ -818,6 +883,30 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string SaveRecordingLabel => Text("記録を保存する", "Save recording");
 
+    public string AutoUpdateCheckLabel => Text("起動時に更新を自動確認", "Automatically check updates on startup");
+
+    public string CheckForUpdatesButtonText => Text("更新を確認", "Check updates");
+
+    public string UpdateActionButtonText => _pendingUpdatePackage switch
+    {
+        null => Text("更新なし", "No update"),
+        { RequiresExternalInstaller: true } => Text("インストーラーを開く", "Open installer"),
+        _ when _isUpdateReadyToInstall => Text("再起動して更新", "Restart to update"),
+        _ => Text("ダウンロード", "Download update")
+    };
+
+    public Visibility UpdateBannerVisibility =>
+        string.IsNullOrWhiteSpace(UpdateStatusMessage) && _pendingUpdatePackage is null
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+
+    public Visibility OpenLatestRecordingFolderButtonVisibility =>
+        _showOpenLatestRecordingFolderButton
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+    public string OpenLatestRecordingFolderButtonText => Text("保存フォルダーを開く", "Open saved folder");
+
     public string SettingsButtonText => Text("設定", "Settings");
 
     public string SettingsWindowTitle => Text("設定", "Settings");
@@ -885,17 +974,23 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 SettingsStatusMessage = Text(
                     "Azure AI Speech のリージョンと API キーを入力して保存してください。未保存の場合は SPEECH_REGION / SPEECH_KEY をフォールバックとして使用します。",
                     "Enter and save the Azure AI Speech region and API key. If not saved, SPEECH_REGION / SPEECH_KEY environment variables are used as fallback.");
-                return;
             }
-
-            AzureRegion = savedSettings.Region;
-            AzureApiKey = savedSettings.ApiKey;
-            SettingsStatusMessage = Text("保存済みの Azure AI Speech 設定を読み込みました。", "Loaded saved Azure AI Speech settings.");
+            else
+            {
+                AzureRegion = savedSettings.Region;
+                AzureApiKey = savedSettings.ApiKey;
+                SettingsStatusMessage = Text("保存済みの Azure AI Speech 設定を読み込みました。", "Loaded saved Azure AI Speech settings.");
+            }
         }
         catch (Exception ex)
         {
             SettingsStatusMessage = Text($"設定の読み込みに失敗しました: {ex.Message}", $"Failed to load settings: {ex.Message}");
             AddActivityLog(SettingsStatusMessage);
+        }
+
+        if (IsAutoUpdateCheckEnabled)
+        {
+            _ = CheckForUpdatesAsync(silentWhenLatest: true);
         }
     }
 
@@ -953,6 +1048,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
             IsRecordingSaveEnabled = preferences.IsRecordingSaveEnabled ?? true;
             RecordingFileName = preferences.RecordingFileNamePrefix ?? string.Empty;
+            IsAutoUpdateCheckEnabled = preferences.IsAutoUpdateCheckEnabled ?? true;
             GoogleProjectId = preferences.GoogleProjectId ?? string.Empty;
             GoogleLocation = string.IsNullOrWhiteSpace(preferences.GoogleLocation) ? GoogleCloudServiceSettings.DefaultLocation : preferences.GoogleLocation;
             GoogleSpeechModel = string.IsNullOrWhiteSpace(preferences.GoogleSpeechModel) ? GoogleCloudServiceSettings.DefaultSpeechModel : preferences.GoogleSpeechModel;
@@ -994,7 +1090,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
         catch (ArgumentException ex)
         {
-            StatusMessage = Text($"ファイル名 prefix が不正です: {ex.Message}", $"Invalid file name prefix: {ex.Message}");
+            StatusMessage = Text(
+                $"ファイル名 prefix が不正です: {ex.Message}（文字/数字/スペース/-/_ を使用）",
+                $"Invalid file name prefix: {ex.Message} (use letters/numbers/spaces/-/_)");
             AddActivityLog(StatusMessage);
             return;
         }
@@ -1038,7 +1136,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
         var targetLanguage = SelectedTargetLanguage?.Code ?? SelectedSourceLanguage.Code;
         var recognitionMode = SelectedRecognitionMode.Mode;
         var worker = _workerFactory.Create(targetLanguage, recordingFileName, SelectedUiLanguage?.Language ?? UiLanguage.Japanese, recognitionMode, SelectedAudioInputSource.Source);
+        _activeSessionRecordingFolderPath = recordingFileName is null ? null : _recordingFileService.RecordingsDirectory;
+        _hasSessionRecordingOutput = false;
+        _activeSessionRecordingSaveFailed = false;
+        _showOpenLatestRecordingFolderButton = false;
+        OnPropertyChanged(nameof(OpenLatestRecordingFolderButtonVisibility));
         SubscribeWorker(worker);
+        SetSessionTransitionInProgress(true);
 
         try
         {
@@ -1067,6 +1171,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
             UnsubscribeWorker(worker);
             StatusMessage = ex.Message;
             AddActivityLog(ex.Message);
+        }
+        finally
+        {
+            SetSessionTransitionInProgress(false);
         }
     }
 
@@ -1102,17 +1210,161 @@ public sealed class MainViewModel : INotifyPropertyChanged
         try
         {
             var recordingsDirectory = _recordingFileService.OpenRecordingsFolder();
-            RecordingsFolderPath = recordingsDirectory;
             StatusMessage = Text("保存先を開きました。", "Opened recordings folder.");
             AddActivityLog(Text($"保存先を開きました: {recordingsDirectory}", $"Opened recordings folder: {recordingsDirectory}"));
         }
         catch (Exception ex)
         {
-            StatusMessage = ex.Message;
+            StatusMessage = Text($"保存フォルダーを開けませんでした: {ex.Message}", $"Failed to open recordings folder: {ex.Message}");
             AddActivityLog(ex.Message);
         }
 
         return Task.CompletedTask;
+    }
+
+    private Task OpenLatestRecordingFolderAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_lastSavedRecordingFolderPath))
+        {
+            return Task.CompletedTask;
+        }
+
+        try
+        {
+            var recordingsDirectory = _recordingFileService.OpenRecordingsFolder(_lastSavedRecordingFolderPath);
+            StatusMessage = Text("前回保存先を開きました。", "Opened last saved folder.");
+            AddActivityLog(Text($"前回保存先を開きました: {recordingsDirectory}", $"Opened last saved folder: {recordingsDirectory}"));
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = Text($"保存フォルダーを開けませんでした: {ex.Message}", $"Failed to open recordings folder: {ex.Message}");
+            AddActivityLog(ex.Message);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task CheckForUpdatesAsync()
+    {
+        return CheckForUpdatesAsync(silentWhenLatest: false);
+    }
+
+    private async Task CheckForUpdatesAsync(bool silentWhenLatest)
+    {
+        if (!TryBeginUpdateOperation(silentWhenBusy: silentWhenLatest))
+        {
+            return;
+        }
+
+        try
+        {
+            var result = await _appUpdateService.CheckForUpdatesAsync();
+            _pendingUpdatePackage = result.Package;
+            _isUpdateReadyToInstall = result.Status == AppUpdateStatus.UpdateReadyToInstall;
+            ApplyUpdateCommand.RaiseCanExecuteChanged();
+            OnPropertyChanged(nameof(UpdateActionButtonText));
+
+            if (result.Status == AppUpdateStatus.UpToDate && silentWhenLatest)
+            {
+                return;
+            }
+
+            UpdateStatusMessage = LocalizeUpdateMessage(result);
+            AddActivityLog(UpdateStatusMessage);
+        }
+        finally
+        {
+            EndUpdateOperation();
+        }
+    }
+
+    private async Task ApplyUpdateAsync()
+    {
+        if (!TryBeginUpdateOperation())
+        {
+            return;
+        }
+
+        if (_pendingUpdatePackage is null)
+        {
+            EndUpdateOperation();
+            return;
+        }
+
+        try
+        {
+            if (IsRunning || _translationController.IsRunning || _isSessionTransitionInProgress)
+            {
+                StatusMessage = Text("更新前に録音を停止してください。", "Stop recording before updating.");
+                AddActivityLog(StatusMessage);
+                return;
+            }
+
+            var updatePackage = _pendingUpdatePackage;
+            if (updatePackage.RequiresExternalInstaller)
+            {
+                _appUpdateService.OpenExternalInstaller(updatePackage);
+                UpdateStatusMessage = Text(
+                    "zip版では自己更新しません。公式Releaseを外部で確認できるインストーラーを開きました。",
+                    "Portable zip mode cannot self-update. Opened the official installer from GitHub Releases.");
+                AddActivityLog(UpdateStatusMessage);
+                return;
+            }
+
+            if (_isUpdateReadyToInstall)
+            {
+                var legacyPathsAtRisk = GetLegacyDataPathsAtRisk();
+                if (legacyPathsAtRisk.Count > 0)
+                {
+                    var warning = Text(
+                        $"更新を一時停止しました。アプリ配下の旧データ/参照を外部へバックアップ確認し、保存先や資格情報参照を外部へ変更したうえで、旧データをアプリ配下から手動整理するまで更新できません: {string.Join(", ", legacyPathsAtRisk)}",
+                        $"Update is blocked because legacy data or references still exist under the app folder. Confirm external backup, move recording/credential references outside the app folder, and manually clean old app-local data before updating: {string.Join(", ", legacyPathsAtRisk)}");
+                    UpdateStatusMessage = warning;
+                    AddActivityLog(warning);
+                    return;
+                }
+
+                if (_userPromptService.Confirm(
+                    Text("アプリ更新", "App update"),
+                    Text("再起動して更新を適用します。続行しますか？", "The app will restart to apply the update. Continue?")))
+                {
+                    _appUpdateService.ApplyUpdateAndRestart(updatePackage);
+                }
+
+                return;
+            }
+
+            if (!_userPromptService.Confirm(
+                Text("アプリ更新", "App update"),
+                Text($"Version {updatePackage.Version} をダウンロードしますか？", $"Download version {updatePackage.Version}?")))
+            {
+                return;
+            }
+
+            var progress = new Progress<int>(value =>
+            {
+                UpdateStatusMessage = Text($"更新をダウンロード中: {value}%", $"Downloading update: {value}%");
+            });
+            try
+            {
+                var result = await _appUpdateService.DownloadUpdateAsync(updatePackage, progress);
+                _pendingUpdatePackage = result.Package ?? updatePackage;
+                _isUpdateReadyToInstall = result.Status == AppUpdateStatus.UpdateReadyToInstall;
+                UpdateStatusMessage = LocalizeUpdateMessage(result);
+                AddActivityLog(UpdateStatusMessage);
+            }
+            catch (Exception ex)
+            {
+                UpdateStatusMessage = Text($"更新のダウンロードに失敗しました: {ex.Message}", $"Failed to download update: {ex.Message}");
+                AddActivityLog(UpdateStatusMessage);
+            }
+        }
+        finally
+        {
+            EndUpdateOperation();
+            ApplyUpdateCommand.RaiseCanExecuteChanged();
+            OnPropertyChanged(nameof(UpdateActionButtonText));
+        }
     }
 
     private Task ClearLogsAsync()
@@ -1264,24 +1516,59 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private async Task StopAsync()
     {
+        SetSessionTransitionInProgress(true);
         try
         {
             await _translationController.StopAsync();
-            StatusMessage = Text("停止", "Stopped");
+            if (_activeSessionRecordingFolderPath is not null && !_activeSessionRecordingSaveFailed && _hasSessionRecordingOutput)
+            {
+                _lastSavedRecordingFolderPath = _activeSessionRecordingFolderPath;
+                _showOpenLatestRecordingFolderButton = true;
+                OnPropertyChanged(nameof(OpenLatestRecordingFolderButtonVisibility));
+                StatusMessage = Text("停止（保存済み）", "Stopped (saved)");
+                AddActivityLog(Text($"保存済み: {_lastSavedRecordingFolderPath}", $"Saved to: {_lastSavedRecordingFolderPath}"));
+            }
+            else if (_activeSessionRecordingFolderPath is not null && !_activeSessionRecordingSaveFailed)
+            {
+                _showOpenLatestRecordingFolderButton = false;
+                OnPropertyChanged(nameof(OpenLatestRecordingFolderButtonVisibility));
+                StatusMessage = Text("停止（保存対象の発話なし）", "Stopped (no speech saved)");
+                AddActivityLog(Text("保存対象の発話はありませんでした。", "No speech was captured for saving."));
+            }
+            else if (_activeSessionRecordingSaveFailed)
+            {
+                _showOpenLatestRecordingFolderButton = false;
+                OnPropertyChanged(nameof(OpenLatestRecordingFolderButtonVisibility));
+                StatusMessage = Text("停止（保存エラーあり）", "Stopped (save error)");
+            }
+            else
+            {
+                _showOpenLatestRecordingFolderButton = false;
+                OnPropertyChanged(nameof(OpenLatestRecordingFolderButtonVisibility));
+                StatusMessage = Text("停止", "Stopped");
+            }
+
             AddActivityLog(IsTranslationMode ? Text("翻訳を停止しました。", "Translation stopped.") : Text("書き起こしを停止しました。", "Transcription stopped."));
         }
         catch (Exception ex)
         {
+            _showOpenLatestRecordingFolderButton = false;
+            OnPropertyChanged(nameof(OpenLatestRecordingFolderButtonVisibility));
             StatusMessage = Text($"停止に失敗しました: {ex.Message}", $"Failed to stop: {ex.Message}");
             AddActivityLog(StatusMessage);
         }
         finally
         {
             IsRunning = _translationController.IsRunning;
+            SetSessionTransitionInProgress(false);
+            RaiseSessionCommandStatesChanged();
 
             if (!IsRunning)
             {
                 DetachCurrentWorker();
+                _activeSessionRecordingFolderPath = null;
+                _hasSessionRecordingOutput = false;
+                _activeSessionRecordingSaveFailed = false;
             }
         }
     }
@@ -1310,9 +1597,21 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 AddActivityLog(e.Message);
             }
 
+            if (e.Status == DesktopTranslationStatus.Error &&
+                (e.Message.Contains("記録ファイルの保存に失敗", StringComparison.Ordinal) ||
+                 e.Message.Contains("Failed to save recording file", StringComparison.Ordinal)))
+            {
+                _activeSessionRecordingSaveFailed = true;
+            }
+            else if (e.Status == DesktopTranslationStatus.TranslatedSpeech && _activeSessionRecordingFolderPath is not null)
+            {
+                _hasSessionRecordingOutput = true;
+            }
+
             if (e.Status is DesktopTranslationStatus.Canceled or DesktopTranslationStatus.SessionStopped)
             {
                 IsRunning = false;
+                RaiseSessionCommandStatesChanged();
 
                 if (sender is IDesktopTranslationWorker worker)
                 {
@@ -1343,6 +1642,131 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 RecentTranslationLogs.RemoveAt(RecentTranslationLogs.Count - 1);
             }
         });
+    }
+
+    private void SetSessionTransitionInProgress(bool value)
+    {
+        if (_isSessionTransitionInProgress == value)
+        {
+            return;
+        }
+
+        _isSessionTransitionInProgress = value;
+        RaiseSessionCommandStatesChanged();
+    }
+
+    private void RaiseSessionCommandStatesChanged()
+    {
+        StartCommand.RaiseCanExecuteChanged();
+        StopCommand.RaiseCanExecuteChanged();
+        ChooseRecordingsFolderCommand.RaiseCanExecuteChanged();
+    }
+
+    private bool CanStartSession() => !IsRunning && !_translationController.IsRunning && !_isSessionTransitionInProgress;
+
+    private bool CanStopSession() => (IsRunning || _translationController.IsRunning) && !_isSessionTransitionInProgress;
+
+    private bool CanChooseRecordingsFolder() => !IsRunning && !_translationController.IsRunning && !_isSessionTransitionInProgress;
+
+    private bool TryBeginUpdateOperation(bool silentWhenBusy = false)
+    {
+        if (_isUpdateOperationInProgress)
+        {
+            if (!silentWhenBusy)
+            {
+                UpdateStatusMessage = Text("更新処理の実行中です。完了後に再試行してください。", "An update operation is already running. Try again after it completes.");
+                AddActivityLog(UpdateStatusMessage);
+            }
+
+            return false;
+        }
+
+        _isUpdateOperationInProgress = true;
+        CheckForUpdatesCommand.RaiseCanExecuteChanged();
+        ApplyUpdateCommand.RaiseCanExecuteChanged();
+        return true;
+    }
+
+    private void EndUpdateOperation()
+    {
+        _isUpdateOperationInProgress = false;
+        CheckForUpdatesCommand.RaiseCanExecuteChanged();
+        ApplyUpdateCommand.RaiseCanExecuteChanged();
+    }
+
+    private IReadOnlyList<string> GetLegacyDataPathsAtRisk()
+    {
+        var result = new List<string>();
+        var knownRiskPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var configuredRecordingPaths = new[]
+        {
+            _recordingFileService.RecordingsDirectory,
+            RecordingsFolderPath,
+            _lastSavedRecordingFolderPath
+        }
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Select(path => Path.GetFullPath(path!.Trim()))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var recordingDirectoryCandidates = configuredRecordingPaths
+            .Concat(Enumerable.Repeat(Path.Combine(_appBaseDirectory, "recordings"), 1));
+        foreach (var candidate in recordingDirectoryCandidates)
+        {
+            if (string.IsNullOrWhiteSpace(candidate))
+            {
+                continue;
+            }
+
+            var normalized = Path.GetFullPath(candidate.Trim());
+            if (!IsPathUnderDirectory(normalized, _appBaseDirectory))
+            {
+                continue;
+            }
+
+            var hasEntries = Directory.Exists(normalized) && Directory.EnumerateFileSystemEntries(normalized).Any();
+            if (Directory.Exists(normalized))
+            {
+                if (hasEntries || configuredRecordingPaths.Contains(normalized))
+                {
+                    knownRiskPaths.Add(normalized);
+                }
+            }
+            else if (configuredRecordingPaths.Contains(normalized))
+            {
+                knownRiskPaths.Add(normalized);
+            }
+        }
+
+        var legacyDatabaseCandidates = new[]
+        {
+            Path.Combine(_appBaseDirectory, "speech-translator-desktop.db"),
+            Path.Combine(_appBaseDirectory, "speech-translator-desktop.db-wal"),
+            Path.Combine(_appBaseDirectory, "speech-translator-desktop.db-shm"),
+            Path.Combine(_appBaseDirectory, "speech-translator-desktop.db-journal")
+        };
+        foreach (var candidate in legacyDatabaseCandidates.Where(File.Exists))
+        {
+            knownRiskPaths.Add(candidate);
+        }
+
+        if (!string.IsNullOrWhiteSpace(GoogleCredentialsPath))
+        {
+            var credentialsPath = Path.GetFullPath(GoogleCredentialsPath.Trim());
+            if (IsPathUnderDirectory(credentialsPath, _appBaseDirectory))
+            {
+                knownRiskPaths.Add(credentialsPath);
+            }
+        }
+
+        result.AddRange(knownRiskPaths.OrderBy(path => path, StringComparer.OrdinalIgnoreCase));
+        return result;
+    }
+
+    private static bool IsPathUnderDirectory(string path, string directory)
+    {
+        var normalizedPath = Path.GetFullPath(path);
+        var normalizedDirectory = Path.GetFullPath(directory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            + Path.DirectorySeparatorChar;
+        return normalizedPath.StartsWith(normalizedDirectory, StringComparison.OrdinalIgnoreCase);
     }
 
     private void AddActivityLog(string message)
@@ -1417,6 +1841,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             SelectedRecognitionMode?.Mode.ToString(),
             IsRecordingSaveEnabled,
             RecordingFileName,
+            IsAutoUpdateCheckEnabled,
             SelectedSpeechProvider?.Provider.ToString(),
             GoogleProjectId,
             GoogleLocation,
@@ -1507,6 +1932,18 @@ public sealed class MainViewModel : INotifyPropertyChanged
             return;
         }
 
+        if (_statusMessage is "停止（保存済み）" or "Stopped (saved)")
+        {
+            StatusMessage = Text("停止（保存済み）", "Stopped (saved)");
+            return;
+        }
+
+        if (_statusMessage is "停止（保存対象の発話なし）" or "Stopped (no speech saved)")
+        {
+            StatusMessage = Text("停止（保存対象の発話なし）", "Stopped (no speech saved)");
+            return;
+        }
+
         if (_statusMessage is "開始" or "Started")
         {
             StatusMessage = Text("開始", "Started");
@@ -1565,6 +2002,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SpeechProviderRoadmapLabel));
         OnPropertyChanged(nameof(SaveButtonText));
         OnPropertyChanged(nameof(SaveRecordingLabel));
+        OnPropertyChanged(nameof(AutoUpdateCheckLabel));
+        OnPropertyChanged(nameof(CheckForUpdatesButtonText));
+        OnPropertyChanged(nameof(UpdateActionButtonText));
+        OnPropertyChanged(nameof(UpdateStatusMessage));
+        OnPropertyChanged(nameof(UpdateBannerVisibility));
+        OnPropertyChanged(nameof(OpenLatestRecordingFolderButtonText));
+        OnPropertyChanged(nameof(OpenLatestRecordingFolderButtonVisibility));
         OnPropertyChanged(nameof(SettingsButtonText));
         OnPropertyChanged(nameof(SettingsWindowTitle));
         OnPropertyChanged(nameof(ShowRecentTranslationsButtonText));
@@ -1606,6 +2050,23 @@ public sealed class MainViewModel : INotifyPropertyChanged
         return string.IsNullOrWhiteSpace(item.TranslatedText)
             ? item.DisplaySourceText
             : $"Source:{Environment.NewLine}{item.DisplaySourceText}{Environment.NewLine}{Environment.NewLine}Translation:{Environment.NewLine}{item.TranslatedText}";
+    }
+
+    private string LocalizeUpdateMessage(AppUpdateResult result)
+    {
+        return result.Status switch
+        {
+            AppUpdateStatus.UpToDate => Text("最新版を使用中です。", "You're on the latest version."),
+            AppUpdateStatus.UpdateAvailable => Text($"更新があります: {result.Package?.Version}", $"Update available: {result.Package?.Version}"),
+            AppUpdateStatus.UpdateReadyToInstall => Text($"更新の準備ができました: {result.Package?.Version}", $"Update ready to install: {result.Package?.Version}"),
+            AppUpdateStatus.ExternalInstallerRequired when result.Message.StartsWith("Installer migration", StringComparison.OrdinalIgnoreCase) => Text(
+                $"インストーラー移行が利用できます: {result.Package?.Version}",
+                $"Installer migration available: {result.Package?.Version}"),
+            AppUpdateStatus.ExternalInstallerRequired => Text(
+                $"更新があります: {result.Package?.Version}（インストーラー移行が必要）",
+                $"Update available: {result.Package?.Version} (installer migration required)"),
+            _ => Text($"更新確認に失敗しました: {result.Message}", $"Update check failed: {result.Message}")
+        };
     }
 
     private void HandleCommandException(Exception ex)

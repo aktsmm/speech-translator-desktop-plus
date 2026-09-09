@@ -1,3 +1,4 @@
+using System.Net.Http;
 using SpeechTranslatorDesktop.Services;
 using SpeechTranslatorDesktop.ViewModels;
 
@@ -11,8 +12,12 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        var recordingFileService = new RecordingFileService(AppContext.BaseDirectory);
+        var recordingFileService = new RecordingFileService(SpeechSettingsPathProvider.GetAppDataDirectory());
         var settingsDatabasePath = SpeechSettingsPathProvider.GetDatabasePath();
+        var repositoryUrl = "https://github.com/aktsmm/speech-translator-desktop-plus";
+        var appUpdateService = new AppUpdateService(
+            new VelopackUpdateManager(repositoryUrl),
+            new GitHubReleaseService(new HttpClient(), "aktsmm", "speech-translator-desktop-plus"));
         var viewModel = new MainViewModel(
             new WpfUiDispatcher(),
             new EnvironmentSpeechCredentialsProvider(),
@@ -25,7 +30,9 @@ public partial class MainWindow : Window
             new SqliteAppPreferencesStore(settingsDatabasePath),
             new WpfClipboardService(),
             new DesktopTranslationController(),
-            new DesktopTranslationWorkerFactory(recordingFileService));
+            new DesktopTranslationWorkerFactory(recordingFileService),
+            appUpdateService,
+            new WpfUserPromptService());
         DataContext = viewModel;
         Loaded += async (_, _) => await viewModel.InitializeAsync();
     }

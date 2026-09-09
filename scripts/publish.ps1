@@ -32,6 +32,9 @@ New-Item -ItemType Directory -Force -Path $resolvedInstallPath | Out-Null
 $env:PATH = "$dotnetDir;$env:PATH"
 $selfContained = -not $FrameworkDependent
 & $dotnet publish $projectPath -c Release -r win-x64 --self-contained:$selfContained -o $resolvedInstallPath
+if ($LASTEXITCODE -ne 0) {
+    throw "dotnet publish failed with exit code $LASTEXITCODE."
+}
 
 if ($CreateDesktopShortcut) {
     $shortcut = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Speech Translator Desktop Plus.lnk'

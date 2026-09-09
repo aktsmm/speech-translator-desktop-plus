@@ -8,6 +8,7 @@ public sealed record AppPreferences(
     string? RecognitionMode,
     bool? IsRecordingSaveEnabled = null,
     string? RecordingFileNamePrefix = null,
+    bool? IsAutoUpdateCheckEnabled = null,
     string? SpeechProvider = null,
     string? GoogleProjectId = null,
     string? GoogleLocation = null,

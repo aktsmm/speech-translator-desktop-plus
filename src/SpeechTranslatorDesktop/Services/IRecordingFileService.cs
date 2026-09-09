@@ -10,7 +10,7 @@ public interface IRecordingFileService
 
     void AppendTranscription(string? fileName, string sourceText, string? speakerLabel = null);
 
-    string OpenRecordingsFolder();
+    string OpenRecordingsFolder(string? directoryPath = null);
 
     void SetRecordingsDirectory(string directoryPath);
 }

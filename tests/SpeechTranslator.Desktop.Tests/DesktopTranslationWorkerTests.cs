@@ -246,7 +246,7 @@ public class DesktopTranslationWorkerTests
 
         public string RecordingsDirectory => @"C:\recordings";
 
-        public string OpenRecordingsFolder() => throw _exception;
+        public string OpenRecordingsFolder(string? directoryPath = null) => throw _exception;
 
         public void SetRecordingsDirectory(string directoryPath)
         {
@@ -280,7 +280,7 @@ public class DesktopTranslationWorkerTests
             LastSpeakerLabel = speakerLabel;
         }
 
-        public string OpenRecordingsFolder() => RecordingsDirectory;
+        public string OpenRecordingsFolder(string? directoryPath = null) => directoryPath ?? RecordingsDirectory;
 
         public void SetRecordingsDirectory(string directoryPath)
         {
