@@ -394,6 +394,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
             _isRunning = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(StatusBadgeText));
             RaiseSessionCommandStatesChanged();
         }
     }
@@ -688,6 +689,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
             _statusMessage = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(StatusDetailMessage));
+            OnPropertyChanged(nameof(StatusDetailVisibility));
         }
     }
 
@@ -920,6 +923,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public string StartButtonText => Text("開始", "Start");
 
     public string StatusLabel => Text("状態", "Status");
+
+    public string StatusBadgeText => IsRunning ? Text("● 録音中", "● Recording") : Text("● 停止", "● Stopped");
+
+    public string StatusDetailMessage => IsPrimaryStatusMessage(StatusMessage) ? string.Empty : StatusMessage;
+
+    public Visibility StatusDetailVisibility =>
+        string.IsNullOrWhiteSpace(StatusDetailMessage)
+            ? Visibility.Collapsed
+            : Visibility.Visible;
 
     public string StatusLogHeader => Text("状態ログ", "Status log");
 
@@ -1957,6 +1969,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    private static bool IsPrimaryStatusMessage(string message)
+    {
+        return message is "停止" or "Stopped" or "開始" or "Started";
+    }
+
     private void RaiseUiTextChanged()
     {
         OnPropertyChanged(nameof(ApiKeyLabel));
@@ -2016,6 +2033,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SourceTextHeader));
         OnPropertyChanged(nameof(StartButtonText));
         OnPropertyChanged(nameof(StatusLabel));
+        OnPropertyChanged(nameof(StatusBadgeText));
+        OnPropertyChanged(nameof(StatusDetailMessage));
+        OnPropertyChanged(nameof(StatusDetailVisibility));
         OnPropertyChanged(nameof(StatusMessage));
         OnPropertyChanged(nameof(StatusLogHeader));
         OnPropertyChanged(nameof(StopButtonText));

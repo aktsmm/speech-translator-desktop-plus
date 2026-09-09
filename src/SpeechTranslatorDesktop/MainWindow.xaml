@@ -11,6 +11,9 @@
         Background="#F5F7FB">
     <Window.Resources>
         <local:BindingProxy x:Key="DataContextProxy" Data="{Binding}" />
+        <local:MainLayoutMinHeightConverter x:Key="MainLayoutMinHeightConverter"
+                                            CardSpacing="16"
+                                            TranslationExpandedMinHeight="240" />
 
         <Style x:Key="Card" TargetType="{x:Type Border}">
             <Setter Property="Background" Value="White" />
@@ -163,15 +166,30 @@
         </Style>
     </Window.Resources>
 
-    <Grid Margin="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="{Binding TranslationLogRowHeight}" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+    <ScrollViewer x:Name="RootScrollViewer"
+                  Padding="20"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  CanContentScroll="False">
+        <Grid x:Name="MainLayoutGrid"
+              Height="{Binding RelativeSource={RelativeSource AncestorType={x:Type ScrollViewer}}, Path=ViewportHeight}">
+            <Grid.MinHeight>
+                <MultiBinding Converter="{StaticResource MainLayoutMinHeightConverter}">
+                    <Binding ElementName="HeroCard" Path="ActualHeight" />
+                    <Binding ElementName="ControlCard" Path="ActualHeight" />
+                    <Binding ElementName="StatusCard" Path="ActualHeight" />
+                    <Binding ElementName="TranslationLogExpander" Path="IsExpanded" />
+                </MultiBinding>
+            </Grid.MinHeight>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="{Binding TranslationLogRowHeight}" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-        <Border Grid.Row="0"
+        <Border x:Name="HeroCard"
+                Grid.Row="0"
                 Margin="0,0,0,16"
                 Padding="20"
                 Background="{StaticResource HeroBrush}"
@@ -210,7 +228,8 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="1"
+        <Border x:Name="ControlCard"
+                Grid.Row="1"
                 Style="{StaticResource Card}"
                 Margin="0,0,0,16">
             <Grid>
@@ -265,24 +284,24 @@
                               AutomationProperties.Name="{Binding SaveRecordingLabel}"
                               ToolTip="{Binding SaveRecordingLabel}"
                               Content="{Binding SaveRecordingLabel}" />
-                    <DockPanel Margin="0,0,0,6">
-                        <TextBlock DockPanel.Dock="Right"
-                                   Margin="12,0,0,0"
-                                   FontSize="12"
-                                   Foreground="#6B7280"
-                                   Text="{Binding RecordingFileNamePreview}" />
-                        <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding RecordingFileNameLabel}" />
-                    </DockPanel>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding RecordingFileNameLabel}" />
                     <TextBox AutomationProperties.Name="{Binding RecordingFileNameLabel}"
                               ToolTip="{Binding RecordingFileNameLabel}"
                               Text="{Binding RecordingFileName, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Margin="0,6,0,0"
+                               FontSize="12"
+                               Foreground="#6B7280"
+                               TextWrapping="Wrap"
+                               Text="{Binding RecordingFileNamePreview}" />
                 </StackPanel>
 
                 <Grid Grid.Row="1"
                       Grid.Column="2"
                       Grid.ColumnSpan="2"
-                      Margin="0,20,0,0">
+                      Margin="0,4,0,0"
+                      VerticalAlignment="Top">
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
@@ -313,48 +332,65 @@
                                 Content="{Binding ClearLogsButtonText}" />
                     </WrapPanel>
 
-                    <Grid Grid.Row="1"
-                          Margin="0,8,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <Border Grid.Column="0"
-                                Margin="0,0,8,0"
-                                Padding="10,6"
-                                Background="#EFF6FF"
-                                CornerRadius="10"
-                                AutomationProperties.Name="{Binding StatusLabel}">
-                            <StackPanel>
-                                <TextBlock FontWeight="SemiBold"
-                                           Foreground="#1D4ED8"
-                                           Text="{Binding StatusLabel}" />
-                                <TextBlock Margin="0,4,0,0"
-                                           Foreground="#1E3A8A"
-                                           TextWrapping="Wrap"
-                                           Text="{Binding StatusMessage}" />
-                            </StackPanel>
+                    <WrapPanel Grid.Row="1"
+                              Margin="0,8,0,0"
+                              HorizontalAlignment="Right"
+                              VerticalAlignment="Center">
+                        <Border Margin="0,0,8,8"
+                               Padding="10,3"
+                               VerticalAlignment="Center"
+                               CornerRadius="999"
+                               AutomationProperties.Name="{Binding StatusLabel}">
+                            <Border.Style>
+                               <Style TargetType="{x:Type Border}">
+                                   <Setter Property="Background" Value="#DBEAFE" />
+                                   <Style.Triggers>
+                                       <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                           <Setter Property="Background" Value="#FEE2E2" />
+                                       </DataTrigger>
+                                   </Style.Triggers>
+                               </Style>
+                            </Border.Style>
+                            <TextBlock VerticalAlignment="Center"
+                                      FontWeight="SemiBold"
+                                      Text="{Binding StatusBadgeText}">
+                               <TextBlock.Style>
+                                   <Style TargetType="{x:Type TextBlock}">
+                                       <Setter Property="Foreground" Value="#1D4ED8" />
+                                       <Style.Triggers>
+                                           <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                               <Setter Property="Foreground" Value="#B91C1C" />
+                                           </DataTrigger>
+                                       </Style.Triggers>
+                                   </Style>
+                               </TextBlock.Style>
+                            </TextBlock>
                         </Border>
-                        <WrapPanel Grid.Column="1"
-                                   HorizontalAlignment="Right">
-                            <Button MinWidth="150"
-                                    Margin="0,0,8,0"
-                                    Style="{StaticResource ActionButton}"
-                                    Visibility="{Binding OpenLatestRecordingFolderButtonVisibility}"
-                                    Command="{Binding OpenLatestRecordingFolderCommand}"
-                                    AutomationProperties.Name="{Binding OpenLatestRecordingFolderButtonText}"
-                                    ToolTip="{Binding OpenLatestRecordingFolderButtonText}"
-                                    Content="{Binding OpenLatestRecordingFolderButtonText}" />
-                            <Button MinWidth="190"
-                                    Style="{StaticResource ActionButton}"
-                                    Click="ShowRecentTranslationsWindow"
-                                    AutomationProperties.Name="{Binding ShowRecentTranslationsButtonText}"
-                                    ToolTip="{Binding ShowRecentTranslationsButtonText}"
-                                    Content="{Binding ShowRecentTranslationsButtonText}" />
-                        </WrapPanel>
-                    </Grid>
+                        <Button MinWidth="190"
+                               Margin="0,0,8,8"
+                               Style="{StaticResource ActionButton}"
+                               Visibility="{Binding OpenLatestRecordingFolderButtonVisibility}"
+                               Command="{Binding OpenLatestRecordingFolderCommand}"
+                               AutomationProperties.Name="{Binding OpenLatestRecordingFolderButtonText}"
+                               ToolTip="{Binding OpenLatestRecordingFolderButtonText}"
+                               Content="{Binding OpenLatestRecordingFolderButtonText}" />
+                        <Button MinWidth="190"
+                               Margin="0,0,0,8"
+                               Style="{StaticResource ActionButton}"
+                               Click="ShowRecentTranslationsWindow"
+                               AutomationProperties.Name="{Binding ShowRecentTranslationsButtonText}"
+                               ToolTip="{Binding ShowRecentTranslationsButtonText}"
+                               Content="{Binding ShowRecentTranslationsButtonText}" />
+                    </WrapPanel>
 
-                    <Border Grid.Row="2"
+                    <TextBlock Grid.Row="2"
+                              Margin="0,2,0,0"
+                              Foreground="#1E3A8A"
+                              TextWrapping="Wrap"
+                              Visibility="{Binding StatusDetailVisibility}"
+                              Text="{Binding StatusDetailMessage}" />
+
+                    <Border Grid.Row="3"
                             Grid.ColumnSpan="4"
                             Margin="0,10,0,0"
                             Padding="10,8"
@@ -363,8 +399,18 @@
                             BorderThickness="1"
                             CornerRadius="10"
                             Visibility="{Binding UpdateBannerVisibility}">
-                        <DockPanel>
-                            <WrapPanel DockPanel.Dock="Right">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0"
+                                       Margin="0,0,0,8"
+                                       TextWrapping="Wrap"
+                                       Foreground="#065F46"
+                                       Text="{Binding UpdateStatusMessage}" />
+                            <WrapPanel Grid.Row="1"
+                                       HorizontalAlignment="Right">
                                 <Button MinWidth="120"
                                         Margin="0,0,8,0"
                                         Style="{StaticResource ActionButton}"
@@ -379,12 +425,7 @@
                                         ToolTip="{Binding UpdateActionButtonText}"
                                         Content="{Binding UpdateActionButtonText}" />
                             </WrapPanel>
-                            <TextBlock VerticalAlignment="Center"
-                                       Margin="0,0,8,0"
-                                       TextWrapping="Wrap"
-                                       Foreground="#065F46"
-                                       Text="{Binding UpdateStatusMessage}" />
-                        </DockPanel>
+                        </Grid>
                     </Border>
                 </Grid>
             </Grid>
@@ -424,7 +465,8 @@
                                 Visibility="{Binding TranslationColumnVisibility}"
                                 Content="{Binding CopyAllTranslatedLogsButtonText}" />
                     </WrapPanel>
-                    <ListBox ItemsSource="{Binding TranslationLogs}"
+                    <ListBox x:Name="TranslationLogListBox"
+                             ItemsSource="{Binding TranslationLogs}"
                              SelectedItem="{Binding SelectedTranslationLog}"
                              BorderThickness="0"
                              Background="Transparent"
@@ -530,8 +572,9 @@
             </Expander>
         </Border>
 
-        <Border Grid.Row="3"
-                Style="{StaticResource Card}">
+            <Border x:Name="StatusCard"
+                    Grid.Row="3"
+                    Style="{StaticResource Card}">
             <Expander IsExpanded="{Binding IsStatusLogExpanded}"
                       AutomationProperties.AutomationId="StatusLogExpander"
                       AutomationProperties.Name="{Binding StatusLogHeader}">
@@ -570,6 +613,7 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
             </Expander>
-        </Border>
-    </Grid>
+            </Border>
+        </Grid>
+    </ScrollViewer>
 </Window>

@@ -65,6 +65,28 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public void InitialState_StatusPresentation_UsesCompactStoppedBadge()
+    {
+        var viewModel = CreateViewModel();
+
+        viewModel.StatusBadgeText.Should().Be(viewModel.SelectedUiLanguage?.Language == UiLanguage.English ? "● Stopped" : "● 停止");
+        viewModel.StatusDetailMessage.Should().BeEmpty();
+        viewModel.StatusDetailVisibility.Should().Be(Visibility.Collapsed);
+    }
+
+    [Fact]
+    public async Task Start_StatusPresentation_ShowsRecordingBadgeWithoutDuplicateDetail()
+    {
+        var viewModel = CreateViewModel();
+
+        await ExecuteAsync(viewModel.StartCommand);
+
+        viewModel.StatusBadgeText.Should().Be(viewModel.SelectedUiLanguage?.Language == UiLanguage.English ? "● Recording" : "● 録音中");
+        viewModel.StatusDetailMessage.Should().BeEmpty();
+        viewModel.StatusDetailVisibility.Should().Be(Visibility.Collapsed);
+    }
+
+    [Fact]
     public async Task Start_WhenCredentialsMissing_ShowsErrorAndDoesNotStart()
     {
         var translationController = new FakeTranslationController();
@@ -652,6 +674,9 @@ public class MainViewModelTests
         await ExecuteAsync(viewModel.StopCommand);
 
         viewModel.OpenLatestRecordingFolderButtonVisibility.Should().Be(Visibility.Visible);
+        viewModel.StatusBadgeText.Should().Be(viewModel.SelectedUiLanguage?.Language == UiLanguage.English ? "● Stopped" : "● 停止");
+        viewModel.StatusDetailVisibility.Should().Be(Visibility.Visible);
+        viewModel.StatusDetailMessage.Should().Contain("保存");
         viewModel.StatusMessage.Should().Contain("保存");
     }
 
