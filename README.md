@@ -62,7 +62,9 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 - Save recording toggle and automatic `{prefix}_yyyyMMdd_HHmmss.txt` file naming.
 - Newest-first translation and status logs.
 - Collapsible translation and status log sections.
-- Compact main controls with status and recording preview placed beside related controls.
+- Compact status badge with recording actions grouped on the right; detailed messages wrap on a separate line.
+- Recording filename preview below the input field, with wrapping for long names.
+- Responsive layout: logs scroll within their pane, while smaller windows can scroll the whole screen when needed.
 - One-click copy for all logs, source-only logs, translation-only logs, and per-card copy actions.
 - Compact activity feed for status events.
 - Wrapped live-note cards for readable source and translation text.
@@ -80,6 +82,12 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 - One-command setup, self-contained publish, and release zip packaging scripts.
 - GitHub Release asset support for easy exe-based installation.
 
+### UI improvements in 1.9.1
+
+The main screen shows a compact `Stopped` / `Recording` badge instead of a stretched status panel. Recording controls, access to the last saved folder, and the live-notes pop-out action are grouped on the right. The saved-folder button appears after a successful stop with saved output.
+
+Detailed status messages and update notices appear below the controls, without squeezing the buttons. Long filename previews wrap below the input. On smaller windows, the screen can scroll vertically to keep controls accessible; on larger windows, the log pane fills the available space and retains its own scrolling.
+
 ## Recommended setup
 
 ### Option 1 (recommended): Install from the release installer
@@ -91,7 +99,7 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 ### Option 2: Download the release zip (portable)
 
 1. Open the latest GitHub release.
-2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`. A versioned copy such as `SpeechTranslatorDesktopPlus-win-x64-1.9.0.zip` is also published for archiving.
+2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`. A versioned copy such as `SpeechTranslatorDesktopPlus-win-x64-1.9.2.zip` is also published for archiving.
 3. Extract it to any writable folder.
 4. Run `SpeechTranslatorDesktopPlus.exe`.
 5. Portable zip mode does not self-replace in place. When updates are detected, the app opens the official installer/release page.

@@ -65,7 +65,9 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 - `記録を保存する` のON/OFF切り替えと `{prefix}_yyyyMMdd_HHmmss.txt` 形式の自動命名
 - 翻訳ログ・状態ログを新しい順に表示
 - 翻訳ログ・状態ログの折りたたみ表示
-- 状態表示と保存プレビューを横配置にした省スペースなメイン操作UI
+- コンパクトな状態バッジと右側にまとめた録音操作。詳細メッセージは別行で折り返して表示
+- ファイル名入力欄の下に保存プレビューを配置し、長い名前は折り返して表示
+- ログ領域内のスクロールを維持し、小さいウィンドウでは必要に応じて画面全体をスクロールできるレイアウト
 - 全ログコピー、原文のみコピー、訳文のみコピー、カード単位コピーに対応
 - 状態イベントをコンパクトなActivity feedとして表示
 - 原文・翻訳文を読みやすく折り返すライブノートカード
@@ -84,6 +86,12 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 - ワンコマンドセットアップ、自己完結型publish、Release zip作成スクリプト
 - exeベースで導入しやすいGitHub Release配布
 
+### 1.9.1 のUI改善
+
+メイン画面の横長の状態パネルを、コンパクトな `停止` / `録音中` バッジに変更しました。録音操作、前回保存先を開くボタン、ライブノートを別ウィンドウで開くボタンを右側にまとめています。保存先ボタンは、ログが保存され、停止が正常に完了した後に表示されます。
+
+詳細な状態メッセージや更新通知は操作ボタンの下に表示し、ボタンの表示領域を圧迫しません。長いファイル名の保存プレビューは入力欄の下で折り返します。小さいウィンドウでは画面全体を縦にスクロールでき、大きいウィンドウではログ領域が空きスペースを使いながら、領域内のスクロールを維持します。
+
 ## おすすめセットアップ
 
 ### 方法1（推奨）: Release インストーラーを利用
@@ -95,7 +103,7 @@ Speech Translator Desktop Plus は、[Azure AI Speech](https://azure.microsoft.c
 ### 方法2: Release zip をダウンロード（ポータブル）
 
 1. 最新の GitHub Release を開きます。
-2. `SpeechTranslatorDesktopPlus-win-x64.zip` をダウンロードします。保管用に `SpeechTranslatorDesktopPlus-win-x64-1.9.0.zip` のような version 付きコピーも公開されます。
+2. `SpeechTranslatorDesktopPlus-win-x64.zip` をダウンロードします。保管用に `SpeechTranslatorDesktopPlus-win-x64-1.9.2.zip` のような version 付きコピーも公開されます。
 3. 任意の書き込み可能なフォルダーへ展開します。
 4. `SpeechTranslatorDesktopPlus.exe` を実行します。
 5. zip 配布版はその場で自己置換しません。更新検出時は公式 Release / installer を開きます。
