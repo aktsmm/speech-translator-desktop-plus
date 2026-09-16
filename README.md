@@ -32,7 +32,7 @@ This project is based on [tsubakimoto/speech-translator](https://github.com/tsub
 - Translation and status logs can be collapsed when you want a smaller live workspace.
 - The main control card keeps status and recording-save hints inline to avoid unnecessary vertical whitespace.
 - Transcript-only mode for cases where translation is not needed.
-- Translation/transcription log recording as UTF-8 text, with automatic timestamped file names.
+- Translation/transcription log recording as UTF-8 text, with automatic timestamped file names and date/time markers roughly every five minutes inside the file.
 - One-click copy for all live log entries, an individual card, source text only, or translation text only. Per-card copy actions sit beside the text so they do not consume a separate row.
 - Last-used UI language, source language, target language, input source, mode, save setting, and file name prefix are saved as soon as they change and restored on the next launch.
 - Recording folder selection, persistence, and "open folder" UI.
@@ -84,7 +84,7 @@ Compared with [tsubakimoto/speech-translator](https://github.com/tsubakimoto/spe
 
 ### UI improvements in 1.9.1
 
-The main screen shows a compact `Stopped` / `Recording` badge instead of a stretched status panel. Recording controls, access to the last saved folder, and the live-notes pop-out action are grouped on the right. The saved-folder button appears after a successful stop with saved output.
+The main screen shows a compact `Stopped` / `Recording` badge instead of a stretched status panel. Recording controls, access to the last saved folder, and the live-notes pop-out action are grouped on the right. The saved-folder button appears after successful cleanup with saved output, whether the session was stopped manually or ended automatically.
 
 Detailed status messages and update notices appear below the controls, without squeezing the buttons. Long filename previews wrap below the input. On smaller windows, the screen can scroll vertically to keep controls accessible; on larger windows, the log pane fills the available space and retains its own scrolling.
 
@@ -99,7 +99,7 @@ Detailed status messages and update notices appear below the controls, without s
 ### Option 2: Download the release zip (portable)
 
 1. Open the latest GitHub release.
-2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`. A versioned copy such as `SpeechTranslatorDesktopPlus-win-x64-1.9.2.zip` is also published for archiving.
+2. Download `SpeechTranslatorDesktopPlus-win-x64.zip`. A versioned copy such as `SpeechTranslatorDesktopPlus-win-x64-1.9.3.zip` is also published for archiving.
 3. Extract it to any writable folder.
 4. Run `SpeechTranslatorDesktopPlus.exe`.
 5. Portable zip mode does not self-replace in place. When updates are detected, the app opens the official installer/release page.
@@ -224,6 +224,7 @@ These providers are selectable so their settings can be prepared and persisted, 
 | App says Azure credentials are missing | Open `Settings` and save the Azure AI Speech `Region` and `API Key`, or set `SPEECH_REGION` and `SPEECH_KEY` as user environment variables before launching the app. |
 | Google Cloud provider says credentials or project are missing | Set `Google Project ID`, then sign in with Application Default Credentials (`gcloud auth application-default login`) or provide a service account JSON path. |
 | No microphone or PC audio is recognized | Check Windows privacy permissions for microphone access and confirm the playback device you want is the Windows default device. |
+| App shows Stopped but cannot restart after automatic session termination | Version 1.9.3 refreshes Start/Stop buttons when automatic cleanup finishes. Check the status log for error details and restart when Start becomes enabled. If cleanup fails, the error is displayed and Stop remains available for retry. |
 | Settings or recording folder changes do not persist | Use a writable install folder and confirm `%LOCALAPPDATA%\SpeechTranslatorDesktop` can be written. |
 | Release zip integrity check is needed | Download `SHA256SUMS.txt` from the release and compare it with `Get-FileHash -Algorithm SHA256 .\SpeechTranslatorDesktopPlus-win-x64.zip`. |
 
@@ -247,6 +248,20 @@ Free tier availability, quotas, and included amounts can change. Check the offic
 Use `Settings` to choose and open the folder where translation logs are saved.
 
 The selected folder is persisted in the local settings database. If no custom folder is selected, logs are saved under `%LocalAppData%\SpeechTranslatorDesktop\recordings` (user data area, update-safe).
+
+### Timestamps inside recordings (1.9.3 and later)
+
+Saved text includes the PC's local date, time, and UTC offset before the first utterance and before the next utterance at least five minutes after the previous marker. This works in both transcription and translation modes; microphone and PC audio share the same per-file interval.
+
+```text
+[2026-09-16 22:45:00 +09:00]
+Me: Let's review today's agenda.
+
+[2026-09-16 23:20:12 +09:00]
+Let's resume after the break.
+```
+
+Silence does not produce empty records: the next utterance gets its actual save time, making gaps in long recordings visible. These are recognition-result save times, not exact audio start times. Markers are added only to saved files; on-screen and copied logs keep their existing format. Existing recordings are not retroactively timestamped.
 
 ## Publish and package
 

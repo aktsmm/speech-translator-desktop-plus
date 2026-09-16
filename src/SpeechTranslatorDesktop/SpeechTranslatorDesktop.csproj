@@ -18,6 +18,8 @@
     <Resource Include="Assets\AppIcon.ico" />
     <Resource Include="Assets\AppIcon.png" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.7" />
+    <!-- Override the transitive 2.x bundle to replace the vulnerable SQLitePCLRaw.lib.e_sqlite3 native library. -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="Velopack" Version="1.2.0" />
     <ProjectReference Include="..\Shared\SpeechTranslatorShared.csproj" />

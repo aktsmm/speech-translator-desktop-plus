@@ -9,6 +9,9 @@ public sealed class DesktopTranslationController : ITranslationController
     private readonly Func<SpeechProviderKind, SpeechCredentials?, GoogleCloudServiceSettings?, string, string, AudioInputSource, RecognitionMode, IDesktopTranslationWorker, CancellationToken, Task<ITranslationSession>> _startSessionAsync;
     private ITranslationSession? _session;
     private ITranslationSession? _sessionBeingStopped;
+    private TaskCompletionSource<Exception?>? _automaticCleanup;
+
+    public event EventHandler<SessionEndedEventArgs>? SessionEnded;
 
     public DesktopTranslationController()
         : this(StartSessionAsync)
@@ -53,7 +56,7 @@ public sealed class DesktopTranslationController : ITranslationController
             _session = session;
         }
 
-        _ = ObserveCompletionAsync(session);
+        _ = ObserveCompletionAsync(session, worker);
     }
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
@@ -61,14 +64,27 @@ public sealed class DesktopTranslationController : ITranslationController
         cancellationToken.ThrowIfCancellationRequested();
 
         ITranslationSession? session;
+        Task<Exception?>? automaticCleanup;
         lock (_syncRoot)
         {
             session = _session;
+            automaticCleanup = _automaticCleanup?.Task;
 
-            if (session is not null)
+            if (session is not null && automaticCleanup is null)
             {
                 _sessionBeingStopped = session;
             }
+        }
+
+        if (automaticCleanup is not null)
+        {
+            var error = await automaticCleanup.ConfigureAwait(false);
+            if (error is not null)
+            {
+                throw new InvalidOperationException($"Session cleanup failed: {error.Message}", error);
+            }
+
+            return;
         }
 
         if (session is null)
@@ -108,29 +124,53 @@ public sealed class DesktopTranslationController : ITranslationController
         }
     }
 
-    private async Task ObserveCompletionAsync(ITranslationSession session)
+    private async Task ObserveCompletionAsync(ITranslationSession session, IDesktopTranslationWorker worker)
     {
+        Exception? error = null;
         try
         {
             await session.Completion.ConfigureAwait(false);
         }
-        finally
+        catch (Exception ex)
         {
-            var shouldDispose = false;
-            lock (_syncRoot)
+            error = ex;
+        }
+
+        TaskCompletionSource<Exception?> cleanup;
+        lock (_syncRoot)
+        {
+            if (!ReferenceEquals(_session, session) || ReferenceEquals(_sessionBeingStopped, session))
             {
-                if (ReferenceEquals(_session, session) && !ReferenceEquals(_sessionBeingStopped, session))
-                {
-                    _session = null;
-                    shouldDispose = true;
-                }
+                return;
             }
 
-            if (shouldDispose)
-            {
-                await session.DisposeAsync().ConfigureAwait(false);
-            }
+            cleanup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            _automaticCleanup = cleanup;
         }
+
+        var disposed = false;
+        try
+        {
+            await session.DisposeAsync().ConfigureAwait(false);
+            disposed = true;
+        }
+        catch (Exception ex)
+        {
+            error = error is null ? ex : new AggregateException(error, ex);
+        }
+
+        lock (_syncRoot)
+        {
+            if (disposed && ReferenceEquals(_session, session))
+            {
+                _session = null;
+            }
+
+            _automaticCleanup = null;
+        }
+
+        cleanup.TrySetResult(error);
+        SessionEnded?.Invoke(this, new SessionEndedEventArgs(worker, error));
     }
 
     private static async Task<ITranslationSession> StartSessionAsync(SpeechProviderKind speechProvider, SpeechCredentials? credentials, GoogleCloudServiceSettings? googleSettings, string sourceLanguage, string targetLanguage, AudioInputSource audioInputSource, RecognitionMode recognitionMode, IDesktopTranslationWorker worker, CancellationToken cancellationToken)
