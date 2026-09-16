@@ -1117,6 +1117,176 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public async Task SessionEnded_AfterTerminalStatus_RefreshesCachedButtonStates()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var controller = new FakeTranslationController();
+        var viewModel = CreateViewModel(
+            translationController: controller,
+            workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+        var startEnabled = viewModel.StartCommand.CanExecute(null);
+        var stopEnabled = viewModel.StopCommand.CanExecute(null);
+        var folderEnabled = viewModel.ChooseRecordingsFolderCommand.CanExecute(null);
+        viewModel.StartCommand.CanExecuteChanged += (_, _) => startEnabled = viewModel.StartCommand.CanExecute(null);
+        viewModel.StopCommand.CanExecuteChanged += (_, _) => stopEnabled = viewModel.StopCommand.CanExecute(null);
+        viewModel.ChooseRecordingsFolderCommand.CanExecuteChanged += (_, _) => folderEnabled = viewModel.ChooseRecordingsFolderCommand.CanExecute(null);
+
+        await ExecuteAsync(viewModel.StartCommand);
+        worker.RaiseStatusChanged(DesktopTranslationStatus.SessionStopped, "セッション停止");
+        startEnabled.Should().BeFalse();
+        stopEnabled.Should().BeTrue();
+        folderEnabled.Should().BeFalse();
+
+        controller.CompleteSession(worker);
+
+        startEnabled.Should().BeTrue();
+        stopEnabled.Should().BeFalse();
+        folderEnabled.Should().BeTrue();
+        viewModel.IsRunning.Should().BeFalse();
+        await ExecuteAsync(viewModel.StartCommand);
+        controller.StartCallCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task TerminalStatus_KeepsDiagnosticMessagesUntilControllerCleanupFinishes()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var controller = new FakeTranslationController();
+        var viewModel = CreateViewModel(
+            translationController: controller,
+            workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+
+        await ExecuteAsync(viewModel.StartCommand);
+        worker.RaiseStatusChanged(DesktopTranslationStatus.Canceled, "Cancel/Error");
+        worker.RaiseMessageLogged("service inactivity: client buffer exceeded maximum size");
+        controller.CompleteSession(worker);
+        worker.RaiseMessageLogged("late message");
+
+        viewModel.ActivityLogs.Should().Contain("service inactivity: client buffer exceeded maximum size");
+        viewModel.ActivityLogs.Should().NotContain("late message");
+    }
+
+    [Fact]
+    public async Task SessionEnded_WhenTextWasSaved_ShowsSavedFolderWithoutManualStop()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var controller = new FakeTranslationController();
+        var viewModel = CreateViewModel(
+            translationController: controller,
+            workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+
+        await ExecuteAsync(viewModel.StartCommand);
+        worker.RaiseStatusChanged(DesktopTranslationStatus.TranslatedSpeech, "書き起こし成功");
+        worker.RaiseStatusChanged(DesktopTranslationStatus.SessionStopped, "セッション停止");
+        controller.CompleteSession(worker);
+
+        viewModel.OpenLatestRecordingFolderButtonVisibility.Should().Be(Visibility.Visible);
+        viewModel.StatusMessage.Should().Be("停止（保存済み）");
+        controller.StopCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task SessionEnded_DuringManualStop_DoesNotClearSavedStateBeforeStopFinishes()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var controller = new FakeTranslationController();
+        var viewModel = CreateViewModel(
+            translationController: controller,
+            workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+        controller.OnStop = () => controller.CompleteSession(worker);
+
+        await ExecuteAsync(viewModel.StartCommand);
+        worker.RaiseStatusChanged(DesktopTranslationStatus.TranslatedSpeech, "書き起こし成功");
+        await ExecuteAsync(viewModel.StopCommand);
+
+        viewModel.OpenLatestRecordingFolderButtonVisibility.Should().Be(Visibility.Visible);
+        viewModel.StatusMessage.Should().Be("停止（保存済み）");
+        viewModel.StartCommand.CanExecute(null).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task SessionEnded_WhenCleanupFails_ReportsErrorAndAllowsStopRetry()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var controller = new FakeTranslationController();
+        var viewModel = CreateViewModel(
+            translationController: controller,
+            workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+
+        await ExecuteAsync(viewModel.StartCommand);
+        worker.RaiseStatusChanged(DesktopTranslationStatus.SessionStopped, "セッション停止");
+        controller.CompleteSession(worker, new InvalidOperationException("cleanup failed"));
+
+        viewModel.StatusMessage.Should().Contain("cleanup failed");
+        viewModel.ActivityLogs.Should().Contain(viewModel.StatusMessage);
+        viewModel.StartCommand.CanExecute(null).Should().BeFalse();
+        viewModel.StopCommand.CanExecute(null).Should().BeTrue();
+        await ExecuteAsync(viewModel.StopCommand);
+        controller.StopCallCount.Should().Be(1);
+        viewModel.StartCommand.CanExecute(null).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Start_WhenSessionEndsBeforeStartReturns_DoesNotRestoreRecordingState()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var controller = new FakeTranslationController { EndDuringStart = true };
+        var viewModel = CreateViewModel(
+            translationController: controller,
+            workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+
+        await ExecuteAsync(viewModel.StartCommand);
+
+        viewModel.IsRunning.Should().BeFalse();
+        viewModel.StartCommand.CanExecute(null).Should().BeTrue();
+        viewModel.StopCommand.CanExecute(null).Should().BeFalse();
+        viewModel.StatusMessage.Should().NotBe("開始");
+        worker.RaiseMessageLogged("late message");
+        viewModel.ActivityLogs.Should().NotContain("late message");
+    }
+
+    [Fact]
+    public async Task SessionEnded_FromBackgroundThread_RefreshesCommandsOnUiThread()
+    {
+        await RunOnSynchronizationContextAsync(async uiThreadId =>
+        {
+            var worker = new FakeDesktopTranslationWorker();
+            var controller = new FakeTranslationController();
+            var viewModel = CreateViewModel(
+                dispatcher: new SynchronizationContextDispatcher(SynchronizationContext.Current!),
+                translationController: controller,
+                workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+            await ExecuteAsync(viewModel.StartCommand);
+            var commandThreadIds = new List<int>();
+            viewModel.StartCommand.CanExecuteChanged += (_, _) => commandThreadIds.Add(Environment.CurrentManagedThreadId);
+            viewModel.StopCommand.CanExecuteChanged += (_, _) => commandThreadIds.Add(Environment.CurrentManagedThreadId);
+
+            await Task.Run(() => controller.CompleteSession(worker));
+
+            commandThreadIds.Should().NotBeEmpty().And.OnlyContain(id => id == uiThreadId);
+            viewModel.StartCommand.CanExecute(null).Should().BeTrue();
+        });
+    }
+
+    [Fact]
+    public async Task SessionEnded_WhenNotificationBelongsToAnotherWorker_IgnoresIt()
+    {
+        var worker = new FakeDesktopTranslationWorker();
+        var controller = new FakeTranslationController();
+        var viewModel = CreateViewModel(
+            translationController: controller,
+            workerFactory: new FakeDesktopTranslationWorkerFactory(worker));
+        await ExecuteAsync(viewModel.StartCommand);
+
+        controller.CompleteSession(new FakeDesktopTranslationWorker(), new InvalidOperationException("old session"));
+
+        viewModel.IsRunning.Should().BeTrue();
+        viewModel.StatusMessage.Should().NotContain("old session");
+        worker.RaiseMessageLogged("current session");
+        viewModel.ActivityLogs.Should().Contain("current session");
+    }
+
+    [Fact]
     public async Task WorkerStatusEvents_AddsNewestStatusLogFirst()
     {
         var worker = new FakeDesktopTranslationWorker();
@@ -1456,13 +1626,23 @@ public class MainViewModelTests
 
     private sealed class FakeTranslationController : ITranslationController
     {
+        public event EventHandler<SessionEndedEventArgs>? SessionEnded;
+
+        public void CompleteSession(IDesktopTranslationWorker worker, Exception? error = null)
+        {
+            IsRunning = error is not null;
+            SessionEnded?.Invoke(this, new SessionEndedEventArgs(worker, error));
+        }
+
         public int StartCallCount { get; private set; }
         public int StopCallCount { get; private set; }
         public bool IsRunning { get; set; }
         public bool StartShouldYield { get; init; }
+        public bool EndDuringStart { get; init; }
         public Exception? StopException { get; init; }
         public bool KeepRunningOnStopFailure { get; init; }
         public Action<IDesktopTranslationWorker>? OnStart { get; init; }
+        public Action? OnStop { get; set; }
         public SpeechCredentials? LastStartCredentials { get; private set; }
         public GoogleCloudServiceSettings? LastGoogleSettings { get; private set; }
         public SpeechProviderKind? LastSpeechProvider { get; private set; }
@@ -1488,6 +1668,10 @@ public class MainViewModelTests
                 LastRecognitionMode = recognitionMode;
                 OnStart?.Invoke(worker);
                 IsRunning = true;
+                if (EndDuringStart)
+                {
+                    CompleteSession(worker);
+                }
             }
         }
 
@@ -1498,6 +1682,7 @@ public class MainViewModelTests
             Task StopAsyncCore()
             {
                 StopCallCount++;
+                OnStop?.Invoke();
 
                 if (StopException is not null)
                 {

@@ -1,5 +1,6 @@
 using System.Text;
 using System.Diagnostics;
+using System.Globalization;
 
 namespace SpeechTranslatorDesktop.Services;
 
@@ -14,9 +15,11 @@ public sealed class RecordingFileService : IRecordingFileService
 
     private readonly string _rootDirectory;
     private readonly object _appendSyncRoot = new();
+    private readonly TimeProvider _timeProvider;
+    private readonly Dictionary<string, long> _lastTimestampByFile = new(StringComparer.OrdinalIgnoreCase);
     private string _recordingsDirectory;
 
-    public RecordingFileService(string rootDirectory)
+    public RecordingFileService(string rootDirectory, TimeProvider? timeProvider = null)
     {
         if (string.IsNullOrWhiteSpace(rootDirectory))
         {
@@ -24,6 +27,7 @@ public sealed class RecordingFileService : IRecordingFileService
         }
 
         _rootDirectory = rootDirectory;
+        _timeProvider = timeProvider ?? TimeProvider.System;
         _recordingsDirectory = Path.Combine(_rootDirectory, "recordings");
     }
 
@@ -40,17 +44,7 @@ public sealed class RecordingFileService : IRecordingFileService
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceText);
         ArgumentException.ThrowIfNullOrWhiteSpace(translatedText);
 
-        var recordingsDirectory = RecordingsDirectory;
-        var filePath = GetRecordingFilePath(recordingsDirectory, safeFileName);
-        Directory.CreateDirectory(recordingsDirectory);
-
-        lock (_appendSyncRoot)
-        {
-            using var streamWriter = new StreamWriter(filePath, append: true, Encoding.UTF8);
-            streamWriter.WriteLine(FormatLine(sourceText, speakerLabel));
-            streamWriter.WriteLine(translatedText);
-            streamWriter.WriteLine();
-        }
+        AppendEntry(safeFileName, sourceText, translatedText, speakerLabel);
     }
 
     public void AppendTranscription(string? fileName, string sourceText, string? speakerLabel = null)
@@ -63,15 +57,41 @@ public sealed class RecordingFileService : IRecordingFileService
 
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceText);
 
-        var recordingsDirectory = RecordingsDirectory;
-        var filePath = GetRecordingFilePath(recordingsDirectory, safeFileName);
-        Directory.CreateDirectory(recordingsDirectory);
+        AppendEntry(safeFileName, sourceText, null, speakerLabel);
+    }
 
+    private void AppendEntry(string fileName, string sourceText, string? translatedText, string? speakerLabel)
+    {
         lock (_appendSyncRoot)
         {
-            using var streamWriter = new StreamWriter(filePath, append: true, Encoding.UTF8);
-            streamWriter.WriteLine(FormatLine(sourceText, speakerLabel));
-            streamWriter.WriteLine();
+            var recordingsDirectory = RecordingsDirectory;
+            var filePath = GetRecordingFilePath(recordingsDirectory, fileName);
+            Directory.CreateDirectory(recordingsDirectory);
+            var now = _timeProvider.GetTimestamp();
+            var writeTimestamp = !_lastTimestampByFile.TryGetValue(filePath, out var lastTimestamp)
+                || _timeProvider.GetElapsedTime(lastTimestamp, now) >= TimeSpan.FromMinutes(5);
+
+            using (var streamWriter = new StreamWriter(filePath, append: true, Encoding.UTF8))
+            {
+                writeTimestamp |= streamWriter.BaseStream.Length == 0;
+                if (writeTimestamp)
+                {
+                    streamWriter.WriteLine($"[{_timeProvider.GetLocalNow().ToString("yyyy-MM-dd HH:mm:ss zzz", CultureInfo.InvariantCulture)}]");
+                }
+
+                streamWriter.WriteLine(FormatLine(sourceText, speakerLabel));
+                if (translatedText is not null)
+                {
+                    streamWriter.WriteLine(translatedText);
+                }
+
+                streamWriter.WriteLine();
+            }
+
+            if (writeTimestamp)
+            {
+                _lastTimestampByFile[filePath] = now;
+            }
         }
     }
 

@@ -51,6 +51,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private bool _isAutoUpdateCheckEnabled = true;
     private bool _isRunning;
     private bool _isSessionTransitionInProgress;
+    private bool _isStoppingSession;
     private bool _hasSessionRecordingOutput;
     private bool _activeSessionRecordingSaveFailed;
     private string? _activeSessionRecordingFolderPath;
@@ -191,6 +192,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         CheckForUpdatesCommand = new AsyncRelayCommand(CheckForUpdatesAsync, () => !_isUpdateOperationInProgress, _dispatcher, HandleCommandException);
         ApplyUpdateCommand = new AsyncRelayCommand(ApplyUpdateAsync, () => _pendingUpdatePackage is not null && !_isUpdateOperationInProgress, _dispatcher, HandleCommandException);
         SaveSettingsCommand = new AsyncRelayCommand(SaveSettingsAsync, dispatcher: _dispatcher, onException: HandleSettingsCommandException);
+        _translationController.SessionEnded += OnSessionEnded;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -1154,6 +1156,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _showOpenLatestRecordingFolderButton = false;
         OnPropertyChanged(nameof(OpenLatestRecordingFolderButtonVisibility));
         SubscribeWorker(worker);
+        _currentWorker = worker;
         SetSessionTransitionInProgress(true);
 
         try
@@ -1169,10 +1172,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 recognitionMode,
                 worker);
 
-            _currentWorker = worker;
-            IsRunning = true;
-            StatusMessage = Text("開始", "Started");
-            AddActivityLog(IsTranslationMode ? Text("翻訳を開始しました。", "Translation started.") : Text("書き起こしを開始しました。", "Transcription started."));
+            IsRunning = _translationController.IsRunning;
+            if (IsRunning)
+            {
+                StatusMessage = Text("開始", "Started");
+                AddActivityLog(IsTranslationMode ? Text("翻訳を開始しました。", "Translation started.") : Text("書き起こしを開始しました。", "Transcription started."));
+            }
             if (recordingFileName is not null)
             {
                 AddActivityLog(Text($"記録ファイル: {recordingFileName}.txt", $"Recording file: {recordingFileName}.txt"));
@@ -1181,6 +1186,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
         catch (Exception ex)
         {
             UnsubscribeWorker(worker);
+            if (ReferenceEquals(_currentWorker, worker))
+            {
+                _currentWorker = null;
+            }
             StatusMessage = ex.Message;
             AddActivityLog(ex.Message);
         }
@@ -1528,37 +1537,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private async Task StopAsync()
     {
+        _isStoppingSession = true;
         SetSessionTransitionInProgress(true);
         try
         {
             await _translationController.StopAsync();
-            if (_activeSessionRecordingFolderPath is not null && !_activeSessionRecordingSaveFailed && _hasSessionRecordingOutput)
-            {
-                _lastSavedRecordingFolderPath = _activeSessionRecordingFolderPath;
-                _showOpenLatestRecordingFolderButton = true;
-                OnPropertyChanged(nameof(OpenLatestRecordingFolderButtonVisibility));
-                StatusMessage = Text("停止（保存済み）", "Stopped (saved)");
-                AddActivityLog(Text($"保存済み: {_lastSavedRecordingFolderPath}", $"Saved to: {_lastSavedRecordingFolderPath}"));
-            }
-            else if (_activeSessionRecordingFolderPath is not null && !_activeSessionRecordingSaveFailed)
-            {
-                _showOpenLatestRecordingFolderButton = false;
-                OnPropertyChanged(nameof(OpenLatestRecordingFolderButtonVisibility));
-                StatusMessage = Text("停止（保存対象の発話なし）", "Stopped (no speech saved)");
-                AddActivityLog(Text("保存対象の発話はありませんでした。", "No speech was captured for saving."));
-            }
-            else if (_activeSessionRecordingSaveFailed)
-            {
-                _showOpenLatestRecordingFolderButton = false;
-                OnPropertyChanged(nameof(OpenLatestRecordingFolderButtonVisibility));
-                StatusMessage = Text("停止（保存エラーあり）", "Stopped (save error)");
-            }
-            else
-            {
-                _showOpenLatestRecordingFolderButton = false;
-                OnPropertyChanged(nameof(OpenLatestRecordingFolderButtonVisibility));
-                StatusMessage = Text("停止", "Stopped");
-            }
+            UpdateStoppedRecordingStatus();
 
             AddActivityLog(IsTranslationMode ? Text("翻訳を停止しました。", "Translation stopped.") : Text("書き起こしを停止しました。", "Transcription stopped."));
         }
@@ -1571,6 +1555,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
         finally
         {
+            _isStoppingSession = false;
             IsRunning = _translationController.IsRunning;
             SetSessionTransitionInProgress(false);
             RaiseSessionCommandStatesChanged();
@@ -1590,6 +1575,62 @@ public sealed class MainViewModel : INotifyPropertyChanged
         worker.StatusChanged += OnWorkerStatusChanged;
         worker.MessageLogged += OnWorkerMessageLogged;
         worker.TranslationLogged += OnWorkerTranslationLogged;
+    }
+
+    private void UpdateStoppedRecordingStatus()
+    {
+        _showOpenLatestRecordingFolderButton =
+            _activeSessionRecordingFolderPath is not null && !_activeSessionRecordingSaveFailed && _hasSessionRecordingOutput;
+        OnPropertyChanged(nameof(OpenLatestRecordingFolderButtonVisibility));
+        if (_showOpenLatestRecordingFolderButton)
+        {
+            _lastSavedRecordingFolderPath = _activeSessionRecordingFolderPath;
+            StatusMessage = Text("停止（保存済み）", "Stopped (saved)");
+            AddActivityLog(Text($"保存済み: {_lastSavedRecordingFolderPath}", $"Saved to: {_lastSavedRecordingFolderPath}"));
+        }
+        else if (_activeSessionRecordingSaveFailed)
+        {
+            StatusMessage = Text("停止（保存エラーあり）", "Stopped (save error)");
+        }
+        else if (_activeSessionRecordingFolderPath is not null)
+        {
+            StatusMessage = Text("停止（保存対象の発話なし）", "Stopped (no speech saved)");
+            AddActivityLog(Text("保存対象の発話はありませんでした。", "No speech was captured for saving."));
+        }
+        else
+        {
+            StatusMessage = Text("停止", "Stopped");
+        }
+    }
+
+    private void OnSessionEnded(object? sender, SessionEndedEventArgs e)
+    {
+        _dispatcher.Invoke(() =>
+        {
+            if (!ReferenceEquals(_currentWorker, e.Worker) || _isStoppingSession)
+            {
+                return;
+            }
+
+            IsRunning = _translationController.IsRunning;
+            if (!IsRunning)
+            {
+                UpdateStoppedRecordingStatus();
+                DetachCurrentWorker();
+                _activeSessionRecordingFolderPath = null;
+                _hasSessionRecordingOutput = false;
+                _activeSessionRecordingSaveFailed = false;
+            }
+
+            if (e.Error is not null)
+            {
+                StatusMessage = Text($"セッションの終了処理に失敗しました: {e.Error.Message}", $"Session cleanup failed: {e.Error.Message}");
+                AddActivityLog(StatusMessage);
+            }
+
+            // Worker terminal events arrive before the controller releases the session.
+            RaiseSessionCommandStatesChanged();
+        });
     }
 
     private void UnsubscribeWorker(IDesktopTranslationWorker worker)
@@ -1624,16 +1665,6 @@ public sealed class MainViewModel : INotifyPropertyChanged
             {
                 IsRunning = false;
                 RaiseSessionCommandStatesChanged();
-
-                if (sender is IDesktopTranslationWorker worker)
-                {
-                    UnsubscribeWorker(worker);
-
-                    if (ReferenceEquals(_currentWorker, worker))
-                    {
-                        _currentWorker = null;
-                    }
-                }
             }
         });
     }

@@ -87,6 +87,159 @@ public class DesktopTranslationControllerTests
     }
 
     [Fact]
+    public async Task Completion_NotifiesAfterCleanupAndClearsRunningState()
+    {
+        var session = new FakeTranslationSession();
+        var disposeStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var disposeGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        session.EnqueueDisposeBehavior(() =>
+        {
+            disposeStarted.SetResult();
+            return new ValueTask(disposeGate.Task);
+        });
+        var controller = CreateController(session);
+        var ended = new TaskCompletionSource<SessionEndedEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
+        controller.SessionEnded += (_, e) => ended.TrySetResult(e);
+        var worker = new FakeDesktopTranslationWorker();
+        await controller.StartAsync(SpeechProviderKind.AzureAiSpeech, new SpeechCredentials("japaneast", "test-key"), null, "en-US", "ja-JP", AudioInputSource.Microphone, RecognitionMode.TranscriptionOnly, worker);
+
+        session.Complete();
+        await disposeStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        controller.IsRunning.Should().BeTrue();
+        ended.Task.IsCompleted.Should().BeFalse();
+        disposeGate.SetResult();
+        var result = await ended.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        result.Worker.Should().BeSameAs(worker);
+        result.Error.Should().BeNull();
+        controller.IsRunning.Should().BeFalse();
+        session.DisposeCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Completion_AfterAutomaticCleanup_CanStartAndStopNewSession()
+    {
+        var first = new FakeTranslationSession();
+        var second = new FakeTranslationSession();
+        second.EnqueueStopBehavior(() =>
+        {
+            second.Complete();
+            return Task.CompletedTask;
+        });
+        var sessions = new Queue<ITranslationSession>([first, second]);
+        var controller = new DesktopTranslationController((_, _, _, _, _, _, _, _, _) =>
+            Task.FromResult(sessions.Dequeue()));
+        var ended = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        controller.SessionEnded += (_, _) => ended.TrySetResult();
+
+        await controller.StartAsync(SpeechProviderKind.AzureAiSpeech, new SpeechCredentials("japaneast", "test-key"), null, "en-US", "ja-JP", AudioInputSource.Microphone, RecognitionMode.TranscriptionOnly, new FakeDesktopTranslationWorker());
+        first.Complete();
+        await ended.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await controller.StartAsync(SpeechProviderKind.AzureAiSpeech, new SpeechCredentials("japaneast", "test-key"), null, "en-US", "ja-JP", AudioInputSource.Microphone, RecognitionMode.TranscriptionOnly, new FakeDesktopTranslationWorker());
+        controller.IsRunning.Should().BeTrue();
+
+        await controller.StopAsync();
+
+        controller.IsRunning.Should().BeFalse();
+        first.DisposeCallCount.Should().Be(1);
+        second.StopCallCount.Should().Be(1);
+        second.DisposeCallCount.Should().Be(1);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task StopAsync_DuringAutomaticCleanup_WaitsWithoutDisposingTwice(bool cleanupFails)
+    {
+        var session = new FakeTranslationSession();
+        var disposeStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var disposeGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        session.EnqueueDisposeBehavior(() =>
+        {
+            disposeStarted.SetResult();
+            return new ValueTask(disposeGate.Task);
+        });
+        var controller = CreateController(session);
+        await controller.StartAsync(SpeechProviderKind.AzureAiSpeech, new SpeechCredentials("japaneast", "test-key"), null, "en-US", "ja-JP", AudioInputSource.Microphone, RecognitionMode.TranscriptionOnly, new FakeDesktopTranslationWorker());
+
+        session.Complete();
+        await disposeStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var stop = controller.StopAsync();
+        stop.IsCompleted.Should().BeFalse();
+        if (cleanupFails)
+        {
+            disposeGate.SetException(new InvalidOperationException("dispose failed"));
+            await FluentActions.Awaiting(() => stop.WaitAsync(TimeSpan.FromSeconds(5)))
+                .Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("*dispose failed*");
+        }
+        else
+        {
+            disposeGate.SetResult();
+            await stop.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+
+        controller.IsRunning.Should().Be(cleanupFails);
+        session.StopCallCount.Should().Be(0);
+        session.DisposeCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Completion_WhenCleanupFails_ReportsErrorAndRetainsSessionForRetry()
+    {
+        var session = new FakeTranslationSession();
+        var error = new InvalidOperationException("cleanup failed");
+        session.EnqueueDisposeBehavior(() => ValueTask.FromException(error));
+        var controller = CreateController(session);
+        var ended = new TaskCompletionSource<SessionEndedEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
+        controller.SessionEnded += (_, e) => ended.TrySetResult(e);
+        await controller.StartAsync(SpeechProviderKind.AzureAiSpeech, new SpeechCredentials("japaneast", "test-key"), null, "en-US", "ja-JP", AudioInputSource.Microphone, RecognitionMode.TranscriptionOnly, new FakeDesktopTranslationWorker());
+
+        session.Complete();
+        var result = await ended.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        result.Error.Should().BeSameAs(error);
+        controller.IsRunning.Should().BeTrue();
+
+        await controller.StopAsync();
+        controller.IsRunning.Should().BeFalse();
+        session.DisposeCallCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Completion_WhenFaulted_StillCleansUpAndReportsFailure()
+    {
+        var session = new FakeTranslationSession();
+        var error = new InvalidOperationException("recognition failed");
+        var controller = CreateController(session);
+        var ended = new TaskCompletionSource<SessionEndedEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
+        controller.SessionEnded += (_, e) => ended.TrySetResult(e);
+        await controller.StartAsync(SpeechProviderKind.AzureAiSpeech, new SpeechCredentials("japaneast", "test-key"), null, "en-US", "ja-JP", AudioInputSource.Microphone, RecognitionMode.TranscriptionOnly, new FakeDesktopTranslationWorker());
+
+        session.Fail(error);
+        var result = await ended.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        result.Error.Should().BeSameAs(error);
+        controller.IsRunning.Should().BeFalse();
+        session.DisposeCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Completion_WhenAlreadyCompleteDuringStart_StillNotifies()
+    {
+        var session = new FakeTranslationSession();
+        session.Complete();
+        var controller = CreateController(session);
+        var ended = new TaskCompletionSource<SessionEndedEventArgs>(TaskCreationOptions.RunContinuationsAsynchronously);
+        controller.SessionEnded += (_, e) => ended.TrySetResult(e);
+
+        await controller.StartAsync(SpeechProviderKind.AzureAiSpeech, new SpeechCredentials("japaneast", "test-key"), null, "en-US", "ja-JP", AudioInputSource.Microphone, RecognitionMode.TranscriptionOnly, new FakeDesktopTranslationWorker());
+        await ended.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        controller.IsRunning.Should().BeFalse();
+        session.DisposeCallCount.Should().Be(1);
+    }
+
+    [Fact]
     public async Task CompositeTranslationSession_WhenOneChildCompletes_StopsSiblingAndCompletesAfterAllChildren()
     {
         var first = new FakeTranslationSession();
@@ -159,6 +312,12 @@ public class DesktopTranslationControllerTests
         {
             IsRunning = false;
             _completion.TrySetResult();
+        }
+
+        public void Fail(Exception error)
+        {
+            IsRunning = false;
+            _completion.TrySetException(error);
         }
 
         public Task StopAsync()
